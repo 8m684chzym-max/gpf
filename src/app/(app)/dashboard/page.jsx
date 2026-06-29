@@ -29,14 +29,14 @@ export default function Dashboard() {
       <div className="grid2">
         <button className="quick" onClick={() => router.push("/submit")}><Plus size={18} /><span>Submit a round</span><ChevronRight size={16} className="chev" /></button>
         <button className="quick" onClick={() => router.push("/road")}><ListOrdered size={18} /><span>Road to GPF</span><ChevronRight size={16} className="chev" /></button>
-        <button className="quick" onClick={() => router.push("/weekend")}><Trophy size={18} /><span>GPF Weekend</span><ChevronRight size={16} className="chev" /></button>
+        <button className="quick" onClick={() => router.push("/weekend")}><Trophy size={18} /><span>GPF Open 2026</span><ChevronRight size={16} className="chev" /></button>
         <button className="quick" onClick={() => router.push("/final")}><Flag size={18} /><span>Final standings</span><ChevronRight size={16} className="chev" /></button>
       </div>
       <div className="sec-h">Your recent rounds</div>
       {d.mine.length === 0 && <div className="card empty">No rounds yet. Submit your first qualifying round to start the road.</div>}
       {d.mine.slice(0, 5).map((r) => (
         <div key={r.id} className="card row-card">
-          <div><div className="row-title">{r.course?.name} · {r.tee?.name}</div><div className="muted small">{r.date?.slice(0, 10)} · {r.type === "WEEKEND" ? `GPF Weekend R${r.roundNo}` : "Qualifying"}{r.source === "OCR" ? " · from scorecard" : ""}</div></div>
+          <div><div className="row-title">{r.course?.name} · {r.tee?.name}</div><div className="muted small">{r.date?.slice(0, 10)} · {r.type === "WEEKEND" ? `GPF Open 2026 R${r.roundNo}` : "Qualifying"}{r.source === "OCR" ? " · from scorecard" : ""}</div></div>
           <div className="row-right"><div className="gross">{r.gross}</div><span className={`badge badge-${r.status === "APPROVED" ? "ok" : r.status === "REJECTED" ? "bad" : "warn"}`}>{r.status.toLowerCase()}</span>
             {r.status !== "REJECTED" && <button className="icon-btn" title="Reject this round" onClick={async () => { if (confirm(`Reject this round from ${r.date?.slice(0, 10)}?`)) { await api(`/api/rounds/${r.id}`, { method: "PATCH", body: JSON.stringify({ action: "userReject" }) }); location.reload(); } }} style={{ marginLeft: 8, color: "var(--text-danger)" }}>✕</button>}
           </div>

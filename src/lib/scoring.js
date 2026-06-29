@@ -61,7 +61,7 @@ export function isQualified(user, rounds, config) {
   return approvedQualifying(rounds, user.id).length >= (config?.qualifyingRoundsRequired ?? 3);
 }
 
-// GPF Weekend: Medal Net at the configured allowance, two rounds added.
+// GPF Open 2026: Medal Net at the configured allowance, two rounds added.
 export function buildFinalBoard(users, rounds, config) {
   const rows = users.map((u) => {
     const hcp = calcHandicap(u, rounds, config).value;

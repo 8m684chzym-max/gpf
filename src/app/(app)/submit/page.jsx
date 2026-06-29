@@ -83,7 +83,7 @@ export default function Submit() {
       <div className="card form">
         <div className="grid2">
           <label className="field"><span className="label">Round type</span><select className="input" value={f.type} onChange={(e) => set("type", e.target.value)}>
-            <option value="QUALIFYING">Qualifying (Road to GPF)</option><option value="WEEKEND">GPF Weekend</option></select></label>
+            <option value="QUALIFYING">Qualifying (Road to GPF)</option><option value="WEEKEND">GPF Open 2026</option></select></label>
           {f.type === "WEEKEND" ? (
             <label className="field"><span className="label">Which round</span><select className="input" value={f.roundNo} onChange={(e) => set("roundNo", e.target.value)}>
               <option value={1}>Round 1 (Saturday)</option><option value={2}>Round 2 (Sunday)</option></select></label>

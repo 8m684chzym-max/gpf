@@ -10,7 +10,7 @@ export default function Final() {
   if (!d) return <div className="loading"><Loader2 className="spin" size={22} /> Loading…</div>;
   return (
     <div className="stack">
-      <div className="final-hero"><Trophy size={18} /><div><div className="auth-eyebrow">GPF Weekend · {d.config.year}</div><h2 className="page-h tight">Final standings</h2></div></div>
+      <div className="final-hero"><Trophy size={18} /><div><div className="auth-eyebrow">GPF Open 2026 · {d.config.year}</div><h2 className="page-h tight">Final standings</h2></div></div>
       <p className="muted small">Lowest two-round net wins. Ties: {TIEBREAK[d.config.tiebreak]}.</p>
       <div className="board lb">
         <div className="board-head lb-head"><span className="bh-rank">#</span><span className="bh-name">Player</span><span className="bh-c">Hcp</span><span className="bh-c">R1</span><span className="bh-c">R2</span><span className="bh-c tot">Net</span></div>

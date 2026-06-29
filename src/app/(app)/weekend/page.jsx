@@ -18,7 +18,33 @@ export default function Weekend() {
   const dt = (x) => (x ? String(x).slice(0, 10) : "TBC");
   return (
     <div className="stack">
-      <h2 className="page-h">GPF Weekend</h2>
+      <h2 className="page-h">GPF Open 2026</h2>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
+        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+          <div style={{ background: "#f0f0f0", height: 120, display: "flex", alignItems: "center", justifyContent: "center", color: "#999", fontSize: 12 }}>
+            Isla Canela Links
+          </div>
+          <div style={{ padding: 16 }}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Day 1 — Saturday</div>
+            <div style={{ fontSize: 13, color: "#666", lineHeight: 1.6 }}>
+              <strong>Isla Canela Links</strong><br/>
+              Huelva, Spain
+            </div>
+          </div>
+        </div>
+        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+          <div style={{ background: "#f0f0f0", height: 120, display: "flex", alignItems: "center", justifyContent: "center", color: "#999", fontSize: 12 }}>
+            Golf Isla Canela
+          </div>
+          <div style={{ padding: 16 }}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Day 2 — Sunday</div>
+            <div style={{ fontSize: 13, color: "#666", lineHeight: 1.6 }}>
+              <strong>Golf Isla Canela</strong><br/>
+              Huelva, Spain
+            </div>
+          </div>
+        </div>
+      </div>
       <div className="card weekend-info">
         <div className="wk-line"><Calendar size={15} /> {dt(d.config.weekendDates.r1)} & {dt(d.config.weekendDates.r2)} · Medal Net · {alw}% allowance</div>
         <div className="wk-line"><span className="muted">Your handicap</span> <b>{fmtHcp(me.hcp)}</b> <span className="muted">→ playing</span> <b>{ph ?? "—"}</b></div>

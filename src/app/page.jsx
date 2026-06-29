@@ -23,8 +23,8 @@ export default function Home() {
       <section className="home-hero">
         <Logo size={148} />
         <div className="auth-eyebrow">Members' competition · {year}</div>
-        <h1 className="home-title">Road to <span>GPF</span> Weekend</h1>
-        <p className="home-sub">Qualify on the road through the year. Settle it over one weekend in October — two rounds, Medal Net, lowest total wins.</p>
+        <h1 className="home-title">Road to <span>GPF Open</span> 2026</h1>
+        <p className="home-sub">Qualify on the road through the year. Settle it over one weekend in October at Isla Canela — two rounds, Medal Net, lowest total wins.</p>
         <div className="home-cta"><button className="btn btn-primary" onClick={go}>Enter the clubhouse</button><button className="btn btn-ghost" onClick={go}>Join the group</button></div>
         <div className="home-stats">
           <div><div className="hs-num num">{members}</div><div className="hs-l">members</div></div>
@@ -36,8 +36,20 @@ export default function Home() {
         <div className="sec-h">How the year runs</div>
         <div className="steps">
           <div className="step"><span className="step-n num">1</span><div><b>Play the road</b><p className="muted small">Log at least 3 qualifying rounds, each with a member witness. Your best rounds set your handicap.</p></div></div>
-          <div className="step"><span className="step-n num">2</span><div><b>Get qualified</b><p className="muted small">Three approved rounds and you're in — your competition handicap locks for the weekend.</p></div></div>
-          <div className="step"><span className="step-n num">3</span><div><b>GPF Weekend</b><p className="muted small">Two October rounds at 90% handicap. Net = gross − playing handicap. Two days added together.</p></div></div>
+          <div className="step"><span className="step-n num">2</span><div><b>Get qualified</b><p className="muted small">Three approved rounds and you're in — your competition handicap locks for the weekend. Top 3 ranked players will get a handicap advantage:</p>
+            <div style={{ marginTop: 12, fontSize: 13, fontWeight: 500, lineHeight: 1.6 }}>
+              <div>🥇 1º place &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -3 strokes</div>
+              <div>🥈 2º place &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -2 strokes</div>
+              <div>🥉 3º place &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; -1 stroke</div>
+            </div>
+          </div></div>
+          <div className="step"><span className="step-n num">3</span><div><b>GPF Open 2026</b><p className="muted small">Two October rounds at 90% handicap. Net = gross − playing handicap. Two days added together.</p>
+            <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.7 }}>
+              <div style={{ fontWeight: 500, marginBottom: 8 }}>📍 Isla Canela, Huelva</div>
+              <div>• <strong>Day 1</strong> — Isla Canela Links</div>
+              <div>• <strong>Day 2</strong> — Golf Isla Canela</div>
+            </div>
+          </div></div>
         </div>
       </section>
       {board.length > 0 && (
