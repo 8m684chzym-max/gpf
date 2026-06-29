@@ -39,7 +39,19 @@ export async function PATCH(req, { params: paramsPromise }) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "Admins only" }, { status: 403 });
   
-  if (action === "approve") {
+  if (action === "adminEdit") {
+    const round = await prisma.round.findUnique({ where: { id } });
+    if (!round) return NextResponse.json({ error: "Round not found" }, { status: 404 });
+    await prisma.round.update({ where: { id }, data: { gross: Number(gross) } });
+    await logAudit(admin.name, "round.adminEdit", id, `gross -> ${gross}`);
+    return NextResponse.json({ ok: true });
+  } else if (action === "adminReject") {
+    const round = await prisma.round.findUnique({ where: { id } });
+    if (!round) return NextResponse.json({ error: "Round not found" }, { status: 404 });
+    await prisma.round.update({ where: { id }, data: { status: "REJECTED", rejectReason: reason || "Admin rejected", reviewedBy: admin.name, reviewedAt: new Date() } });
+    await logAudit(admin.name, "round.adminReject", id, reason || "Admin rejected");
+    return NextResponse.json({ ok: true });
+  } else if (action === "approve") {
     await prisma.round.update({ where: { id }, data: { status: "APPROVED", reviewedBy: admin.name, reviewedAt: new Date() } });
     await logAudit(admin.name, "round.approve", id, null);
   } else if (action === "reject") {
