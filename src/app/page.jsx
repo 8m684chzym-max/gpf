@@ -44,10 +44,19 @@ export default function Home() {
             </div>
           </div></div>
           <div className="step"><span className="step-n num">3</span><div><b>GPF Open 2026</b><p className="muted small">Two October rounds at 90% handicap. Net = gross − playing handicap. Two days added together.</p>
-            <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.7 }}>
-              <div style={{ fontWeight: 500, marginBottom: 8 }}>📍 Isla Canela, Huelva</div>
-              <div>• <strong>Day 1</strong> — Isla Canela Links</div>
-              <div>• <strong>Day 2</strong> — Golf Isla Canela</div>
+            <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div style={{ borderRadius: 6, overflow: "hidden", background: "#f0f0f0" }}>
+                <img src="https://www.golfbreaksspain.com/site/assets/files/11032/links_back9-3.jpg" alt="Isla Canela Links" style={{ width: "100%", height: 80, objectFit: "cover" }} />
+                <div style={{ padding: 8, fontSize: 12 }}>
+                  <strong>Day 1</strong><br/><span style={{ color: "#666" }}>Isla Canela Links</span>
+                </div>
+              </div>
+              <div style={{ borderRadius: 6, overflow: "hidden", background: "#f0f0f0" }}>
+                <img src="https://www.islacanela.es/media/2018/07/golf-1.png" alt="Golf Isla Canela" style={{ width: "100%", height: 80, objectFit: "cover" }} />
+                <div style={{ padding: 8, fontSize: 12 }}>
+                  <strong>Day 2</strong><br/><span style={{ color: "#666" }}>Golf Isla Canela</span>
+                </div>
+              </div>
             </div>
           </div></div>
         </div>
