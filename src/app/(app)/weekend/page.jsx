@@ -21,9 +21,7 @@ export default function Weekend() {
       <h2 className="page-h">GPF Open 2026</h2>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 20 }}>
         <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-          <div style={{ background: "#f0f0f0", height: 120, display: "flex", alignItems: "center", justifyContent: "center", color: "#999", fontSize: 12 }}>
-            Isla Canela Links
-          </div>
+          <img src="https://www.golfbreaksspain.com/site/assets/files/11032/links_back9-3.jpg" alt="Isla Canela Links" style={{ width: "100%", height: 140, objectFit: "cover" }} />
           <div style={{ padding: 16 }}>
             <div style={{ fontWeight: 600, marginBottom: 4 }}>Day 1 — Saturday</div>
             <div style={{ fontSize: 13, color: "#666", lineHeight: 1.6 }}>
@@ -33,9 +31,7 @@ export default function Weekend() {
           </div>
         </div>
         <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-          <div style={{ background: "#f0f0f0", height: 120, display: "flex", alignItems: "center", justifyContent: "center", color: "#999", fontSize: 12 }}>
-            Golf Isla Canela
-          </div>
+          <img src="https://www.islacanela.es/media/2018/07/golf-1.png" alt="Golf Isla Canela" style={{ width: "100%", height: 140, objectFit: "cover" }} />
           <div style={{ padding: 16 }}>
             <div style={{ fontWeight: 600, marginBottom: 4 }}>Day 2 — Sunday</div>
             <div style={{ fontSize: 13, color: "#666", lineHeight: 1.6 }}>
