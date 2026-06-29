@@ -41,15 +41,12 @@ export default function Road() {
         <div className="board-head"><span className="bh-rank">#</span><span className="bh-name">Player</span><span className="bh-c">Rounds</span><span className="bh-c">Hcp</span><span className="bh-c">Status</span></div>
         {d.road.length === 0 && <div className="empty" style={{ padding: 16, color: "#9fc2b3" }}>No members yet.</div>}
         {d.road.map((r, i) => {
-          const playerRounds = roundsMap[Object.keys(roundsMap).find(uid => {
-            const user = d.road.find(row => row.name === r.name);
-            return user;
-          })] || [];
-          const isExp = expanded[r.name];
+          const playerRounds = roundsMap[r.userId] || [];
+          const isExp = expanded[r.userId];
           
           return (
-            <div key={r.name}>
-              <div className={`board-row ${r.qualified ? "lead" : ""}`} style={{ cursor: "pointer" }} onClick={() => setExpanded({...expanded, [r.name]: !isExp})}>
+            <div key={r.userId}>
+              <div className={`board-row ${r.qualified ? "lead" : ""}`} style={{ cursor: "pointer" }} onClick={() => setExpanded({...expanded, [r.userId]: !isExp})}>
                 <span className="bh-rank num"><ChevronRight size={16} style={{ transform: isExp ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s" }} /></span>
                 <span className="bh-name">{r.name}</span>
                 <span className="bh-c num">{r.count}/{need}</span><span className="bh-c num">{fmtHcp(r.hcp)}</span>

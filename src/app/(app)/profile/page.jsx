@@ -19,9 +19,71 @@ export default function Profile() {
         <div className="card stat"><div className="muted small">Qualifying</div><div className="hcp-big sm">{me.count}/{d.config.qualifyingRoundsRequired}</div><div>{me.qualified ? <span className="badge badge-ok">Qualified</span> : <span className="badge badge-warn">In progress</span>}</div></div>
       </div>
       <div className="sec-h">All rounds ({d.mine.length})</div>
-      {d.mine.map((r) => (
-        <div key={r.id} className="card row-card"><div><div className="row-title">{r.course?.name} · {r.tee?.name}</div><div className="muted small">{r.date?.slice(0, 10)} · {r.type === "WEEKEND" ? `Weekend R${r.roundNo}` : "Qualifying"}</div></div>
-          <div className="row-right"><div className="gross">{r.gross}</div><span className={`badge badge-${r.status === "APPROVED" ? "ok" : r.status === "REJECTED" ? "bad" : "warn"}`}>{r.status.toLowerCase()}</span></div></div>))}
+      {d.mine.map((r) => {
+        const [editing, setEditing] = useState(false);
+        const [newGross, setNewGross] = useState(r.gross);
+        return (
+          <div key={r.id} className="card row-card">
+            <div>
+              <div className="row-title">{r.course?.name} · {r.tee?.name}</div>
+              <div className="muted small">{r.date?.slice(0, 10)} · {r.type === "WEEKEND" ? `Weekend R${r.roundNo}` : "Qualifying"}</div>
+            </div>
+            <div className="row-right">
+              {editing ? (
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input 
+                    type="number" 
+                    value={newGross} 
+                    onChange={(e) => setNewGross(Number(e.target.value))}
+                    style={{ width: 60, padding: "4px 8px", border: "1px solid var(--border)", borderRadius: 4 }}
+                  />
+                  <button 
+                    className="btn-small" 
+                    onClick={async () => {
+                      await api(`/api/rounds/${r.id}`, { method: "PATCH", body: JSON.stringify({ action: "userEdit", gross: newGross }) });
+                      setEditing(false);
+                      location.reload();
+                    }}
+                  >
+                    Save
+                  </button>
+                  <button className="btn-small" style={{ color: "var(--text-secondary)" }} onClick={() => setEditing(false)}>Cancel</button>
+                </div>
+              ) : (
+                <>
+                  <div className="gross">{r.gross}</div>
+                  <span className={`badge badge-${r.status === "APPROVED" ? "ok" : r.status === "REJECTED" ? "bad" : "warn"}`}>{r.status.toLowerCase()}</span>
+                  {r.status !== "REJECTED" && (
+                    <div style={{ display: "flex", gap: 6, marginLeft: 8 }}>
+                      <button 
+                        className="icon-btn" 
+                        title="Edit score" 
+                        onClick={() => setEditing(true)}
+                        style={{ color: "var(--text-secondary)" }}
+                      >
+                        ✎
+                      </button>
+                      <button 
+                        className="icon-btn" 
+                        title="Reject this round" 
+                        onClick={async () => {
+                          if (confirm(`Reject this round from ${r.date?.slice(0, 10)}?`)) {
+                            await api(`/api/rounds/${r.id}`, { method: "PATCH", body: JSON.stringify({ action: "userReject" }) });
+                            location.reload();
+                          }
+                        }}
+                        style={{ color: "var(--text-danger)" }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

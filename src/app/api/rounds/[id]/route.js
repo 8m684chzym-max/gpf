@@ -22,6 +22,19 @@ export async function PATCH(req, { params: paramsPromise }) {
     return NextResponse.json({ ok: true });
   }
   
+  // User edit own round score
+  if (action === "userEdit") {
+    const user = await requireUser();
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const round = await prisma.round.findUnique({ where: { id } });
+    if (!round) return NextResponse.json({ error: "Round not found" }, { status: 404 });
+    if (round.userId !== user.id) return NextResponse.json({ error: "Can only edit your own rounds" }, { status: 403 });
+    if (round.status === "REJECTED") return NextResponse.json({ error: "Cannot edit rejected rounds" }, { status: 400 });
+    await prisma.round.update({ where: { id }, data: { gross: Number(gross) } });
+    await logAudit(user.name, "round.userEdit", id, `gross -> ${gross}`);
+    return NextResponse.json({ ok: true });
+  }
+  
   // Admin actions
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "Admins only" }, { status: 403 });
