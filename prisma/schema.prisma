@@ -7,6 +7,7 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+  schemas   =["gpf"]
 }
 
 enum Role {
@@ -44,6 +45,7 @@ model User {
   witnessRounds    Round[]  @relation("PartnerRounds")
   handicapRecords  HandicapRecord[]
   resetTokens      PasswordResetToken[]
+  @@schema("gpf")
 }
 
 model PasswordResetToken {
@@ -54,6 +56,7 @@ model PasswordResetToken {
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
+  @@schema("gpf")
 }
 
 model Competition {
@@ -70,6 +73,7 @@ model Competition {
   weekendLocked            Boolean  @default(false)
   rounds                   Round[]
   handicapRecords          HandicapRecord[]
+  @@schema("gpf")
 }
 
 model Course {
@@ -78,6 +82,7 @@ model Course {
   par    Int
   tees   Tee[]
   rounds Round[]
+  @@schema("gpf")
 }
 
 model Tee {
@@ -89,6 +94,7 @@ model Tee {
   slope    Int?
   par      Int
   rounds   Round[]
+  @@schema("gpf")
 }
 
 model Round {
@@ -114,6 +120,7 @@ model Round {
   reviewedAt    DateTime?
   createdAt     DateTime    @default(now())
   scorecard     Scorecard?
+@@schema("gpf")
 }
 
 model Scorecard {
@@ -130,6 +137,7 @@ model Scorecard {
   bestHole       String?
   leaderboardPos String?
   imageUrl       String?
+@@schema("gpf")
 }
 
 model HandicapRecord {
@@ -142,6 +150,7 @@ model HandicapRecord {
   manual        Boolean     @default(false)
   setBy         String?
   createdAt     DateTime    @default(now())
+@@schema("gpf")
 }
 
 model AuditLog {
@@ -151,4 +160,5 @@ model AuditLog {
   targetId  String?
   details   String?
   createdAt DateTime @default(now())
+@@schema("gpf")
 }
