@@ -45,7 +45,6 @@ model User {
   witnessRounds    Round[]  @relation("PartnerRounds")
   handicapRecords  HandicapRecord[]
   resetTokens      PasswordResetToken[]
-  @@schema("gpf")
 }
 
 model PasswordResetToken {
@@ -56,7 +55,6 @@ model PasswordResetToken {
   expiresAt DateTime
   usedAt    DateTime?
   createdAt DateTime  @default(now())
-  @@schema("gpf")
 }
 
 model Competition {
