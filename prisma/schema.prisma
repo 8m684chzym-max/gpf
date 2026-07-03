@@ -1,0 +1,154 @@
+// Golf P'la Fresquinha — data model
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  MEMBER
+  ADMIN
+}
+
+enum RoundType {
+  QUALIFYING
+  WEEKEND
+}
+
+enum RoundStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum Source {
+  MANUAL
+  OCR
+}
+
+model User {
+  id               String   @id @default(cuid())
+  name             String
+  email            String   @unique
+  passwordHash     String?
+  role             Role     @default(MEMBER)
+  declaredHandicap Float?   // player's self-declared starting index; provisional, yields to results
+  manualHandicap   Float?   // committee hard override; always wins when set
+  tiebreakOverride Int?
+  createdAt        DateTime @default(now())
+  rounds           Round[]  @relation("PlayerRounds")
+  witnessRounds    Round[]  @relation("PartnerRounds")
+  handicapRecords  HandicapRecord[]
+  resetTokens      PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model Competition {
+  id                       String   @id @default(cuid())
+  year                     Int      @unique
+  active                   Boolean  @default(true)
+  qualifyingRoundsRequired Int      @default(3)
+  handicapAllowance        Int      @default(90)
+  roundingMode             String   @default("round")
+  tiebreak                 String   @default("final-net")
+  r1Date                   DateTime?
+  r2Date                   DateTime?
+  qualifyingLocked         Boolean  @default(false)
+  weekendLocked            Boolean  @default(false)
+  rounds                   Round[]
+  handicapRecords          HandicapRecord[]
+}
+
+model Course {
+  id     String  @id @default(cuid())
+  name   String
+  par    Int
+  tees   Tee[]
+  rounds Round[]
+}
+
+model Tee {
+  id       String @id @default(cuid())
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  name     String
+  rating   Float?
+  slope    Int?
+  par      Int
+  rounds   Round[]
+}
+
+model Round {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation("PlayerRounds", fields: [userId], references: [id], onDelete: Cascade)
+  competitionId String
+  competition   Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  type          RoundType
+  roundNo       Int?
+  date          DateTime
+  courseId      String
+  course        Course      @relation(fields: [courseId], references: [id])
+  teeId         String
+  tee           Tee         @relation(fields: [teeId], references: [id])
+  gross         Int
+  partnerId     String?
+  partner       User?       @relation("PartnerRounds", fields: [partnerId], references: [id], onDelete: SetNull)
+  source        Source      @default(MANUAL)
+  status        RoundStatus @default(PENDING)
+  rejectReason  String?
+  reviewedBy    String?
+  reviewedAt    DateTime?
+  createdAt     DateTime    @default(now())
+  scorecard     Scorecard?
+}
+
+model Scorecard {
+  id             String  @id @default(cuid())
+  roundId        String  @unique
+  round          Round   @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  holes          Int[]
+  outScore       Int?
+  inScore        Int?
+  points         Int?
+  fairwaysPct    Int?
+  girPct         Int?
+  putts          Int?
+  bestHole       String?
+  leaderboardPos String?
+  imageUrl       String?
+}
+
+model HandicapRecord {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  competitionId String
+  competition   Competition @relation(fields: [competitionId], references: [id])
+  value         Float
+  manual        Boolean     @default(false)
+  setBy         String?
+  createdAt     DateTime    @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actor     String?
+  action    String
+  targetId  String?
+  details   String?
+  createdAt DateTime @default(now())
+}

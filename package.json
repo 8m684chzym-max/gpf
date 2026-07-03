@@ -1,0 +1,38 @@
+{
+  "name": "golf-pla-fresquinha",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "postinstall": "prisma generate",
+    "seed": "node prisma/seed.mjs",
+    "db:push": "prisma db push",
+    "import-courses": "node scripts/import-courses.mjs",
+    "scrape-courses": "node scripts/scrape-courses.mjs",
+    "scrape-courses:complete": "node scripts/scrape-courses-complete.mjs",
+    "import-courses:scraped": "node scripts/import-from-scrape.mjs"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.mjs"
+  },
+  "dependencies": {
+    "@prisma/client": "5.18.0",
+    "bcryptjs": "2.4.3",
+    "lucide-react": "0.454.0",
+    "next": "^16.2.10",
+    "next-auth": "^4.24.14",
+    "nodemailer": "^9.0.3",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1",
+    "jsonwebtoken": "9.0.3",
+    "prisma": "5.18.0"
+  }
+}
