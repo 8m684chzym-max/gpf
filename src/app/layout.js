@@ -19,8 +19,26 @@ const inter = Inter({
 });
 
 export const metadata = {
+  metadataBase: new URL("https://gpf.golf"),
   title: "Golf P'la Fresquinha",
   description: "Road to GPF Open — the friends' golf competition.",
+  applicationName: "GPF",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,          // iOS: launch full-screen from the home screen
+    title: "GPF",
+    statusBarStyle: "black", // opaque dark status bar, white text
+  },
+  icons: {
+    icon: "/icons/icon-192.png",
+    apple: "/icons/apple-touch-icon.png",
+  },
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#113221",
 };
 
 export default function RootLayout({ children }) {

@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Plus, ListOrdered, Trophy, Flag, Check, CircleDot, ChevronRight, Loader2 } from "lucide-react";
+import { Plus, ListOrdered, Trophy, Flag, Dices, Check, CircleDot, ChevronRight, Loader2 } from "lucide-react";
 import { api, fmtHcp } from "@/lib/client";
 
 export default function Dashboard() {
@@ -28,9 +28,10 @@ export default function Dashboard() {
       </div>
       <div className="grid2">
         <button className="quick" onClick={() => router.push("/submit")}><Plus size={18} /><span>Submit a round</span><ChevronRight size={16} className="chev" /></button>
-        <button className="quick" onClick={() => router.push("/road")}><ListOrdered size={18} /><span>Road to GPF</span><ChevronRight size={16} className="chev" /></button>
+        <button className="quick" onClick={() => router.push("/open")}><ListOrdered size={18} /><span>Road to GPF</span><ChevronRight size={16} className="chev" /></button>
         <button className="quick" onClick={() => router.push("/weekend")}><Trophy size={18} /><span>GPF Open</span><ChevronRight size={16} className="chev" /></button>
-        <button className="quick" onClick={() => router.push("/final")}><Flag size={18} /><span>Final standings</span><ChevronRight size={16} className="chev" /></button>
+        <button className="quick" onClick={() => router.push("/games")}><Dices size={18} /><span>Side games</span><ChevronRight size={16} className="chev" /></button>
+        <button className="quick" onClick={() => router.push("/open#final")}><Flag size={18} /><span>Final standings</span><ChevronRight size={16} className="chev" /></button>
       </div>
       <div className="sec-h">Your recent rounds</div>
       {d.mine.length === 0 && <div className="card empty">No rounds yet. Submit your first qualifying round to start the road.</div>}

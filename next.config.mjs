@@ -51,6 +51,10 @@ const securityHeaders = [
 
 const nextConfig = {
   reactStrictMode: true,
+  // Dev-only: allow these LAN origins to load /_next/* dev resources (HMR) when
+  // you open the dev server from a phone/other device on the network. Has no
+  // effect in production. Add more IPs/hostnames as needed.
+  allowedDevOrigins: ["192.168.1.65"],
   async headers() {
     return [
       {

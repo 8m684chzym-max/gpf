@@ -44,6 +44,8 @@ model User {
   witnessRounds    Round[]  @relation("PartnerRounds")
   handicapRecords  HandicapRecord[]
   resetTokens      PasswordResetToken[]
+  sideGamesCreated SideGame[]       @relation("SideGameCreator")
+  sideGameSpots    SideGamePlayer[]
 }
 
 model PasswordResetToken {
@@ -151,4 +153,45 @@ model AuditLog {
   targetId  String?
   details   String?
   createdAt DateTime @default(now())
+}
+
+// ── On-course side games (Wolf · Round Robin · Bingo Bango Bongo) ──────────
+// Casual, live-synced games. Completely separate from Rounds / handicaps /
+// the Road to GPF Open. Per-hole rows are upserted individually so multiple
+// devices never clobber each other. type/status are plain strings on purpose
+// (avoids enum-in-schema migration friction).
+model SideGame {
+  id          String           @id @default(cuid())
+  code        String           @unique
+  type        String           // "wolf" | "roundrobin" | "bbb"
+  status      String           @default("ACTIVE") // "ACTIVE" | "FINISHED"
+  createdById String?
+  createdBy   User?            @relation("SideGameCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  players     SideGamePlayer[]
+  holes       SideGameHole[]
+}
+
+model SideGamePlayer {
+  id       String   @id @default(cuid())
+  gameId   String
+  game     SideGame @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  position Int      // tee order (drives Wolf / Round Robin rotation)
+  name     String
+  userId   String?
+  user     User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([gameId, position])
+}
+
+model SideGameHole {
+  id        String   @id @default(cuid())
+  gameId    String
+  game      SideGame @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  hole      Int      // 1..18
+  data      Json     // per-game result blob for this hole
+  updatedAt DateTime @updatedAt
+
+  @@unique([gameId, hole])
 }
