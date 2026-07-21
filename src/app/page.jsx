@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Trophy } from "lucide-react";
 import Logo from "@/components/Logo";
+import GPFLoginMark from "@/components/GPFLoginMark";
 import { api } from "@/lib/client";
 
 export default function Home() {
@@ -21,7 +22,7 @@ export default function Home() {
         <button className="btn btn-ghost small-btn" onClick={go}>Log in</button>
       </header>
       <section className="home-hero">
-        <Logo size={148} />
+      <GPFLoginMark size={148} tagline={false} />
         <div className="auth-eyebrow">Members' competition · {year}</div>
         <h1 className="home-title">Road to <span>GPF</span> Open</h1>
         <p className="home-sub">Qualify on the road through the year. Settle it over two rounds on 26–27 September — Medal Net, lowest total wins.</p>
