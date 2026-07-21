@@ -139,3 +139,50 @@ a{color:inherit;text-decoration:none}
 .audit-row{display:grid;gap:2px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12.5px}
 .audit-time{color:var(--muted);font-size:11px}.audit-act{font-family:var(--disp);letter-spacing:.5px;color:var(--green-800);font-weight:600}
 @media(min-width:600px){.gpf-app,.auth-wrap,.tabbar,.home-wrap{max-width:600px}}
+/* ============================================================
+   GPF · Games — on-course flow (append to src/app/globals.css)
+   Big touch targets, square mode tiles, 3-screen wizard.
+   Uses existing tokens (--green-*, --flag, --line, --muted…).
+   ============================================================ */
+
+/* screen header with back button */
+.g-top{display:flex;align-items:center;gap:11px;margin-bottom:8px}
+.g-back{width:44px;height:44px;flex:none;border-radius:12px;border:1px solid var(--line);
+        background:#fff;color:var(--ink);display:grid;place-items:center;cursor:pointer}
+.g-back:active{transform:scale(.96)}
+.g-count{margin-left:auto;font-size:13px;font-weight:600;color:var(--muted)}
+
+/* SCREEN 1 — square mode tiles */
+.tile-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tile{aspect-ratio:1/1;border:1.5px solid var(--line);background:#fff;border-radius:18px;cursor:pointer;
+      display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px;text-align:center;
+      transition:transform .1s,border-color .15s,box-shadow .15s}
+.tile:active{transform:scale(.97)}
+.tile.sel{border-color:var(--green-600);box-shadow:0 0 0 2px var(--green-600) inset}
+.tile .tile-ic{width:56px;height:56px;border-radius:16px;background:var(--green-700);display:grid;place-items:center;color:#fff}
+.tile .tile-nm{font-weight:800;font-size:16px;line-height:1.15}
+.tile .tile-pl{font-size:12px;color:var(--muted)}
+
+/* SCREEN 2 — players, big targets */
+.p-row{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.p-idx{width:34px;height:34px;flex:none;border-radius:10px;background:var(--flag);color:var(--green-900);font-weight:800;display:grid;place-items:center;font-family:var(--disp)}
+.p-name{flex:1;font-weight:700;font-size:16px}
+.p-mini{width:46px;height:46px;flex:none;border-radius:12px;border:1px solid var(--line);background:#f3f1ea;color:var(--ink);
+        display:grid;place-items:center;cursor:pointer}
+.add-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.add-btn{min-height:56px;border:1.5px dashed var(--line);background:#fff;border-radius:14px;font-weight:700;font-size:15px;
+         color:var(--ink);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.add-btn:active{transform:scale(.98)}
+.add-btn:disabled{opacity:.4;cursor:not-allowed}
+.guest-row{display:flex;gap:10px}
+.guest-row .input{min-height:52px;font-size:16px}
+.guest-row .g-add{width:52px;flex:none;border:1px solid var(--line);background:#fff;border-radius:12px;font-size:22px;cursor:pointer}
+
+/* sticky bottom CTA (start / finish) */
+.g-foot{position:sticky;bottom:0;margin:14px -16px -16px;padding:14px 16px calc(14px + env(safe-area-inset-bottom));
+        background:linear-gradient(to top,var(--paper) 74%,transparent)}
+.g-cta{width:100%;min-height:58px;border:none;border-radius:15px;font-weight:800;font-size:17px;cursor:pointer;
+       display:flex;align-items:center;justify-content:center;gap:9px}
+.g-cta.primary{background:var(--green-700);color:#fff}
+.g-cta.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.g-cta:disabled{opacity:.45;cursor:not-allowed}
