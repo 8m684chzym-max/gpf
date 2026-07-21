@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { ArrowLeft, AlertCircle, Loader2 } from "lucide-react";
-import Logo from "@/components/Logo";
+import GPFLoginMark from "@/components/GPFLoginMark";
 import { api } from "@/lib/client";
 
 export default function LoginPage() {
@@ -31,7 +31,7 @@ export default function LoginPage() {
     <div className="auth-wrap">
       <div className="auth-hero">
         <button className="back-link" onClick={() => router.push("/")}><ArrowLeft size={16} /> Home</button>
-        <Logo size={92} />
+        <GPFLoginMark size={140} tagline={false} />
         <div className="auth-eyebrow">Golf P'la Fresquinha</div>
         <h1 className="auth-title">Road to <span>GPF</span></h1>
       </div>
