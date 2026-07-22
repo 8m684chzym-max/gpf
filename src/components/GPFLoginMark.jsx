@@ -40,11 +40,23 @@ export default function GPFLoginMark({ size = 300, src = "/brand/gpf-mono-inline
         .gpf-ring { stroke-dasharray: 2960; stroke-dashoffset: 2960; animation: gpf-draw 1.2s ease-out .15s forwards; }
         .gpf-inner { transform-box: fill-box; transform-origin: center; opacity: 0; transform: scale(.92);
           animation: gpf-reveal .7s cubic-bezier(.2,.85,.25,1) .85s forwards; }
+        /* Gentle breeze on the pin — pivots at the base of the flagstick so the
+           cloth swings while the pole stays planted. Starts after the reveal. */
+        .gpf-flag { transform-box: fill-box; transform-origin: 26% 100%; will-change: transform;
+          animation: gpf-wave 6s ease-in-out 1.9s infinite; }
 
         @keyframes gpf-draw { to { stroke-dashoffset: 0; } }
         @keyframes gpf-reveal { to { opacity: 1; transform: none; } }
         @keyframes gpf-bloom { to { opacity: 1; transform: translate(-50%,-50%) scale(1); } }
         @keyframes gpf-pulse { 0%,100% { opacity: .5; } 50% { opacity: .9; } }
+        @keyframes gpf-wave {
+          0%   { transform: skewX(0deg)    scaleX(1);     }
+          20%  { transform: skewX(2.2deg)  scaleX(1.015); }
+          42%  { transform: skewX(-1.1deg) scaleX(.994);  }
+          63%  { transform: skewX(1.4deg)  scaleX(1.008); }
+          85%  { transform: skewX(-.6deg)  scaleX(.998);  }
+          100% { transform: skewX(0deg)    scaleX(1);     }
+        }
 
         .gpf-login { display: grid; place-items: center; }
         .gpf-tag { margin-top: 22px; text-align: center; color: #0F2E1E; opacity: 0; animation: gpf-fade .6s ease 1.5s forwards; }
@@ -55,6 +67,7 @@ export default function GPFLoginMark({ size = 300, src = "/brand/gpf-mono-inline
         @media (prefers-reduced-motion: reduce) {
           .gpf-ring { stroke-dashoffset: 0; animation: none; }
           .gpf-inner { opacity: 1; transform: none; animation: none; }
+          .gpf-flag { animation: none; transform: none; }
           .gpf-badge::before { opacity: .6; transform: translate(-50%,-50%) scale(1); animation: none; }
           .gpf-tag { opacity: 1; animation: none; }
         }
