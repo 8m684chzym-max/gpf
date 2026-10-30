@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import { Shield, Check, X, Pencil, Lock, Unlock, Download, Plus, Sparkles, History, Loader2, KeyRound } from "lucide-react";
+import { Shield, Check, X, Pencil, Lock, Unlock, Download, Plus, Sparkles, History, Loader2, KeyRound, AlertTriangle } from "lucide-react";
 import { api, fmtHcp } from "@/lib/client";
 
 const ROUNDING = { round: "Nearest whole (0.5 up)", floor: "Round down", ceil: "Round up", dp1: "One decimal" };
-const TIEBREAK = { "final-net": "Lowest final-round net", back9: "Lowest final-round back 9", manual: "Committee decision" };
+const TIEBREAK = { "final-net": "Net countback (last 9/6/3/1)", manual: "Committee decision" };
 
 export default function Admin() {
   const [tab, setTab] = useState("rounds");
@@ -30,13 +30,18 @@ export default function Admin() {
       </div>
 
       {tab === "rounds" && (<div className="stack">
-        <p className="muted small">Rounds are added to the boards automatically as soon as they're submitted. Use Edit or Reject here to fix a mistake.</p>
+        <p className="muted small">Rounds go on the boards automatically. Road points are always recomputed from the strokes and the player's appointed handicap. A card is held as <b>pending</b> when its hole scores don't add up to the gross, or its points claim more than the strokes are worth. Pending rounds don't count until approved.</p>
         {recent.length === 0 && <div className="card empty">No rounds submitted yet.</div>}
         {recent.map((r) => (
           <div key={r.id} className="card approve-card">
             <div><div className="row-title">{r.user?.name} · {r.gross} <span className={`badge badge-${r.status === "APPROVED" ? "ok" : r.status === "REJECTED" ? "bad" : "warn"}`}>{r.status.toLowerCase()}</span></div>
-              <div className="muted small">{r.course?.name} {r.tee?.name} · {r.date?.slice(0, 10)} · {r.type === "WEEKEND" ? `Weekend R${r.roundNo}` : "Qualifying"}{r.source === "OCR" ? " · scorecard" : ""}</div>
-              {r.type === "QUALIFYING" && <div className="muted small">Witness: {r.partner?.name || "—"}</div>}</div>
+              <div className="muted small">{r.course?.name} {r.tee?.name} · {r.date?.slice(0, 10)} · {r.type === "WEEKEND" ? "GPF Open" : "Qualifying"}{r.source === "OCR" ? " · scorecard" : ""}</div>
+              {r.type === "QUALIFYING" && <div className="muted small">Witness: {r.partner?.name || "—"}</div>}
+              {r.audit && <div className={`small ${r.audit.flagged ? "warn-strip" : "muted"}`}>
+                {r.audit.flagged && <AlertTriangle size={13} />} Counts {r.audit.computed ?? "—"} pts (CH {r.audit.ch ?? "—"}{r.audit.exact ? ", hole by hole" : ", from gross"})
+                {r.audit.card != null && <> · card says {r.audit.card}{r.audit.pointsGap ? ` (${r.audit.pointsGap > 0 ? "+" : ""}${r.audit.pointsGap})` : ""} → implies CH {r.audit.impliedCH}</>}
+                {r.audit.holesMismatch && <> · holes add up to {r.audit.holeSum}, gross is {r.gross}</>}
+              </div>}</div>
             <div className="btn-row">
               {r.status !== "REJECTED" && <button className="btn btn-ghost" onClick={() => act(r.id, { action: "reject", reason: prompt("Reason?") || "rejected" })}><X size={15} /> Reject</button>}
               <button className="btn btn-ghost" onClick={() => { const g = prompt("Edit gross", r.gross); if (g) act(r.id, { action: "edit", gross: g }); }}><Pencil size={15} /> Edit</button>
@@ -53,12 +58,11 @@ export default function Admin() {
           <label className="field"><span className="label">Handicap allowance %</span><input className="input" type="number" defaultValue={d.config.handicapAllowance} onBlur={(e) => cfgPatch({ handicapAllowance: e.target.value })} /></label>
           <label className="field"><span className="label">Handicap rounding</span><select className="input" value={d.config.roundingMode} onChange={(e) => cfgPatch({ roundingMode: e.target.value })}>{Object.entries(ROUNDING).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
           <label className="field"><span className="label">Tiebreak rule</span><select className="input" value={d.config.tiebreak} onChange={(e) => cfgPatch({ tiebreak: e.target.value })}>{Object.entries(TIEBREAK).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
-          <label className="field"><span className="label">Weekend round 1 date</span><input className="input" type="date" defaultValue={d.config.weekendDates.r1 ? String(d.config.weekendDates.r1).slice(0, 10) : ""} onBlur={(e) => cfgPatch({ r1Date: e.target.value })} /></label>
-          <label className="field"><span className="label">Weekend round 2 date</span><input className="input" type="date" defaultValue={d.config.weekendDates.r2 ? String(d.config.weekendDates.r2).slice(0, 10) : ""} onBlur={(e) => cfgPatch({ r2Date: e.target.value })} /></label>
+          <label className="field"><span className="label">GPF Open date</span><input className="input" type="date" defaultValue={d.config.weekendDates.r1 ? String(d.config.weekendDates.r1).slice(0, 10) : ""} onBlur={(e) => cfgPatch({ r1Date: e.target.value })} /></label>
         </div>
         <div className="lock-row">
           <button className="btn btn-ghost" onClick={() => cfgPatch({ qualifyingLocked: !d.config.qualifyingLocked })}>{d.config.qualifyingLocked ? <Unlock size={15} /> : <Lock size={15} />} {d.config.qualifyingLocked ? "Unlock" : "Lock"} qualifying</button>
-          <button className="btn btn-ghost" onClick={() => cfgPatch({ weekendLocked: !d.config.weekendLocked })}>{d.config.weekendLocked ? <Unlock size={15} /> : <Lock size={15} />} {d.config.weekendLocked ? "Unlock" : "Lock"} weekend</button>
+          <button className="btn btn-ghost" onClick={() => cfgPatch({ weekendLocked: !d.config.weekendLocked })}>{d.config.weekendLocked ? <Unlock size={15} /> : <Lock size={15} />} {d.config.weekendLocked ? "Unlock" : "Lock"} Open</button>
         </div>
         <div className="lock-row">
           <a className="btn btn-accent" href="/api/export?type=standings"><Download size={15} /> Export standings</a>

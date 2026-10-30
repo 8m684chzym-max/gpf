@@ -15,7 +15,8 @@
     "import-courses": "node scripts/import-courses.mjs",
     "scrape-courses": "node scripts/scrape-courses.mjs",
     "scrape-courses:complete": "node scripts/scrape-courses-complete.mjs",
-    "import-courses:scraped": "node scripts/import-from-scrape.mjs"
+    "import-courses:scraped": "node scripts/import-from-scrape.mjs",
+    "add-pinheirinho": "node scripts/add-pinheirinho.mjs"
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"

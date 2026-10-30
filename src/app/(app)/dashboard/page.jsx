@@ -37,7 +37,7 @@ export default function Dashboard() {
       {d.mine.length === 0 && <div className="card empty">No rounds yet. Submit your first qualifying round to start the road.</div>}
       {d.mine.slice(0, 5).map((r) => (
         <div key={r.id} className="card row-card">
-          <div><div className="row-title">{r.course?.name} · {r.tee?.name}</div><div className="muted small">{r.date?.slice(0, 10)} · {r.type === "WEEKEND" ? `GPF Open R${r.roundNo}` : "Qualifying"}{r.source === "OCR" ? " · from scorecard" : ""}</div></div>
+          <div><div className="row-title">{r.course?.name} · {r.tee?.name}</div><div className="muted small">{r.date?.slice(0, 10)} · {r.type === "WEEKEND" ? "GPF Open" : "Qualifying"}{r.source === "OCR" ? " · from scorecard" : ""}</div></div>
           <div className="row-right"><div className="gross">{r.gross}</div><span className={`badge badge-${r.status === "APPROVED" ? "ok" : r.status === "REJECTED" ? "bad" : "warn"}`}>{r.status.toLowerCase()}</span></div>
         </div>))}
       <div className="sec-h">How the year runs</div>
@@ -53,19 +53,12 @@ export default function Dashboard() {
           </ul>
         </div></div>
         <div className="step"><span className="step-n num">3</span><div><b>GPF Open</b>
-          <p className="muted small">26–27 September — two rounds at 90% handicap. Net = gross − playing handicap, both days added together.</p>
+          <p className="muted small">{MAJOR.dateLabel} at {MAJOR.course}, {MAJOR.location} — one round, 90% of your course handicap on the tee you play. Net = gross − playing handicap − road bonus; lowest wins.</p>
           <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
-            <a href="https://rfegolf.es/club/isla_canela_old_course.html?id=337" target="_blank" rel="noreferrer"
+            <a href={MAJOR.url} target="_blank" rel="noreferrer"
                style={{ display: "flex", gap: 12, alignItems: "center", padding: 8, borderRadius: 12, background: "var(--card, rgba(255,255,255,0.04))", border: "1px solid var(--border, rgba(255,255,255,0.08))", textDecoration: "none", color: "inherit" }}>
-              <img src="/courses/ic-old.jpeg" alt="Isla Canela Old Course" width={64} height={64}
-                   style={{ width: 64, height: 64, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} />
-              <div><div className="muted small">26 September</div><b>Isla Canela Old Course</b></div>
-            </a>
-            <a href="https://rfegolf.es/club/valle_guadiana_links?id=1101" target="_blank" rel="noreferrer"
-               style={{ display: "flex", gap: 12, alignItems: "center", padding: 8, borderRadius: 12, background: "var(--card, rgba(255,255,255,0.04))", border: "1px solid var(--border, rgba(255,255,255,0.08))", textDecoration: "none", color: "inherit" }}>
-              <img src="/courses/ic-links.jpeg" alt="Isla Canela Links" width={64} height={64}
-                   style={{ width: 64, height: 64, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} />
-              <div><div className="muted small">27 September</div><b>Isla Canela Links</b></div>
+              <span style={{ width: 64, height: 64, borderRadius: 10, flexShrink: 0, display: "grid", placeItems: "center", background: "#113221", color: "#f3e9d2" }}><Flag size={26} /></span>
+              <div><div className="muted small">{MAJOR.dayLabel}, {MAJOR.dateLabel}</div><b>{MAJOR.course}</b><div className="muted small">{MAJOR.location}</div></div>
             </a>
           </div>
         </div></div>

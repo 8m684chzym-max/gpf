@@ -22,8 +22,8 @@ export async function GET(req) {
     buildRoadBoard(users, rounds, config).forEach((r) => rows.push([r.user.name, r.points, r.count, fmt(r.hcp), r.qualified ? "yes" : "no"]));
     filename = `gpf-road-${comp.year}.csv`;
   } else {
-    rows = [["Rank", "Player", "Handicap", "Playing Hcp", "R1 Net", "R2 Net", "Total Net"]];
-    buildFinalBoard(users, rounds, config).forEach((r, i) => rows.push([i + 1, r.user.name, fmt(r.hcp), fmt(r.ph), fmt(r.net1), fmt(r.net2), fmt(r.total)]));
+    rows = [["Rank", "Player", "Index", "Tee", "Playing Hcp", "Gross", "Net", "Road bonus", "Total"]];
+    buildFinalBoard(users, rounds, config).forEach((r, i) => rows.push([i + 1, r.user.name, fmt(r.hcp), r.tee ?? "", fmt(r.ph), fmt(r.gross), fmt(r.net1), r.bonus ? -r.bonus : 0, fmt(r.total)]));
     filename = `gpf-standings-${comp.year}.csv`;
   }
   return new Response(toCsv(rows), { headers: { "content-type": "text/csv", "content-disposition": `attachment; filename="${filename}"` } });

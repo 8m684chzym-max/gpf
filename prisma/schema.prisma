@@ -90,6 +90,8 @@ model Tee {
   rating   Float?
   slope    Int?
   par      Int
+  holePars    Int[]  @default([]) // par per hole 1–18 (empty = unknown)
+  strokeIndex Int[]  @default([]) // stroke index per hole 1–18 (empty = unknown)
   rounds   Round[]
 }
 

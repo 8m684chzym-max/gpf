@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trophy } from "lucide-react";
+import { Trophy, Flag } from "lucide-react";
+import { MAJOR } from "@/lib/major";
 import Logo from "@/components/Logo";
 import GPFLoginMark from "@/components/GPFLoginMark";
 import { api } from "@/lib/client";
@@ -25,12 +26,12 @@ export default function Home() {
       <GPFLoginMark size={148} tagline={false} />
         <div className="auth-eyebrow">Members' competition · {year}</div>
         <h1 className="home-title">Road to <span>GPF</span> Open</h1>
-        <p className="home-sub">Qualify on the road through the year. Settle it over two rounds on 26–27 September — Medal Net, lowest total wins.</p>
+        <p className="home-sub">Qualify on the road through the year. Settle it in one round on {MAJOR.dateLabel} at {MAJOR.course} — Medal Net, lowest score wins.</p>
         <div className="home-cta"><button className="btn btn-primary" onClick={go}>Enter the clubhouse</button><button className="btn btn-ghost" onClick={go}>Join the group</button></div>
         <div className="home-stats">
           <div><div className="hs-num num">{members}</div><div className="hs-l">members</div></div>
           <div><div className="hs-num num">{qualified}</div><div className="hs-l">qualified</div></div>
-          <div><div className="hs-num num">2</div><div className="hs-l">final rounds</div></div>
+          <div><div className="hs-num num">{MAJOR.rounds}</div><div className="hs-l">final round</div></div>
         </div>
       </section>
       <section className="home-sec">
@@ -47,19 +48,12 @@ export default function Home() {
             </ul>
           </div></div>
           <div className="step"><span className="step-n num">3</span><div><b>GPF Open</b>
-            <p className="muted small">26–27 September — two rounds at 90% handicap. Net = gross − playing handicap, both days added together.</p>
+            <p className="muted small">{MAJOR.dateLabel} at {MAJOR.course}, {MAJOR.location} — one round, 90% of your course handicap on the tee you play. Net = gross − playing handicap − road bonus; lowest wins.</p>
             <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
-              <a href="https://rfegolf.es/club/isla_canela_old_course.html?id=337" target="_blank" rel="noreferrer"
+              <a href={MAJOR.url} target="_blank" rel="noreferrer"
                  style={{ display: "flex", gap: 12, alignItems: "center", padding: 8, borderRadius: 12, background: "var(--card, rgba(255,255,255,0.04))", border: "1px solid var(--border, rgba(255,255,255,0.08))", textDecoration: "none", color: "inherit" }}>
-                <img src="/courses/ic-old.jpeg" alt="Isla Canela Old Course" width={64} height={64}
-                     style={{ width: 64, height: 64, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} />
-                <div><div className="muted small">26 September</div><b>Isla Canela Old Course</b></div>
-              </a>
-              <a href="https://rfegolf.es/club/valle_guadiana_links?id=1101" target="_blank" rel="noreferrer"
-                 style={{ display: "flex", gap: 12, alignItems: "center", padding: 8, borderRadius: 12, background: "var(--card, rgba(255,255,255,0.04))", border: "1px solid var(--border, rgba(255,255,255,0.08))", textDecoration: "none", color: "inherit" }}>
-                <img src="/courses/ic-links.jpeg" alt="Isla Canela Links" width={64} height={64}
-                     style={{ width: 64, height: 64, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} />
-                <div><div className="muted small">27 September</div><b>Isla Canela Links</b></div>
+                <span style={{ width: 64, height: 64, borderRadius: 10, flexShrink: 0, display: "grid", placeItems: "center", background: "#113221", color: "#f3e9d2" }}><Flag size={26} /></span>
+                <div><div className="muted small">{MAJOR.dayLabel}, {MAJOR.dateLabel}</div><b>{MAJOR.course}</b><div className="muted small">{MAJOR.location}</div></div>
               </a>
             </div>
           </div></div>
@@ -69,11 +63,11 @@ export default function Home() {
         <section className="home-sec">
           <div className="sec-h"><Trophy size={14} /> Current standings</div>
           <div className="board lb">
-            <div className="board-head lb-head"><span className="bh-rank">#</span><span className="bh-name">Player</span><span className="bh-c">R1</span><span className="bh-c">R2</span><span className="bh-c tot">Net</span></div>
+            <div className="board-head lb-head"><span className="bh-rank">#</span><span className="bh-name">Player</span><span className="bh-c tot">Net</span></div>
             {board.map((r, i) => (
               <div key={r.name} className={`board-row lb-row ${i === 0 && r.total != null ? "champion" : ""}`}>
                 <span className="bh-rank num">{i === 0 && r.total != null ? <Trophy size={14} /> : i + 1}</span>
-                <span className="bh-name">{r.name}</span><span className="bh-c num">{r.net1 ?? "—"}</span><span className="bh-c num">{r.net2 ?? "—"}</span><span className="bh-c num tot">{r.total ?? "—"}</span>
+                <span className="bh-name">{r.name}</span><span className="bh-c num tot">{r.total ?? "—"}</span>
               </div>))}
           </div>
         </section>

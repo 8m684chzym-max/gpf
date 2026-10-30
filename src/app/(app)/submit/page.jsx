@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Camera, Upload, Loader2, AlertCircle, Sparkles, CircleCheck, Plus, Users, ChevronRight, Image as ImageIcon, FileText } from "lucide-react";
+import { MAJOR } from "@/lib/major";
 import { api } from "@/lib/client";
 import { prepareScorecardImage } from "@/lib/scorecardImage";
 
@@ -64,19 +65,21 @@ export default function Submit() {
   const submit = async () => {
     const holes = filled === 18 ? f.holes.map(Number) : [];
     try {
-      await api("/api/rounds", { method: "POST", body: JSON.stringify({
+      const res = await api("/api/rounds", { method: "POST", body: JSON.stringify({
         type: f.type, roundNo: f.roundNo, date: f.date, courseId: f.courseId, teeId: f.teeId, gross: Number(f.gross),
         partnerId: f.partnerId || null, source: f.source, holes, out: out || null, in: inn || null,
         points: f.points === "" ? null : Number(f.points), fairwaysPct: f.fairwaysPct === "" ? null : Number(f.fairwaysPct),
         girPct: f.girPct === "" ? null : Number(f.girPct), putts: f.putts === "" ? null : Number(f.putts),
       }) });
-      setDone(true);
+      setDone(res || true);
     } catch (e) { alert(e.message); }
   };
 
   if (done) return (
-    <div className="stack"><div className="card success"><CircleCheck size={40} /><h3>Round added</h3>
-      <p className="muted">It's on the boards now. The committee can still edit or remove it from Admin if anything looks off.</p>
+    <div className="stack"><div className="card success">{done.held ? <AlertCircle size={40} /> : <CircleCheck size={40} />}<h3>{done.held ? "Sent for review" : "Round added"}</h3>
+      {done.held
+        ? <p className="muted">{done.message} It will count once the committee approves it.</p>
+        : <p className="muted">It's on the boards now{done.points != null ? ` — worth ${done.points} Stableford points off your appointed handicap` : ""}. The committee can still edit or remove it from Admin if anything looks off.</p>}
       <button className="btn btn-primary" onClick={() => { setF(blank); setDone(false); }}>Submit another</button></div></div>
   );
 
@@ -97,11 +100,10 @@ export default function Submit() {
       )}
       <div className="card form">
         <div className="grid2">
-          <label className="field"><span className="label">Round type</span><select className="input" value={f.type} onChange={(e) => set("type", e.target.value)}>
+          <label className="field"><span className="label">Round type</span><select className="input" value={f.type} onChange={(e) => { const t = e.target.value; setF((p) => ({ ...p, type: t, ...(t === "WEEKEND" ? { date: MAJOR.dateISO, roundNo: 1 } : {}) })); }}>
             <option value="QUALIFYING">Qualifying (Road to GPF)</option><option value="WEEKEND">GPF Open</option></select></label>
           {f.type === "WEEKEND" ? (
-            <label className="field"><span className="label">Which round</span><select className="input" value={f.roundNo} onChange={(e) => set("roundNo", e.target.value)}>
-              <option value={1}>Round 1 (Saturday)</option><option value={2}>Round 2 (Sunday)</option></select></label>
+            <label className="field"><span className="label">Round</span><input className="input" readOnly value={`${MAJOR.dateLabel} · ${MAJOR.course}`} /></label>
           ) : (
             <label className="field"><span className="label">Member witness</span><select className="input" value={f.partnerId} onChange={(e) => set("partnerId", e.target.value)}>
               <option value="">Select a member…</option>{memberOptions.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select></label>
@@ -151,7 +153,7 @@ export default function Submit() {
           <div className="outin"><span>OUT <b>{out || "—"}</b></span><span>IN <b>{inn || "—"}</b></span><span>Total <b>{out + inn || "—"}</b></span>
             <button className="link" type="button" onClick={() => set("gross", String(out + inn))} disabled={!(out + inn)}>Use as gross</button></div>
           <div className="grid3">
-            <label className="field"><span className="label">Points</span><input className="input" inputMode="numeric" value={f.points} onChange={(e) => set("points", e.target.value)} /></label>
+            <label className="field"><span className="label">Points on card</span><input className="input" inputMode="numeric" value={f.points} onChange={(e) => set("points", e.target.value)} /></label>
             <label className="field"><span className="label">Fairways %</span><input className="input" inputMode="numeric" value={f.fairwaysPct} onChange={(e) => set("fairwaysPct", e.target.value)} /></label>
             <label className="field"><span className="label">GIR %</span><input className="input" inputMode="numeric" value={f.girPct} onChange={(e) => set("girPct", e.target.value)} /></label>
             <label className="field"><span className="label">Putts</span><input className="input" inputMode="numeric" value={f.putts} onChange={(e) => set("putts", e.target.value)} /></label>

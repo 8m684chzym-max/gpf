@@ -18,8 +18,36 @@ export function playingHandicap(hcp, config) {
   return roundHcp((hcp * (config?.handicapAllowance ?? 90)) / 100, config?.roundingMode ?? "round");
 }
 
+// GPF Open playing handicap (WHS): Course Handicap on the tee played × allowance.
+// Course Handicap = Index × Slope/113 + (Course Rating − Par), rounded to a whole number first.
+export function openPlayingHandicap(hcp, tee, config) {
+  const ch = courseHandicapFor(hcp, tee);
+  if (ch == null) return null;
+  return roundHcp((ch * (config?.handicapAllowance ?? 90)) / 100, config?.roundingMode ?? "round");
+}
+
+// B — Road to GPF bonus strokes: 1st/2nd/3rd qualified player on the road board.
+export const ROAD_BONUS = [3, 2, 1];
+export function roadBonusMap(users, rounds, config) {
+  const map = new Map();
+  buildRoadBoard(users, rounds, config)
+    .filter((r) => r.qualified)
+    .slice(0, ROAD_BONUS.length)
+    .forEach((r, i) => map.set(r.user.id, ROAD_BONUS[i]));
+  return map;
+}
+
 export function netOf(gross, ph) {
   return gross == null || ph == null ? null : gross - ph;
+}
+
+// Net countback for a single medal round: last 9, 6, 3, then 18th hole,
+// each less the matching fraction (1/2, 1/3, 1/6, 1/18) of playing handicap.
+// Returns an array to compare lexicographically; null when hole scores are missing.
+export function netCountback(holes, ph) {
+  if (!holes || holes.length < 18 || ph == null) return null;
+  const last = (n) => holes.slice(18 - n).reduce((s, x) => s + (Number(x) || 0), 0);
+  return [last(9) - ph / 2, last(6) - ph / 3, last(3) - ph / 6, last(1) - ph / 18];
 }
 
 export function back9(holes) {
@@ -80,9 +108,33 @@ export function courseHandicapFor(index, tee) {
   return Math.round(index * (slope / 113) + (rating - par));
 }
 
-// Net Stableford estimate when the scorecard didn't carry a points total.
+// Strokes received on a hole of stroke index `si` for a whole-number Course Handicap.
+// Plus handicaps give strokes back, starting from the easiest hole (SI 18).
+export function strokesOnHole(si, ch) {
+  if (ch >= 0) return Math.floor(ch / 18) + (si <= ch % 18 ? 1 : 0);
+  const p = -ch;
+  return -(Math.floor(p / 18) + (si > 18 - (p % 18) ? 1 : 0));
+}
+
+const hasHoleData = (tee) =>
+  Array.isArray(tee?.holePars) && tee.holePars.length === 18 &&
+  Array.isArray(tee?.strokeIndex) && tee.strokeIndex.length === 18;
+
+// Exact Stableford from hole scores, the tee's par/SI per hole and the Course Handicap.
+// null when hole scores or the tee's hole data are missing.
+export function exactStableford(holes, tee, ch) {
+  if (ch == null || !hasHoleData(tee) || !Array.isArray(holes) || holes.length !== 18) return null;
+  return holes.reduce((s, x, i) => {
+    const score = Number(x);
+    if (!score) return s; // no return on the hole → 0 pts
+    return s + Math.max(0, 2 + tee.holePars[i] + strokesOnHole(tee.strokeIndex[i], ch) - score);
+  }, 0);
+}
+
+// Net Stableford estimate from gross alone.
 // Playing to your Course Handicap is worth 36 pts; each net stroke better/worse
-// is ≈ ±1 pt, so points ≈ 36 + CourseHandicap + Par − Gross (floored at 0).
+// is ±1 pt, so points = 36 + CourseHandicap + Par − Gross (floored at 0).
+// Exact when no hole scores 0 pts; otherwise slightly low (a blow-up hole costs > 2).
 export function estimateStableford(round, index) {
   const tee = round.tee;
   const ch = courseHandicapFor(index, tee);
@@ -91,10 +143,31 @@ export function estimateStableford(round, index) {
   return Math.max(0, Math.round(36 + ch + par - round.gross));
 }
 
-// Stableford points for a round: the card's value if present, else a WHS estimate.
+// Stableford points for a round — ALWAYS computed from the strokes and the player's
+// appointed index, never taken from the card (a card can be marked off a false handicap).
+// Exact per hole when the tee has par/SI data and all 18 scores exist; else from gross.
 export function roundPoints(round, index) {
-  if (round.points != null) return Number(round.points);
-  return estimateStableford(round, index);
+  const exact = exactStableford(round.holes, round.tee, courseHandicapFor(index, round.tee));
+  return exact != null ? exact : estimateStableford(round, index);
+}
+
+// Integrity check of a submitted card against the player's appointed index.
+//   holesMismatch — the 18 hole scores don't add up to the gross entered
+//   pointsGap     — points written on the card minus points the strokes are worth
+//   impliedCH     — Course Handicap the card's points imply (gross method)
+// flagged when hole scores ≠ gross, or the card claims more than 2 pts above the computed value.
+export function auditRound(round, index) {
+  const ch = courseHandicapFor(index, round.tee);
+  const computed = roundPoints(round, index);
+  const holes = Array.isArray(round.holes) && round.holes.length === 18 ? round.holes.map(Number) : null;
+  const holeSum = holes ? holes.reduce((s, x) => s + (x || 0), 0) : null;
+  const holesMismatch = holeSum != null && round.gross != null && holeSum !== Number(round.gross);
+  const card = round.points != null ? Number(round.points) : null;
+  const par = round.tee?.par ?? 72;
+  const pointsGap = card != null && computed != null ? card - computed : null;
+  const impliedCH = card != null && round.gross != null ? card - 36 - par + Number(round.gross) : null;
+  const flagged = holesMismatch || (pointsGap != null && pointsGap > 2);
+  return { ch, computed, card, pointsGap, impliedCH, holeSum, holesMismatch, flagged, exact: exactStableford(round.holes, round.tee, ch) != null };
 }
 
 // Total Stableford points across a player's best `n` qualifying rounds.
@@ -111,27 +184,34 @@ export function isQualified(user, rounds, config) {
   return approvedQualifying(rounds, user.id).length >= (config?.qualifyingRoundsRequired ?? 3);
 }
 
-// GPF Open: Medal Net at the configured allowance, two rounds added.
+// GPF Open: single-round Medal Net (see lib/major.js).
+//   playing hcp = Course Handicap on the tee played × allowance   (A)
+//   net         = gross − playing hcp
+//   total       = net − road bonus strokes (3/2/1 for road 1st/2nd/3rd)   (B)
+// net2 is kept in the row shape (always null) so older consumers don't break.
 export function buildFinalBoard(users, rounds, config) {
+  const bonus = roadBonusMap(users, rounds, config);
   const rows = users.map((u) => {
     const hcp = calcHandicap(u, rounds, config).value;
-    const ph = playingHandicap(hcp, config);
     const r1 = rounds.find((r) => r.userId === u.id && r.type === "WEEKEND" && r.roundNo === 1 && r.status === "APPROVED");
-    const r2 = rounds.find((r) => r.userId === u.id && r.type === "WEEKEND" && r.roundNo === 2 && r.status === "APPROVED");
+    // Tee missing rating/slope → courseHandicapFor falls back to par/113, i.e. plain index × allowance.
+    const ph = r1 ? openPlayingHandicap(hcp, r1.tee, config) : playingHandicap(hcp, config);
     const net1 = r1 ? netOf(r1.gross, ph) : null;
-    const net2 = r2 ? netOf(r2.gross, ph) : null;
-    const total = net1 != null && net2 != null ? net1 + net2 : null;
-    return { user: u, hcp, ph, net1, net2, total, finalBack9: r2 ? back9(r2.holes) : null, manualTiebreak: u.tiebreakOverride ?? 0 };
-  }).filter((row) => row.net1 != null || row.net2 != null);
+    const b = bonus.get(u.id) ?? 0;
+    const total = net1 == null ? null : net1 - b;
+    return { user: u, hcp, ph, tee: r1?.tee?.name ?? null, bonus: b, gross: r1 ? r1.gross : null, net1, net2: null, total, countback: r1 ? netCountback(r1.holes, ph) : null, manualTiebreak: u.tiebreakOverride ?? 0 };
+  }).filter((row) => row.net1 != null);
 
   rows.sort((a, b) => {
     if (a.total == null && b.total == null) return 0;
     if (a.total == null) return 1;
     if (b.total == null) return -1;
     if (a.total !== b.total) return a.total - b.total;
-    if (config?.tiebreak === "back9") return (a.finalBack9 ?? 999) - (b.finalBack9 ?? 999);
     if (config?.tiebreak === "manual") return a.manualTiebreak - b.manualTiebreak;
-    return (a.net2 ?? 999) - (b.net2 ?? 999); // final-net default
+    // Single round: net countback. Cards without hole scores sort after cards with them.
+    if (!a.countback || !b.countback) return (a.countback ? 0 : 1) - (b.countback ? 0 : 1);
+    for (let i = 0; i < 4; i++) if (a.countback[i] !== b.countback[i]) return a.countback[i] - b.countback[i];
+    return 0;
   });
   return rows;
 }

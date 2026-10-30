@@ -79,7 +79,7 @@ export default function Profile() {
       </div>
       <div className="sec-h">All rounds ({d.mine.length})</div>
       {d.mine.map((r) => (
-        <div key={r.id} className="card row-card"><div><div className="row-title">{r.course?.name} · {r.tee?.name}</div><div className="muted small">{r.date?.slice(0, 10)} · {r.type === "WEEKEND" ? `Weekend R${r.roundNo}` : "Qualifying"}</div></div>
+        <div key={r.id} className="card row-card"><div><div className="row-title">{r.course?.name} · {r.tee?.name}</div><div className="muted small">{r.date?.slice(0, 10)} · {r.type === "WEEKEND" ? "GPF Open" : "Qualifying"}</div></div>
           <div className="row-right"><div className="gross">{r.gross}</div><span className={`badge badge-${r.status === "APPROVED" ? "ok" : r.status === "REJECTED" ? "bad" : "warn"}`}>{r.status.toLowerCase()}</span></div></div>))}
     </div>
   );
