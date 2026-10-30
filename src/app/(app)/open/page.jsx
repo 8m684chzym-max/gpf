@@ -20,6 +20,14 @@ export default function GpfOpen() {
   if (!d) return <div className="loading"><Loader2 className="spin" size={22} /> Loading…</div>;
 
   const need = d.config.qualifyingRoundsRequired;
+  // Final tab field: all players by GPF (Open) handicap, lowest first; no handicap last.
+  const field = [...d.road].sort((a, b) => {
+    const x = a.openIndex ?? a.hcp, y = b.openIndex ?? b.hcp;
+    if (x == null && y == null) return a.name.localeCompare(b.name);
+    if (x == null) return 1;
+    if (y == null) return -1;
+    return x - y || a.name.localeCompare(b.name);
+  });
 
   return (
     <div className="stack">
@@ -60,7 +68,7 @@ export default function GpfOpen() {
           <p className="muted small">Single round at {MAJOR.course} — lowest net wins. Ties: {TIEBREAK[d.config.tiebreak]}.</p>
           <div className="board lb">
             <div className="board-head lb-head"><span className="bh-rank">#</span><span className="bh-name">Player</span><span className="bh-c">Hcp</span><span className="bh-c">Gross</span><span className="bh-c">Bonus</span><span className="bh-c tot">Net</span></div>
-            {d.final.length === 0 && <div style={{ padding: 16, color: "#9fc2b3" }}>No weekend scores in yet.</div>}
+            {d.final.length === 0 && <div style={{ padding: 16, color: "#9fc2b3" }}>No scores yet — the Open is on {MAJOR.dayLabel}, {MAJOR.dateLabel}.</div>}
             {d.final.map((r, i) => (
               <div key={r.name} className={`board-row lb-row ${i === 0 && r.total != null ? "champion" : ""}`}>
                 <span className="bh-rank num">{i === 0 && r.total != null ? <Trophy size={15} /> : i + 1}</span><span className="bh-name">{r.name}</span>
@@ -69,6 +77,22 @@ export default function GpfOpen() {
               </div>))}
           </div>
           <p className="hint">Playing handicap (in brackets) = course handicap on the tee played × {d.config.handicapAllowance}%. Net = gross − playing handicap − road bonus (3/2/1 strokes for the top three on the road).</p>
+
+          <div className="sec-h" style={{ marginTop: 18 }}>Field · GPF handicaps</div>
+          <p className="muted small">Every player&rsquo;s handicap for the Open: declared, adjusted by their best 3 road rounds against 108. The top three on the road also get the bonus strokes off their net.</p>
+          <div className="board">
+            <div className="board-head"><span className="bh-rank">#</span><span className="bh-name">Player</span><span className="bh-c">Decl.</span><span className="bh-c">GPF hcp</span><span className="bh-c">Bonus</span></div>
+            {field.length === 0 && <div style={{ padding: 16, color: "#9fc2b3" }}>No members yet.</div>}
+            {field.map((r, i) => (
+              <div key={r.name} className={`board-row ${r.bonus ? "lead" : ""}`}>
+                <span className="bh-rank num">{i + 1}</span>
+                <span className="bh-name">{r.name}{!r.qualified && <span className="badge badge-warn" style={{ marginLeft: 6 }}>{r.count}/{need}</span>}</span>
+                <span className="bh-c num">{fmtHcp(r.hcp)}</span>
+                <span className="bh-c num tot">{fmtHcp(r.openIndex ?? r.hcp)}{r.adjust ? <span className="ph"> ({r.adjust > 0 ? "+" : ""}{r.adjust})</span> : null}</span>
+                <span className="bh-c num">{r.bonus ? `−${r.bonus}` : "—"}</span>
+              </div>))}
+          </div>
+          <p className="hint">Ranked by GPF handicap, lowest first. Players without 3 approved rounds keep their declared handicap and are marked with their round count.</p>
         </>
       )}
     </div>
