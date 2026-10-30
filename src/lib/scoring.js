@@ -180,6 +180,20 @@ export function bestPointsTotal(userId, rounds, index, n = 3) {
   return { total: pts.reduce((s, x) => s + x, 0), used: pts.length };
 }
 
+// A player's approved qualifying rounds, newest first, with what each is worth:
+// playing hcp = Course Handicap on the tee (100%, as for road Stableford) from the
+// player's appointed index; `counted` marks the best `n` that make up their road total.
+export function roadRoundsFor(userId, rounds, index, n = 3) {
+  const list = approvedQualifying(rounds, userId).map((r) => ({
+    id: r.id, date: r.date ?? null, course: r.tee?.course?.name ?? null, tee: r.tee?.name ?? null,
+    gross: r.gross, ph: courseHandicapFor(index, r.tee), points: roundPoints(r, index),
+  }));
+  const best = new Set(list.filter((x) => x.points != null).sort((a, b) => b.points - a.points).slice(0, n).map((x) => x.id));
+  return list
+    .map((x) => ({ ...x, counted: best.has(x.id) }))
+    .sort((a, b) => String(b.date ?? "").localeCompare(String(a.date ?? "")));
+}
+
 export function isQualified(user, rounds, config) {
   return approvedQualifying(rounds, user.id).length >= (config?.qualifyingRoundsRequired ?? 3);
 }

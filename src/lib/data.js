@@ -24,10 +24,10 @@ export function configFrom(comp) {
 export async function getScopedRounds(competitionId) {
   const rounds = await prisma.round.findMany({
     where: { competitionId },
-    include: { tee: true, scorecard: true },
+    include: { tee: { include: { course: { select: { name: true } } } }, scorecard: true },
   });
   return rounds.map((r) => ({
-    id: r.id, userId: r.userId, type: r.type, roundNo: r.roundNo, status: r.status,
+    id: r.id, userId: r.userId, type: r.type, roundNo: r.roundNo, status: r.status, date: r.date,
     gross: r.gross, parAtTee: r.tee?.par ?? 72, tee: r.tee, holes: r.scorecard?.holes ?? null,
     points: r.scorecard?.points ?? null,
   }));
