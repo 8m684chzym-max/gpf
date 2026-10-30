@@ -52,7 +52,9 @@ export default function Home() {
             <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
               <a href={MAJOR.url} target="_blank" rel="noreferrer"
                  style={{ display: "flex", gap: 12, alignItems: "center", padding: 8, borderRadius: 12, background: "var(--card, rgba(255,255,255,0.04))", border: "1px solid var(--border, rgba(255,255,255,0.08))", textDecoration: "none", color: "inherit" }}>
-                <span style={{ width: 64, height: 64, borderRadius: 10, flexShrink: 0, display: "grid", placeItems: "center", background: "#113221", color: "#f3e9d2" }}><Flag size={26} /></span>
+                {MAJOR.image
+                  ? <img src={MAJOR.image} alt={MAJOR.course} width={64} height={64} style={{ width: 64, height: 64, borderRadius: 10, objectFit: "cover", flexShrink: 0 }} />
+                  : <span style={{ width: 64, height: 64, borderRadius: 10, flexShrink: 0, display: "grid", placeItems: "center", background: "#113221", color: "#f3e9d2" }}><Flag size={26} /></span>}
                 <div><div className="muted small">{MAJOR.dayLabel}, {MAJOR.dateLabel}</div><b>{MAJOR.course}</b><div className="muted small">{MAJOR.location}</div></div>
               </a>
             </div>

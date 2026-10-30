@@ -11,6 +11,7 @@ export const MAJOR = {
   course: "Pinheirinho",
   location: "Comporta",
   url: "https://pinheirinhocomporta.com/pt/golf/",
+  image: "/courses/pinheirinho.jpeg", // square thumbnail; null → flag tile
 };
 
 // Shared tiebreak labels (keys are stored in the DB — keep them stable).
