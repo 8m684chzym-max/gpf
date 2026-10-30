@@ -80,15 +80,15 @@ function RoundsDetail({ rounds }) {
   if (!rounds) return null;
   const cell = { padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" };
   return (
-    <div style={{ padding: "4px 8px 12px 28px", overflowX: "auto" }}>
+    <div className="rd" style={{ padding: "4px 8px 12px 28px", overflowX: "auto" }}>
       {rounds.length === 0 ? <div className="muted small">No approved qualifying rounds yet.</div> : (
         <table className="small" style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead><tr className="muted">
+          <thead><tr>
             <th style={{ ...cell, textAlign: "left" }}>Date</th><th style={{ ...cell, textAlign: "left" }}>Course</th>
             <th style={cell}>Gross</th><th style={cell}>Playing hcp</th><th style={cell}>Pts</th><th style={cell} aria-label="Counts"></th>
           </tr></thead>
           <tbody>{rounds.map((x) => (
-            <tr key={x.id} style={{ borderTop: "1px solid var(--border, rgba(255,255,255,0.08))", opacity: x.counted ? 1 : 0.6 }}>
+            <tr key={x.id} style={{ opacity: x.counted ? 1 : 0.55 }}>
               <td style={{ ...cell, textAlign: "left" }} className="num">{x.date ? String(x.date).slice(0, 10) : "—"}</td>
               <td style={{ ...cell, textAlign: "left", whiteSpace: "normal" }}>{x.course ?? "—"}{x.tee ? <span className="muted"> · {x.tee}</span> : null}</td>
               <td style={cell} className="num">{x.gross ?? "—"}</td>

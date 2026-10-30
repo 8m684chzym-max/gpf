@@ -101,7 +101,12 @@ a{color:inherit;text-decoration:none}
 .board-row{display:grid;grid-template-columns:34px 1fr 60px 56px 64px;gap:6px;padding:12px 13px;color:#eef4f0;align-items:center;font-size:14px;border-bottom:1px solid rgba(255,255,255,.06)}
 .board-row.lb-row{grid-template-columns:34px 1fr 66px 44px 44px 52px}
 .board-row .num{font-size:16px}.board-row.lead{background:rgba(240,168,24,.08)}
-.board-row.champion{background:rgba(240,168,24,.16)}.board-row.champion .bh-rank{color:var(--flag)}
+.board-row.champion{background:rgba(240,168,24,.16)}
+/* Road: per-player rounds breakdown (inside .board, on dark green) */
+.rd{color:var(--flag);background:rgba(0,0,0,.14)}
+.rd .muted,.rd .rd-dim{color:var(--flag);opacity:.7}
+.rd th{font-family:var(--disp);text-transform:uppercase;letter-spacing:1px;font-size:10.5px;font-weight:500;opacity:.75}
+.rd tr+tr,.rd tbody tr{border-top:1px solid rgba(240,168,24,.18)}.board-row.champion .bh-rank{color:var(--flag)}
 .bh-rank{text-align:center;color:#9fc2b3}.bh-c{text-align:center}.bh-c.tot{color:var(--flag);font-weight:700}
 .bh-name{font-weight:600}.ph{color:#8fae9f;font-size:11px}.lb .bh-c.tot{font-size:17px}
 
