@@ -96,9 +96,11 @@ function Members({ members, reload }) {
       </div>
       {members.map((u) => (
         <div key={u.id} className="card row-card">
-          <div><div className="row-title">{u.name} {u.role === "ADMIN" && <span className="badge badge-accent">admin</span>}</div><div className="muted small">{u.email}</div></div>
+          <div><div className="row-title">{u.name} {u.role === "ADMIN" && <span className="badge badge-accent">admin</span>}</div><div className="muted small">{u.email}</div>
+            <div className="small">Declared hcp <b className="num">{u.declaredHandicap != null ? fmtHcp(u.declaredHandicap) : "—"}</b>
+              {u.manualHandicap != null && <span className="muted"> · committee override in use</span>}</div></div>
           <div className="member-ctl">
-            <input className="input mini" placeholder="auto" defaultValue={u.manualHandicap ?? ""} title="Manual handicap override"
+            <input className="input mini" placeholder="override" defaultValue={u.manualHandicap ?? ""} title="Committee handicap override (blank = use declared)"
               onBlur={async (e) => { await api(`/api/members/${u.id}`, { method: "PATCH", body: JSON.stringify({ manualHandicap: e.target.value }) }); }} />
             <button className="icon-btn" title="Reset password" onClick={async () => {
               if (!confirm(`Reset ${u.name}'s password? They'll need the new temporary password to log in.`)) return;
