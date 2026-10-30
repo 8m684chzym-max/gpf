@@ -66,9 +66,8 @@ export function scoreD(gross, courseRating, slope) {
   return (113 / s) * (gross - rating);
 }
 
-// WHS Index from qualifying rounds: average of the best 3 score differentials
-// (or fewer if not enough rounds). Each differential uses the played tee's
-// Course Rating and Slope — so the tee mark directly affects the handicap.
+// Informational only (no longer used for the competition): average of the best 3
+// score differentials.
 export function whsIndex(qs) {
   if (!qs.length) return null;
   const diffs = qs.map((r) => {
@@ -81,22 +80,41 @@ export function whsIndex(qs) {
   return Math.round(avg * 10) / 10;
 }
 
-// Handicap precedence:
-//   1. Committee manual override (manualHandicap) — always wins.
-//   2. Once the player has the required number of qualifying rounds, the WHS
-//      index computed from results takes over.
-//   3. Until then, the player's self-declared starting index is provisional.
-//   4. If there's no declared index but some rounds exist, show a provisional
-//      WHS index from whatever rounds are available.
-export function calcHandicap(user, rounds, config) {
+// ── GPF handicap rules ───────────────────────────────────────────────────────
+// 1. Every player starts from their self-declared handicap (the committee may
+//    correct it with manualHandicap). This is the index every road round is
+//    scored with — it does NOT move with results, so points stay comparable.
+// 2. Each qualifying round = gross on a course/tee.
+// 3. Points = WHS Stableford for that gross, on that tee, off the declared index
+//    (Course Handicap = Index × Slope/113 + (CR − Par), full allowance).
+// 4. Road total = best 3 rounds.
+// 5. Open index = declared index adjusted by how the best 3 compare with 108
+//    (36 a round = playing exactly to handicap). See openIndexFor().
+export function calcHandicap(user /*, rounds, config — unused, kept for call sites */) {
   if (user.manualHandicap != null) return { value: Number(user.manualHandicap), manual: true, source: "manual" };
-  const qs = approvedQualifying(rounds, user.id);
-  const required = config?.qualifyingRoundsRequired ?? 3;
-
-  if (qs.length >= required) return { value: whsIndex(qs), manual: false, source: "results" };
-  if (user.declaredHandicap != null) return { value: Number(user.declaredHandicap), manual: false, source: "declared", provisional: true };
-  if (qs.length > 0) return { value: whsIndex(qs), manual: false, source: "results", provisional: true };
+  if (user.declaredHandicap != null) return { value: Number(user.declaredHandicap), manual: false, source: "declared" };
   return { value: null, manual: false, source: "none" };
+}
+
+export const ROAD_TARGET_PER_ROUND = 36;
+
+// Rule 5. Average points above/below 36 over the best `n` rounds is the number of
+// strokes (of Course Handicap) the declared handicap is off by per round. Convert
+// that to index with the average slope of those rounds:
+//   adjust = −(total − 36·n)/n × 113 / slope
+//   e.g. best 3 = 117 pts (+3/round) on slope 123 → index −2.8
+//        best 3 =  96 pts (−4/round) on slope 123 → index +3.7
+// Applied only once the player has n rounds; result kept within WHS limits (+8 … 54).
+export function openIndexFor(user, rounds, config, n = 3) {
+  const base = calcHandicap(user).value;
+  const counted = base == null ? [] : roadRoundsFor(user.id, rounds, base, n).filter((x) => x.counted);
+  if (base == null || counted.length < n) return { base, adjust: 0, value: base, total: null, perRound: null };
+  const total = counted.reduce((s, x) => s + x.points, 0);
+  const perRound = (total - ROAD_TARGET_PER_ROUND * n) / n;
+  const slope = counted.reduce((s, x) => s + (x.slope ?? 113), 0) / n;
+  const adjust = Math.round((-perRound * 113 / slope) * 10) / 10;
+  const value = Math.min(54, Math.max(-8, Math.round((base + adjust) * 10) / 10));
+  return { base, adjust: Math.round((value - base) * 10) / 10, value, total, perRound: Math.round(perRound * 10) / 10 };
 }
 
 // WHS Course Handicap on a given tee: Index × (Slope / 113) + (Rating − Par), rounded.
@@ -186,7 +204,7 @@ export function bestPointsTotal(userId, rounds, index, n = 3) {
 export function roadRoundsFor(userId, rounds, index, n = 3) {
   const list = approvedQualifying(rounds, userId).map((r) => ({
     id: r.id, date: r.date ?? null, course: r.tee?.course?.name ?? null, tee: r.tee?.name ?? null,
-    gross: r.gross, ph: courseHandicapFor(index, r.tee), points: roundPoints(r, index),
+    gross: r.gross, slope: r.tee?.slope ?? 113, ph: courseHandicapFor(index, r.tee), points: roundPoints(r, index),
   }));
   const best = new Set(list.filter((x) => x.points != null).sort((a, b) => b.points - a.points).slice(0, n).map((x) => x.id));
   return list
@@ -206,7 +224,7 @@ export function isQualified(user, rounds, config) {
 export function buildFinalBoard(users, rounds, config) {
   const bonus = roadBonusMap(users, rounds, config);
   const rows = users.map((u) => {
-    const hcp = calcHandicap(u, rounds, config).value;
+    const hcp = openIndexFor(u, rounds, config).value; // rule 5: declared, adjusted by road form
     const r1 = rounds.find((r) => r.userId === u.id && r.type === "WEEKEND" && r.roundNo === 1 && r.status === "APPROVED");
     // Tee missing rating/slope → courseHandicapFor falls back to par/113, i.e. plain index × allowance.
     const ph = r1 ? openPlayingHandicap(hcp, r1.tee, config) : playingHandicap(hcp, config);
@@ -238,7 +256,8 @@ export function buildRoadBoard(users, rounds, config) {
       return {
         user: u,
         count: approvedQualifying(rounds, u.id).length,
-        hcp,
+        hcp,                 // declared (appointed) index — what road rounds are scored off
+        open: openIndexFor(u, rounds, config), // { base, adjust, value, total, perRound }
         points: total,       // sum of the 3 best rounds' Stableford points
         pointsUsed: used,    // how many rounds went into that total (0–3)
         qualified: isQualified(u, rounds, config),

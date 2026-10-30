@@ -19,7 +19,8 @@ export default function Weekend() {
   if (!d) return <div className="loading"><Loader2 className="spin" size={22} /> Loading…</div>;
 
   const name = session?.user?.name;
-  const me = d.road.find((r) => r.name === name) || { hcp: null, qualified: false, bonus: 0 };
+  const me = d.road.find((r) => r.name === name) || { hcp: null, openIndex: null, qualified: false, bonus: 0 };
+  const openIdx = me.openIndex ?? me.hcp;
   const myFinal = d.final.find((r) => r.name === name);
   const alw = d.config.handicapAllowance;
   const rd = d.mine.find((x) => x.type === "WEEKEND" && x.status !== "REJECTED") || d.mine.find((x) => x.type === "WEEKEND");
@@ -31,20 +32,21 @@ export default function Weekend() {
       <h2 className="page-h">GPF Open</h2>
       <div className="card weekend-info">
         <div className="wk-line"><Calendar size={15} /> {MAJOR.dayLabel}, {MAJOR.dateLabel} · <a href={MAJOR.url} target="_blank" rel="noreferrer">{MAJOR.course}, {MAJOR.location}</a> · Single round · Medal Net · {alw}% allowance</div>
-        <div className="wk-line"><span className="muted">Your index</span> <b>{fmtHcp(me.hcp)}</b>
+        <div className="wk-line"><span className="muted">Declared</span> <b>{fmtHcp(me.hcp)}</b>
+          {me.perRound != null && <><span className="muted">· road form {me.perRound > 0 ? "+" : ""}{me.perRound}/round →</span> <span className="muted">Open handicap</span> <b>{fmtHcp(me.openIndex)}</b></>}
           {me.bonus ? <><span className="muted">· road bonus</span> <b>−{me.bonus}</b></> : null}</div>
         {!me.qualified && <div className="warn-strip"><AlertCircle size={14} /> You're not qualified yet — finish your qualifying rounds first.</div>}
         {d.config.weekendLocked && <div className="warn-strip"><Lock size={14} /> Open scores are locked by the committee.</div>}
       </div>
 
-      {me.hcp != null && tees.length > 0 && (
+      {openIdx != null && tees.length > 0 && (
         <div className="card">
           <div className="muted small" style={{ marginBottom: 8 }}>Your playing handicap at {MAJOR.course}: course handicap on the tee × {alw}%</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))", gap: 8 }}>
             {tees.map((t) => (
               <div key={t.id} style={{ padding: "6px 8px", borderRadius: 10, border: "1px solid var(--border, rgba(255,255,255,0.08))" }}>
                 <div className="muted small">{t.name}</div>
-                <b className="num">{openPlayingHandicap(me.hcp, t, d.config) ?? "—"}</b>
+                <b className="num">{openPlayingHandicap(openIdx, t, d.config) ?? "—"}</b>
               </div>))}
           </div>
         </div>

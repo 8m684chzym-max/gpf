@@ -16,6 +16,7 @@ export async function GET() {
   const bonus = roadBonusMap(users, rounds, config);
   const signedIn = !!(await requireUser());
   const road = buildRoadBoard(users, rounds, config).map((r) => ({ name: r.user.name, count: r.count, hcp: r.hcp, points: r.points, pointsUsed: r.pointsUsed, qualified: r.qualified, bonus: bonus.get(r.user.id) ?? 0,
+    openIndex: r.open.value, adjust: r.open.adjust, perRound: r.open.perRound,
     ...(signedIn ? { rounds: roadRoundsFor(r.user.id, rounds, r.hcp) } : {}) }));
   return NextResponse.json({ final, road, config });
 }

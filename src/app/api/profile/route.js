@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/guard";
-import { logAudit } from "@/lib/data";
+import { logAudit, getActiveCompetition } from "@/lib/data";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +25,13 @@ export async function PATCH(req) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json();
   if (!("declaredHandicap" in body)) return NextResponse.json({ error: "Nothing to update." }, { status: 400 });
+
+  // Rule 1: the declared handicap is what every road round is scored with, so it is
+  // frozen once the player has a qualifying round in the active competition.
+  // After that only the committee can change it (manual handicap in Admin).
+  const comp = await getActiveCompetition();
+  const played = comp ? await prisma.round.count({ where: { userId: user.id, competitionId: comp.id, type: "QUALIFYING", status: { not: "REJECTED" } } }) : 0;
+  if (played > 0) return NextResponse.json({ error: "Your declared handicap is locked once you've submitted a qualifying round. Ask the committee if it needs correcting." }, { status: 409 });
 
   const raw = body.declaredHandicap;
   let value = null;

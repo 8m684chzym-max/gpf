@@ -38,7 +38,7 @@ export default function GpfOpen() {
 
       {tab === "road" ? (
         <>
-          <p className="muted small">Ranked by total Stableford points from each player&rsquo;s 3 best rounds, then by handicap. {need} approved qualifying rounds to qualify. Points are worked out from each round&rsquo;s strokes and the player&rsquo;s handicap. Tap a player to see their rounds.</p>
+          <p className="muted small">Ranked by total Stableford points from each player&rsquo;s 3 best rounds, then by handicap. {need} approved qualifying rounds to qualify. Every round is scored off the player&rsquo;s declared handicap (WHS Stableford for that gross on that tee). 36 a round means playing to handicap, so the best 3 are compared with 108 to set each player&rsquo;s Open handicap. Tap a player to see their rounds.</p>
           <div className="board">
             <div className="board-head"><span className="bh-rank">#</span><span className="bh-name">Player</span><span className="bh-c">Pts·3</span><span className="bh-c">Hcp</span><span className="bh-c">Status</span></div>
             {d.road.length === 0 && <div className="empty" style={{ padding: 16, color: "#9fc2b3" }}>No members yet.</div>}
@@ -51,7 +51,7 @@ export default function GpfOpen() {
                 <span className="bh-c num tot">{r.points || 0}</span><span className="bh-c num">{fmtHcp(r.hcp)}</span>
                 <span className="bh-c">{r.qualified ? <span className="badge badge-ok">{r.bonus ? `In · −${r.bonus}` : "In"}</span> : <span className="badge badge-warn">{r.count}/{need}</span>}</span>
               </div>
-              {openName === r.name && <RoundsDetail rounds={r.rounds} />}
+              {openName === r.name && <RoundsDetail rounds={r.rounds} row={r} />}
             </Fragment>))}
           </div>
         </>
@@ -76,7 +76,7 @@ export default function GpfOpen() {
 }
 
 // One player's approved qualifying rounds. ✓ marks the best three that make up the road total.
-function RoundsDetail({ rounds }) {
+function RoundsDetail({ rounds, row }) {
   if (!rounds) return null;
   const cell = { padding: "6px 8px", textAlign: "right", whiteSpace: "nowrap" };
   return (
@@ -98,6 +98,11 @@ function RoundsDetail({ rounds }) {
             </tr>))}</tbody>
         </table>)}
       <div className="muted small" style={{ marginTop: 4 }}><Check size={12} /> = one of the 3 best rounds counted in the total</div>
+      {row?.perRound != null && (
+        <div style={{ marginTop: 6 }}>
+          Declared {fmtHcp(row.hcp)} · best 3 = {row.points} pts ({row.perRound > 0 ? "+" : ""}{row.perRound} a round vs 36)
+          {" → "}<b>Open handicap {fmtHcp(row.openIndex)}</b> ({row.adjust > 0 ? "+" : ""}{row.adjust})
+        </div>)}
     </div>
   );
 }
