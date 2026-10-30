@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Plus, ListOrdered, Trophy, Flag, Dices, Check, CircleDot, ChevronRight, Loader2 } from "lucide-react";
 import { api, fmtHcp } from "@/lib/client";
+import { MAJOR } from "@/lib/major";
 
 export default function Dashboard() {
   const router = useRouter();
