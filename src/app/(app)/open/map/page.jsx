@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  ChevronLeft, ChevronRight, Crosshair, LocateFixed, LocateOff, Pencil, X, Copy, RotateCcw, ArrowLeft, Check,
+  ChevronLeft, ChevronRight, Crosshair, LocateFixed, LocateOff, Pencil, X, Copy, RotateCcw, ArrowLeft, Check, Layers,
 } from "lucide-react";
 import { HOLES, COURSE_MAP } from "@/lib/holes";
 import { api } from "@/lib/client";
@@ -18,6 +18,8 @@ const MIN_K = 2 ** 13;
 const PAD_TOP = 92, PAD_BOTTOM = 70;
 const ARCS = [[50, "#a9c4ff"], [100, "#ff7a59"], [150, "#e4e4e4"], [200, "#6f9dff"], [250, "#f5c242"], [300, "#d58bff"]];
 const LS_KEY = "gpf-holemap-v1";
+const LS_LAYER = "gpf-holemap-layer";
+const SKETCH_URL = "/holes/pinheirinho-sketch.json"; // traced hole sketches, local metres from the tee (y towards the green)
 const PLAYER_RANGE = 700;         // within this of the green you are "on the hole" and distances start from you
 
 const loadOverrides = () => { try { return JSON.parse(localStorage.getItem(LS_KEY) || "{}"); } catch { return {}; } };
@@ -39,14 +41,23 @@ export default function HoleMap() {
   const [gpsErr, setGpsErr] = useState(null);
   const [edit, setEdit] = useState(null);         // null | "tee" | "green"
   const [copied, setCopied] = useState(false);
+  const [sketches, setSketches] = useState(null);
+  const [layer, setLayer] = useState("sketch");   // "sketch" | "satellite"
   const userMoved = useRef(false);
   const fitOrigin = useRef(null);
 
   const refreshShared = useCallback(() => api("/api/holes").then((r) => setShared(r.holes || {})).catch(() => {}), []);
   useEffect(() => {
     setOverrides(loadOverrides());
-    refreshShared().finally(() => setLoaded(true));
+    try { const l = localStorage.getItem(LS_LAYER); if (l) setLayer(l); } catch { /* ignore */ }
+    const sk = fetch(SKETCH_URL).then((r) => (r.ok ? r.json() : {})).then(setSketches).catch(() => setSketches({}));
+    Promise.allSettled([refreshShared(), sk]).then(() => setLoaded(true));
   }, [refreshShared]);
+  const toggleLayer = () => setLayer((l) => {
+    const next = l === "sketch" ? "satellite" : "sketch";
+    try { localStorage.setItem(LS_LAYER, next); } catch { /* ignore */ }
+    return next;
+  });
   useEffect(() => { if (loaded) refreshShared(); }, [idx, loaded, refreshShared]);
 
   // Fill the space between the top bar and the tab bar.
@@ -87,12 +98,21 @@ export default function HoleMap() {
   const hole = useMemo(() => {
     const h = HOLES[idx], o = overrides[h.n] || {}, sv = shared[h.n] || {};
     const green = o.green ?? sv.green ?? h.green;
-    return { ...h, tee: o.tee ?? sv.tee ?? h.tee, green, greenPoly: green === h.green ? h.greenPoly : null, by: sv.by };
-  }, [idx, overrides, shared]);
+    const tee = o.tee ?? sv.tee ?? h.tee;
+    const sketch = sketches?.[h.n] || null;
+    const base = { ...h, tee, green, greenPoly: green === h.green ? h.greenPoly : null, by: sv.by, sketch, virtual: false };
+    // Not placed on the map yet but we have a sketch: lay it out at a stand-in spot so
+    // target distances work from the tee. GPS needs the real tee and green.
+    if (!tee && !green && sketch) {
+      const vt = COURSE_MAP.centre;
+      return { ...base, virtual: true, tee: vt, green: sketchFrame(vt, null, sketch.green)(sketch.green) };
+    }
+    return base;
+  }, [idx, overrides, shared, sketches]);
   const mapped = !!(hole.tee && hole.green);
   const holeLen = mapped ? distance(hole.tee, hole.green) : null;
 
-  const playerOnHole = !!(gps && mapped && distance(gps.pos, hole.green) < Math.min(PLAYER_RANGE, holeLen + 80));
+  const playerOnHole = !!(gps && mapped && !hole.virtual && distance(gps.pos, hole.green) < Math.min(PLAYER_RANGE, holeLen + 80));
   const origin = mapped ? (playerOnHole ? gps.pos : hole.tee) : null;
 
   const fit = useCallback((force) => {
@@ -233,13 +253,16 @@ export default function HoleMap() {
   // ── Derived distances ──
   const toGreen = origin && hole.green ? distance(origin, hole.green) : null;
   const fb = origin ? frontBack(origin, hole.green, hole.greenPoly) : null;
+  const showSketch = !!hole.sketch && !edit && (layer === "sketch" || hole.virtual);
+  const showTiles = !showSketch && !hole.virtual;
   const toTarget = origin && target ? distance(origin, target) : null;
   const targetToGreen = target && hole.green ? distance(target, hole.green) : null;
 
   return (
-    <div ref={boxRef} className="hm"
+    <div ref={boxRef} className={`hm ${showSketch ? "hm-sk" : ""}`}
          onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onWheel={onWheel}>
-      {view && size && <Tiles view={view} size={size} />}
+      {view && size && showTiles && <Tiles view={view} size={size} />}
+      {view && size && showSketch && <Sketch view={view} size={size} hole={hole} />}
       {view && size && (
         <Overlay view={view} size={size} hole={hole} origin={origin} target={target} gps={gps}
                  playerOnHole={playerOnHole} toTarget={toTarget} targetToGreen={targetToGreen} edit={edit} />
@@ -254,6 +277,7 @@ export default function HoleMap() {
             <div className="hm-green-sub">
               {fb ? <>F {m(fb.front)} · B {m(fb.back)}</> : "to centre of green"}
               <br />{playerOnHole ? <>from you{gps.acc ? ` (±${Math.round(gps.acc)} m)` : ""}</> : "from the tee"}
+              {hole.virtual && <><br /><span className="hm-warn">Sketch only · no GPS yet</span></>}
             </div>
           </div>
         ) : <div className="hm-green"><div className="hm-green-sub">Hole {hole.n} isn&rsquo;t mapped yet</div></div>}
@@ -265,6 +289,7 @@ export default function HoleMap() {
           {gpsOn ? <LocateFixed size={19} /> : <LocateOff size={19} />}
         </button>
         <button className="hm-btn" onClick={() => fit(true)} title="Recentre hole"><Crosshair size={19} /></button>
+        {hole.sketch && !hole.virtual && !edit && <button className={`hm-btn ${layer === "satellite" ? "on" : ""}`} onClick={toggleLayer} title={layer === "sketch" ? "Show satellite" : "Show sketch"}><Layers size={18} /></button>}
         <button className="hm-btn" onClick={() => zoomBy(1.5)} title="Zoom in">+</button>
         <button className="hm-btn" onClick={() => zoomBy(1 / 1.5)} title="Zoom out">−</button>
         <button className={`hm-btn ${edit ? "on" : ""}`} onClick={() => setEdit(edit ? null : "tee")} title="Adjust tee / green"><Pencil size={17} /></button>
@@ -276,6 +301,7 @@ export default function HoleMap() {
       {edit && (
         <div className="hm-edit" onPointerDown={(e) => e.stopPropagation()}>
           <div className="hm-edit-h">
+            {hole.virtual && <>For GPS on this hole, stand on the tee and press <b>Use my spot</b>, then do the same on the green — or find them on the satellite. </>}
             {!mapped && <>Hole {hole.n} isn&rsquo;t mapped yet. </>}
             Tap the map to place the <b>{edit === "tee" ? "tee" : "centre of the green"}</b>. Saved for everyone.
             {hole.by && <div className="muted small">Last set by {hole.by}</div>}
@@ -301,7 +327,7 @@ export default function HoleMap() {
         </div>
         <button className="hm-nav" onClick={() => setIdx((idx + 1) % 18)} aria-label="Next hole"><ChevronRight size={24} /></button>
       </div>
-      <div className="hm-attr">Imagery © Esri, Maxar, Earthstar Geographics</div>
+      <div className="hm-attr">{showTiles ? "Imagery © Esri, Maxar, Earthstar Geographics" : showSketch ? "GPF sketch · approximate" : ""}</div>
     </div>
   );
 }
@@ -413,5 +439,50 @@ function DistTag({ at, value, dir }) {
     <div className="hm-tag" style={{ left: at[0] + 16, top: at[1] }}>
       <span className="num">{m(value)}</span><small>m {dir === "up" ? "↑" : "↓"}</small>
     </div>
+  );
+}
+
+// Similarity transform from a sketch's local frame (metres; tee at 0,0, y up the
+// screenshot) to [lat, lng], pinned by the real tee and green. With no green it
+// lays the sketch out north-up at true scale (stand-in position).
+function sketchFrame(tee, green, gLocal) {
+  const kx = 111320 * Math.cos((tee[0] * Math.PI) / 180), ky = 110574;
+  let s = 1, th = 0;
+  if (green) {
+    const ex = (green[1] - tee[1]) * kx, ny = (green[0] - tee[0]) * ky;
+    s = Math.hypot(ex, ny) / (Math.hypot(gLocal[0], gLocal[1]) || 1);
+    th = Math.atan2(ny, ex) - Math.atan2(gLocal[1], gLocal[0]);
+  }
+  const cs = Math.cos(th) * s, sn = Math.sin(th) * s;
+  return ([x, y]) => [tee[0] + (x * sn + y * cs) / ky, tee[1] + (x * cs - y * sn) / kx];
+}
+
+const ringsPath = (polys) => polys.map((rings) => rings.map((r) => `M${r.map((p) => p.join(",")).join("L")}Z`).join("")).join("");
+
+// Hole sketch in GPF colours, drawn in its own metre frame and placed with one SVG matrix.
+function Sketch({ view, size, hole }) {
+  const sk = hole.sketch;
+  const paths = useMemo(() => ({
+    woods: ringsPath(sk.woods || []), grass: ringsPath(sk.grass || []),
+    water: ringsPath(sk.water || []), sand: ringsPath(sk.sand || []),
+  }), [sk]);
+  const toLL = sketchFrame(hole.tee, hole.virtual ? null : hole.green, sk.green);
+  const P = (p) => toScreen(view, toWorld(toLL(p)));
+  const o = P([0, 0]), px = P([100, 0]), py = P([0, 100]);
+  const a = (px[0] - o[0]) / 100, b = (px[1] - o[1]) / 100, c = (py[0] - o[0]) / 100, d = (py[1] - o[1]) / 100;
+  const [gx, gy] = sk.green;
+  const gAng = (Math.atan2(gx, gy) * 180) / Math.PI;     // green oval follows the line of play
+  return (
+    <svg className="hm-svg" width={size.W} height={size.H} aria-hidden>
+      <g transform={`matrix(${a},${b},${c},${d},${o[0]},${o[1]})`}>
+        <path d={paths.woods} className="sk-woods" fillRule="evenodd" />
+        <path d={paths.grass} className="sk-grass" fillRule="evenodd" />
+        <path d={paths.water} className="sk-water" fillRule="evenodd" />
+        <path d={paths.sand} className="sk-sand" fillRule="evenodd" />
+        {(sk.trees || []).map(([x, y, r], i) => <circle key={i} cx={x} cy={y} r={Math.max(1.5, r)} className="sk-tree" />)}
+        <ellipse cx={gx} cy={gy} rx={13} ry={16} transform={`rotate(${-gAng} ${gx} ${gy})`} className="sk-green" />
+        <rect x={-4} y={-2.5} width={8} height={5} rx={1.5} className="sk-tee" />
+      </g>
+    </svg>
   );
 }

@@ -224,3 +224,13 @@ a{color:inherit;text-decoration:none}
 .hm-hole-meta{font-size:12px;color:var(--muted);line-height:1.3}.hm-hole-meta b{color:var(--ink)}
 .hm-attr{position:absolute;right:6px;bottom:68px;font-size:9px;color:rgba(255,255,255,.75);text-shadow:0 1px 2px #000;pointer-events:none}
 .final-hero .btn svg{background:none;color:inherit;padding:0;width:15px;height:15px}
+/* Hole sketch (GPF colours) */
+.hm.hm-sk{background:#d9cfae}
+.sk-woods{fill:#7d8f62;opacity:.6}
+.sk-grass{fill:#2f8f62;stroke:#237a52;stroke-width:1.5px;vector-effect:non-scaling-stroke}
+.sk-water{fill:#3d7fa3;stroke:#8cc3dc;stroke-width:2px;vector-effect:non-scaling-stroke}
+.sk-sand{fill:#fff8e4;stroke:#b9974a;stroke-width:1.3px;vector-effect:non-scaling-stroke}
+.sk-tree{fill:#174d36;stroke:#0c3a2c;stroke-width:1px;vector-effect:non-scaling-stroke}
+.sk-green{fill:#62c48f;stroke:#e9f7ef;stroke-width:2px;vector-effect:non-scaling-stroke}
+.sk-tee{fill:var(--flag);stroke:#0c3a2c;stroke-width:1px;vector-effect:non-scaling-stroke}
+.hm-warn{color:#a9760a;font-weight:600}
