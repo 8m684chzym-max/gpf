@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/guard";
+import { requireAdmin, requireUser } from "@/lib/guard";
 import { logAudit } from "@/lib/data";
 
 export const dynamic = 'force-dynamic';
@@ -24,21 +24,28 @@ export async function PATCH(req, { params: paramsPromise }) {
   return NextResponse.json({ ok: true });
 }
 
+// Admins can delete any round. Players can delete their own, unless the
+// committee has locked that kind of round (qualifying / GPF Open).
 export async function DELETE(req, { params: paramsPromise }) {
   const params = await paramsPromise;
-  const admin = await requireAdmin();
-  if (!admin) return NextResponse.json({ error: "Admins only" }, { status: 403 });
-  
+  const user = await requireUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const round = await prisma.round.findUnique({ where: { id: params.id }, include: { competition: true } });
+  if (!round) return NextResponse.json({ error: "Round not found" }, { status: 404 });
+  const isAdmin = user.role === "ADMIN";
+  if (!isAdmin) {
+    if (round.userId !== user.id) return NextResponse.json({ error: "You can only delete your own rounds." }, { status: 403 });
+    const locked = round.type === "WEEKEND" ? round.competition?.weekendLocked : round.competition?.qualifyingLocked;
+    if (locked) return NextResponse.json({ error: "These scores are locked — ask the committee." }, { status: 403 });
+  }
+
   try {
-    // Delete scorecard first if exists (cascade is automatic, but explicit is safer)
-    await prisma.scorecard.deleteMany({ where: { roundId: params.id } });
-    
-    // Then delete the round
-    await prisma.round.delete({ where: { id: params.id } });
-    await logAudit(admin.name, "round.delete", params.id, null);
+    await prisma.scorecard.deleteMany({ where: { roundId: round.id } });
+    await prisma.round.delete({ where: { id: round.id } });
+    await logAudit(user.name, "round.delete", round.id, `${round.type} gross ${round.gross} on ${round.date.toISOString().slice(0, 10)}${isAdmin && round.userId !== user.id ? " (by admin)" : ""}`);
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("Delete round error:", err);
-    return NextResponse.json({ error: err.message || "Failed to delete round" }, { status: 400 });
+    return NextResponse.json({ error: "Failed to delete round" }, { status: 400 });
   }
 }

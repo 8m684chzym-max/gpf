@@ -61,8 +61,14 @@ export const authOptions = {
     },
   } : undefined,
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) { token.id = user.id; token.role = user.role; }
+      // Profile > Account changed the email: refresh it in the session from the DB
+      // (never trust the client-sent value).
+      if (trigger === "update" && session?.refreshEmail && token.id) {
+        const u = await prisma.user.findUnique({ where: { id: token.id }, select: { email: true } });
+        if (u) token.email = u.email;
+      }
       return token;
     },
     async session({ session, token }) {
