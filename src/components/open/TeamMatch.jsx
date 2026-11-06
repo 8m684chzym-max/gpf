@@ -2,7 +2,8 @@
 // GPF Open · Team match play — two teams, 3 groups of 4, six 1v1 net matches.
 // Live-synced (4 s polling) like the other side games; maths in src/lib/teammatch.js.
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, Pencil, Save, Swords, Trash2, Trophy, Users, Wifi, Lock, Unlock } from "lucide-react";
+import Link from "next/link";
+import { Map as MapIcon, ArrowLeft, ChevronLeft, ChevronRight, Loader2, Pencil, Save, Swords, Trash2, Trophy, Users, Wifi, Lock, Unlock } from "lucide-react";
 import { api, fmtHcp } from "@/lib/client";
 import { openPlayingHandicap } from "@/lib/scoring";
 import { TM_GROUPS, TM_PLAYERS, TM_TO_WIN, matchList, matchState, teamScore, medalTiebreak, holeStrokes, fmtPts, liveMedal, fmtToPar, groupOf } from "@/lib/teammatch";
@@ -14,6 +15,8 @@ export default function TeamMatch() {
   const [scoring, setScoring] = useState(null); // group index being scored
   const [openMatch, setOpenMatch] = useState(null);
   const pending = useRef(new Map());         // "player-hole" → local gross not yet confirmed
+  const [startHole, setStartHole] = useState(null); // from the hole map: /open?score=N#teams
+  const jumped = useRef(false);
 
   const load = () => api("/api/open-match").then((r) => {
     if (r.match) for (const [k, v] of pending.current) { const [p, h] = k.split("-").map(Number); r.match.scores[p][h - 1] = v; }
@@ -26,6 +29,16 @@ export default function TeamMatch() {
     const iv = setInterval(() => { if (!document.hidden) load(); }, 4000);
     return () => clearInterval(iv);
   }, [!!d?.match, editing]);
+  // Arrived from the hole map (/open?score=N#teams): open my group's score entry on that hole, once.
+  useEffect(() => {
+    if (!d || jumped.current) return;
+    jumped.current = true;
+    const n = Number(new URLSearchParams(window.location.search).get("score"));
+    if (!n) return;
+    window.history.replaceState(null, "", "/open#teams");
+    const me = d.match ? d.match.players.findIndex((p) => p.userId && p.userId === d.me) : -1;
+    if (n >= 1 && n <= 18 && me >= 0) { setStartHole(n); setScoring(groupOf(me)); }
+  }, [d]);
 
   if (!d) return err ? <div className="card muted small">{err}</div> : <div className="loading"><Loader2 className="spin" size={22} /> Loading…</div>;
 
@@ -49,7 +62,8 @@ export default function TeamMatch() {
   };
 
   if (scoring != null)
-    return <ScoreEntry m={m} group={scoring} myIdx={myIdx} canScore={canScore} onBack={() => setScoring(null)} onWrite={writeHole} />;
+    return <ScoreEntry m={m} group={scoring} myIdx={myIdx} canScore={canScore} startHole={startHole}
+      onBack={() => { setScoring(null); setStartHole(null); }} onWrite={writeHole} />;
 
   return <Overview d={d} m={m} myIdx={myIdx} canScore={canScore} openMatch={openMatch} setOpenMatch={setOpenMatch} onScore={setScoring}
     onEdit={() => setEditing(true)} reload={load} />;
@@ -189,12 +203,12 @@ function HoleStrip({ s, m }) {
 }
 
 // ---------------------------------------------------------------- score entry
-function ScoreEntry({ m, group, myIdx, canScore, onBack, onWrite }) {
+function ScoreEntry({ m, group, myIdx, canScore, startHole, onBack, onWrite }) {
   const seats = [0, 1, 2, 3].map((s) => group * 4 + s);
   const rows = Array.from({ length: 18 }, (_, h) => seats.map((p) => m.scores[p]?.[h] ?? null));
   const mineInGroup = myIdx >= 0 && groupOf(myIdx) === group;
   const firstOpen = rows.findIndex((r) => (mineInGroup ? r[myIdx % 4] == null : r.some((x) => x == null)));
-  const [hole, setHole] = useState(firstOpen < 0 ? 18 : firstOpen + 1);
+  const [hole, setHole] = useState(startHole || (firstOpen < 0 ? 18 : firstOpen + 1));
   const holesRef = useRef(null);
   useEffect(() => {
     holesRef.current?.querySelector(".on")?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
@@ -220,6 +234,7 @@ function ScoreEntry({ m, group, myIdx, canScore, onBack, onWrite }) {
           <div className="muted small" style={{ letterSpacing: 1, textTransform: "uppercase" }}>Team match · Group {group + 1}</div>
           <h2 className="page-h tight">Hole {hole}{par ? <span className="muted" style={{ fontSize: 15 }}> · Par {par} · SI {si}</span> : null}</h2>
         </div>
+        <Link href={`/open/map?hole=${hole}`} className="btn btn-accent small-btn" aria-label={`Hole ${hole} map`}><MapIcon size={15} /> Map</Link>
       </div>
 
       <div className="tm-holes" ref={holesRef}>

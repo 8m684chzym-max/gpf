@@ -265,3 +265,4 @@ a{color:inherit;text-decoration:none}
 .tm-setup-row{display:grid;grid-template-columns:1fr 64px;gap:8px;align-items:center}
 .tm-vs{text-align:center;font-family:var(--disp);font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase}
 :root{--tm-a:#176b4f;--tm-b:#f0a818}
+.hm-score{display:flex;flex-direction:column;align-items:center;gap:1px;padding:5px 10px;border-radius:11px;background:var(--green-700);color:#fff;font-size:10.5px;font-weight:700;margin-left:auto;margin-right:2px}

@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  ChevronLeft, ChevronRight, Crosshair, LocateFixed, LocateOff, Pencil, X, Copy, RotateCcw, ArrowLeft, Check,
+  ChevronLeft, ChevronRight, Crosshair, LocateFixed, LocateOff, Pencil, X, Copy, RotateCcw, ArrowLeft, Check, ClipboardList,
 } from "lucide-react";
 import { HOLES, COURSE_MAP } from "@/lib/holes";
 import { api } from "@/lib/client";
@@ -30,6 +30,11 @@ export default function HoleMap() {
   const [loaded, setLoaded] = useState(false);
   const [saveErr, setSaveErr] = useState(null);
   const [idx, setIdx] = useState(0);
+  // Opened from score entry: /open/map?hole=N
+  useEffect(() => {
+    const n = Number(new URLSearchParams(window.location.search).get("hole"));
+    if (n >= 1 && n <= 18) setIdx(n - 1);
+  }, []);
   const [view, setView] = useState(null);
   const [target, setTarget] = useState(null);
   const [gps, setGps] = useState(null);           // { pos:[lat,lng], acc }
@@ -308,6 +313,7 @@ export default function HoleMap() {
           <span className="hm-hole-n num">{String(hole.n).padStart(2, "0")}</span>
           <span className="hm-hole-meta"><b>PAR {hole.par}</b><br />S.I. {hole.si}{holeLen ? <> · {Math.round(holeLen)} m</> : null}</span>
         </div>
+        <Link href={`/open?score=${hole.n}#teams`} className="hm-score" aria-label={`Enter score for hole ${hole.n}`}><ClipboardList size={17} /><span>Score</span></Link>
         <button className="hm-nav" onClick={() => setIdx((idx + 1) % 18)} aria-label="Next hole"><ChevronRight size={24} /></button>
       </div>
       <div className="hm-attr">GPF yardage book · approximate</div>
