@@ -1,6 +1,7 @@
 "use client";
 import { Fragment, useEffect, useState } from "react";
-import { Trophy, ListOrdered, Loader2, ChevronDown, ChevronRight, Check } from "lucide-react";
+import { Trophy, ListOrdered, Loader2, ChevronDown, ChevronRight, Check, Swords } from "lucide-react";
+import TeamMatch from "@/components/open/TeamMatch";
 import { api, fmtHcp } from "@/lib/client";
 import { MAJOR, TIEBREAK } from "@/lib/major";
 
@@ -10,7 +11,9 @@ export default function GpfOpen() {
   const [tab, setTab] = useState("road");
   const [openName, setOpenName] = useState(null);
   useEffect(() => {
-    if (typeof window !== "undefined" && window.location.hash === "#final") setTab("final");
+    if (typeof window === "undefined") return;
+    if (window.location.hash === "#final") setTab("final");
+    if (window.location.hash === "#teams") setTab("teams");
   }, []);
   useEffect(() => {
     Promise.all([api("/api/leaderboard"), api("/api/config")])
@@ -42,9 +45,10 @@ export default function GpfOpen() {
       <div className="seg">
         <button className={tab === "road" ? "seg-on" : ""} onClick={() => setTab("road")}><ListOrdered size={15} /> Road</button>
         <button className={tab === "final" ? "seg-on" : ""} onClick={() => setTab("final")}><Trophy size={15} /> Final</button>
+        <button className={tab === "teams" ? "seg-on" : ""} onClick={() => setTab("teams")}><Swords size={15} /> Teams</button>
       </div>
 
-      {tab === "road" ? (
+      {tab === "teams" ? <TeamMatch /> : tab === "road" ? (
         <>
           <p className="muted small">Ranked by total Stableford points from each player&rsquo;s 3 best rounds, then by handicap. {need} approved qualifying rounds to qualify. Every round is scored off the player&rsquo;s declared handicap (WHS Stableford for that gross on that tee). 36 a round means playing to handicap, so the best 3 are compared with 108 to set each player&rsquo;s Open handicap. Tap a player to see their rounds.</p>
           <div className="board">
