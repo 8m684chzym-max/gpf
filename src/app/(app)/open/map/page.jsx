@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  ChevronLeft, ChevronRight, Crosshair, LocateFixed, LocateOff, Pencil, X, Copy, RotateCcw, ArrowLeft, Check, Layers,
+  ChevronLeft, ChevronRight, Crosshair, LocateFixed, LocateOff, Pencil, X, Copy, RotateCcw, ArrowLeft, Check,
 } from "lucide-react";
 import { HOLES, COURSE_MAP } from "@/lib/holes";
 import { api } from "@/lib/client";
@@ -10,15 +10,11 @@ import {
   distance, along, toWorld, fromWorld, toScreen, fromScreen, fitLine, worldPerMetre, frontBack,
 } from "@/lib/geo";
 
-// Esri World Imagery (free satellite tiles, attribution required).
-const TILE_URL = (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
-const MAX_TILE_Z = 19;
 const MAX_K = 2 ** 21;            // closest zoom (screen px per world unit)
 const MIN_K = 2 ** 13;
 const PAD_TOP = 92, PAD_BOTTOM = 70;
 const ARCS = [[50, "#a9c4ff"], [100, "#ff7a59"], [150, "#e4e4e4"], [200, "#6f9dff"], [250, "#f5c242"], [300, "#d58bff"]];
 const LS_KEY = "gpf-holemap-v1";
-const LS_LAYER = "gpf-holemap-layer";
 const SKETCH_URL = "/holes/pinheirinho-sketch.json"; // traced hole sketches, local metres from the tee (y towards the green)
 const PLAYER_RANGE = 700;         // within this of the green you are "on the hole" and distances start from you
 
@@ -42,22 +38,15 @@ export default function HoleMap() {
   const [edit, setEdit] = useState(null);         // null | "tee" | "green"
   const [copied, setCopied] = useState(false);
   const [sketches, setSketches] = useState(null);
-  const [layer, setLayer] = useState("sketch");   // "sketch" | "satellite"
   const userMoved = useRef(false);
   const fitOrigin = useRef(null);
 
   const refreshShared = useCallback(() => api("/api/holes").then((r) => setShared(r.holes || {})).catch(() => {}), []);
   useEffect(() => {
     setOverrides(loadOverrides());
-    try { const l = localStorage.getItem(LS_LAYER); if (l) setLayer(l); } catch { /* ignore */ }
     const sk = fetch(SKETCH_URL).then((r) => (r.ok ? r.json() : {})).then(setSketches).catch(() => setSketches({}));
     Promise.allSettled([refreshShared(), sk]).then(() => setLoaded(true));
   }, [refreshShared]);
-  const toggleLayer = () => setLayer((l) => {
-    const next = l === "sketch" ? "satellite" : "sketch";
-    try { localStorage.setItem(LS_LAYER, next); } catch { /* ignore */ }
-    return next;
-  });
   useEffect(() => { if (loaded) refreshShared(); }, [idx, loaded, refreshShared]);
 
   // Fill the space between the top bar and the tab bar.
@@ -100,10 +89,10 @@ export default function HoleMap() {
     const green = o.green ?? sv.green ?? h.green;
     const tee = o.tee ?? sv.tee ?? h.tee;
     const sketch = sketches?.[h.n] || null;
-    const base = { ...h, tee, green, greenPoly: green === h.green ? h.greenPoly : null, by: sv.by, sketch, virtual: false };
-    // Not placed on the map yet but we have a sketch: lay it out at a stand-in spot so
-    // target distances work from the tee. GPS needs the real tee and green.
-    if (!tee && !green && sketch) {
+    const base = { ...h, tee, green, greenPoly: green === h.green ? h.greenPoly : null, by: sv.by, sketch, virtual: false, realTee: !!tee, realGreen: !!green };
+    // Until both the real tee and green are set, lay the sketch out at a stand-in spot
+    // so yardage-book distances work from the tee. GPS needs the real tee and green.
+    if (!(tee && green) && sketch) {
       const vt = COURSE_MAP.centre;
       return { ...base, virtual: true, tee: vt, green: sketchFrame(vt, null, sketch.green)(sketch.green) };
     }
@@ -188,7 +177,7 @@ export default function HoleMap() {
     ptrs.current.set(e.pointerId, p);
     if (ptrs.current.size === 1) {
       const ts = target ? toScreen(view, toWorld(target)) : null;
-      const onTarget = !edit && ts && Math.hypot(ts[0] - p[0], ts[1] - p[1]) < 34;
+      const onTarget = ts && Math.hypot(ts[0] - p[0], ts[1] - p[1]) < 34;
       gesture.current = { kind: onTarget ? "target" : "pan", start: p, t: Date.now(), view, moved: false };
     } else if (ptrs.current.size === 2) {
       const [a, b] = [...ptrs.current.values()];
@@ -223,10 +212,7 @@ export default function HoleMap() {
     if (ptrs.current.size === 0) {
       if (!g.moved && g.kind !== "pinch" && Date.now() - g.t < 500 && view) {
         const at = fromWorld(fromScreen(view, p));
-        if (edit) {
-          setPoint(edit, at);
-          if (edit === "tee" && !hole.green) setEdit("green");
-        } else if (mapped) setTarget(at);
+        if (mapped) setTarget(at);
       }
       gesture.current = null;
     } else if (g.kind === "pinch") {
@@ -253,15 +239,13 @@ export default function HoleMap() {
   // ── Derived distances ──
   const toGreen = origin && hole.green ? distance(origin, hole.green) : null;
   const fb = origin ? frontBack(origin, hole.green, hole.greenPoly) : null;
-  const showSketch = !!hole.sketch && !edit && (layer === "sketch" || hole.virtual);
-  const showTiles = !showSketch && !hole.virtual;
+  const showSketch = !!hole.sketch;
   const toTarget = origin && target ? distance(origin, target) : null;
   const targetToGreen = target && hole.green ? distance(target, hole.green) : null;
 
   return (
     <div ref={boxRef} className={`hm ${showSketch ? "hm-sk" : ""}`}
          onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onWheel={onWheel}>
-      {view && size && showTiles && <Tiles view={view} size={size} />}
       {view && size && showSketch && <Sketch view={view} size={size} hole={hole} />}
       {view && size && (
         <Overlay view={view} size={size} hole={hole} origin={origin} target={target} gps={gps}
@@ -289,11 +273,10 @@ export default function HoleMap() {
           {gpsOn ? <LocateFixed size={19} /> : <LocateOff size={19} />}
         </button>
         <button className="hm-btn" onClick={() => fit(true)} title="Recentre hole"><Crosshair size={19} /></button>
-        {hole.sketch && !hole.virtual && !edit && <button className={`hm-btn ${layer === "satellite" ? "on" : ""}`} onClick={toggleLayer} title={layer === "sketch" ? "Show satellite" : "Show sketch"}><Layers size={18} /></button>}
         <button className="hm-btn" onClick={() => zoomBy(1.5)} title="Zoom in">+</button>
         <button className="hm-btn" onClick={() => zoomBy(1 / 1.5)} title="Zoom out">−</button>
-        <button className={`hm-btn ${edit ? "on" : ""}`} onClick={() => setEdit(edit ? null : "tee")} title="Adjust tee / green"><Pencil size={17} /></button>
-        {target && !edit && <button className="hm-btn" onClick={() => setTarget(null)} title="Clear target"><X size={18} /></button>}
+        <button className={`hm-btn ${edit ? "on" : ""}`} onClick={() => setEdit(edit ? null : "tee")} title="GPS setup (tee & green)"><Pencil size={17} /></button>
+        {target && <button className="hm-btn" onClick={() => setTarget(null)} title="Clear target"><X size={18} /></button>}
       </div>
 
       {gpsOn && gpsErr && <div className="hm-toast" onPointerDown={(e) => e.stopPropagation()}>{gpsErr}</div>}
@@ -301,19 +284,19 @@ export default function HoleMap() {
       {edit && (
         <div className="hm-edit" onPointerDown={(e) => e.stopPropagation()}>
           <div className="hm-edit-h">
-            {hole.virtual && <>For GPS on this hole, stand on the tee and press <b>Use my spot</b>, then do the same on the green — or find them on the satellite. </>}
-            {!mapped && <>Hole {hole.n} isn&rsquo;t mapped yet. </>}
-            Tap the map to place the <b>{edit === "tee" ? "tee" : "centre of the green"}</b>. Saved for everyone.
+            <b>GPS setup · hole {hole.n}</b> — stand on the tee and press <b>Tee is here</b>, then on the green press <b>Green is here</b>. Saved for everyone; GPS distances switch on once both are set.
+            <div className="small" style={{ marginTop: 4 }}>
+              Tee {hole.realTee ? "✓" : "—"} · Green {hole.realGreen ? "✓" : "—"}{gps ? <span className="muted"> · GPS ±{Math.round(gps.acc || 0)} m</span> : <span style={{ color: "var(--bad)" }}> · waiting for GPS</span>}
+            </div>
             {hole.by && <div className="muted small">Last set by {hole.by}</div>}
             {saveErr && <div className="small" style={{ color: "var(--bad)" }}>{saveErr}</div>}
           </div>
           <div className="hm-edit-row">
-            <button className={`hm-chip ${edit === "tee" ? "on" : ""}`} onClick={() => setEdit("tee")}>Tee</button>
-            <button className={`hm-chip ${edit === "green" ? "on" : ""}`} onClick={() => setEdit("green")}>Green</button>
-            {gps && <button className="hm-chip" onClick={() => { setPoint(edit, gps.pos); if (edit === "tee" && !hole.green) setEdit("green"); }}>Use my spot</button>}
-            {(overrides[hole.n] || shared[hole.n]) && <button className="hm-chip" onClick={resetHole} title="Put this hole back to the course file"><RotateCcw size={13} /></button>}
+            <button className="hm-chip on" disabled={!gps} onClick={() => setPoint("tee", gps.pos)}>Tee is here</button>
+            <button className="hm-chip on" disabled={!gps} onClick={() => setPoint("green", gps.pos)}>Green is here</button>
+            {(overrides[hole.n] || shared[hole.n]) && <button className="hm-chip" onClick={resetHole} title="Clear this hole's tee and green"><RotateCcw size={13} /></button>}
             <button className="hm-chip" onClick={copyLayout} title="Copy all holes for the course file">{copied ? <Check size={13} /> : <Copy size={13} />}</button>
-            {mapped && <button className="hm-chip ok" onClick={() => { setEdit(null); fit(true); }}>Done</button>}
+            <button className="hm-chip ok" onClick={() => { setEdit(null); fit(true); }}>Done</button>
           </div>
         </div>
       )}
@@ -327,49 +310,9 @@ export default function HoleMap() {
         </div>
         <button className="hm-nav" onClick={() => setIdx((idx + 1) % 18)} aria-label="Next hole"><ChevronRight size={24} /></button>
       </div>
-      <div className="hm-attr">{showTiles ? "Imagery © Esri, Maxar, Earthstar Geographics" : showSketch ? "GPF sketch · approximate" : ""}</div>
+      <div className="hm-attr">GPF yardage book · approximate</div>
     </div>
   );
-}
-
-// Satellite tiles for the current view, drawn in a rotated/scaled layer.
-// A coarser layer sits underneath so there is something to see while the sharp tiles load.
-function Tiles({ view, size }) {
-  const zFine = Math.max(3, Math.min(MAX_TILE_Z, Math.ceil(Math.log2(view.k))));
-  return (
-    <div className="hm-tiles" aria-hidden>
-      <TileLayer view={view} size={size} z={Math.max(3, zFine - 3)} />
-      <TileLayer view={view} size={size} z={zFine} />
-    </div>
-  );
-}
-
-function TileLayer({ view, size, z }) {
-  const n = 2 ** z, unit = 256 / n;       // world units per tile
-  const corners = [[0, 0], [size.W, 0], [0, size.H], [size.W, size.H]].map((p) => fromScreen(view, p));
-  const xs = corners.map((c) => c[0]), ys = corners.map((c) => c[1]);
-  const x0 = Math.floor(Math.min(...xs) / unit), x1 = Math.floor(Math.max(...xs) / unit);
-  const y0 = Math.max(0, Math.floor(Math.min(...ys) / unit)), y1 = Math.min(n - 1, Math.floor(Math.max(...ys) / unit));
-  if ((x1 - x0 + 1) * (y1 - y0 + 1) > 120) return null; // zoomed way out — skip rather than flood requests
-
-  // Tiles are laid out in px relative to a base tile near the centre (keeps CSS numbers small).
-  const bx = Math.floor(view.cx / unit), by = Math.floor(view.cy / unit);
-  const s = view.k / (2 ** z);    // screen px per tile px
-  const cs = Math.cos(view.r), sn = Math.sin(view.r);
-  const a = s * cs, b = s * sn, c = -s * sn, d = s * cs;
-  const Cx = (view.cx / unit - bx) * 256, Cy = (view.cy / unit - by) * 256; // centre in layer px
-  const e = view.ax - (a * Cx + c * Cy), f = view.ay - (b * Cx + d * Cy);
-
-  const imgs = [];
-  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
-    const wx = ((tx % n) + n) % n;
-    imgs.push(
-      <img key={`${z}/${tx}/${ty}`} src={TILE_URL(z, wx, ty)} alt="" draggable={false}
-           onError={(ev) => { ev.currentTarget.style.visibility = "hidden"; }}
-           style={{ left: (tx - bx) * 256, top: (ty - by) * 256 }} />,
-    );
-  }
-  return <div className="hm-layer" style={{ transform: `matrix(${a},${b},${c},${d},${e},${f})` }}>{imgs}</div>;
 }
 
 // Lines, distance arcs, markers and distance labels, in screen space.
@@ -428,7 +371,7 @@ function Overlay({ view, size, hole, origin, target, gps, playerOnHole, toTarget
 
   return (
     <>
-      <svg className="hm-svg" width={size.W} height={size.H} aria-hidden style={{ cursor: edit ? "crosshair" : "default" }}>{els}</svg>
+      <svg className="hm-svg" width={size.W} height={size.H} aria-hidden>{els}</svg>
       <div className="hm-labels">{labels}</div>
     </>
   );

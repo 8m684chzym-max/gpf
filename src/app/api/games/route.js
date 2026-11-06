@@ -34,7 +34,7 @@ export async function GET(req) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const finished = (new URL(req.url).searchParams.get("status") || "active").toLowerCase() === "finished";
   const games = await prisma.sideGame.findMany({
-    where: { status: finished ? "FINISHED" : "ACTIVE" },
+    where: { status: finished ? "FINISHED" : "ACTIVE", type: { not: "teammatch" } }, // GPF Open team match lives on /open
     orderBy: finished ? { updatedAt: "desc" } : { createdAt: "desc" },
     take: finished ? 60 : undefined,
     include: { players: { orderBy: { position: "asc" } }, holes: true, createdBy: { select: { name: true } } },
