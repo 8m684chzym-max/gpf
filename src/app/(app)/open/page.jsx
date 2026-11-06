@@ -1,6 +1,7 @@
 "use client";
 import { Fragment, useEffect, useState } from "react";
-import { Trophy, ListOrdered, Loader2, ChevronDown, ChevronRight, Check } from "lucide-react";
+import Link from "next/link";
+import { Trophy, ListOrdered, Loader2, ChevronDown, ChevronRight, Check, Map as MapIcon } from "lucide-react";
 import { api, fmtHcp } from "@/lib/client";
 import { MAJOR, TIEBREAK } from "@/lib/major";
 
@@ -37,6 +38,7 @@ export default function GpfOpen() {
           <div className="auth-eyebrow">GPF Open · {d.config.year}</div>
           <h2 className="page-h tight">Standings</h2>
         </div>
+        <Link href="/open/map" className="btn btn-accent small-btn" style={{ marginLeft: "auto" }}><MapIcon size={15} /> Hole map</Link>
       </div>
 
       <div className="seg">

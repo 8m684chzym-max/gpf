@@ -191,3 +191,36 @@ a{color:inherit;text-decoration:none}
 .g-cta.primary{background:var(--green-700);color:#fff}
 .g-cta.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
 .g-cta:disabled{opacity:.45;cursor:not-allowed}
+/* ── Hole map (GPF Open › Hole map) ── */
+.hm{position:fixed;left:0;right:0;top:54px;bottom:64px;max-width:560px;margin:0 auto;overflow:hidden;background:#1d2a22;touch-action:none;user-select:none;-webkit-user-select:none;z-index:5}
+.hm-tiles,.hm-labels{position:absolute;inset:0;pointer-events:none}
+.hm-layer{position:absolute;left:0;top:0;transform-origin:0 0}
+.hm-layer img{position:absolute;width:256.6px;height:256.6px;max-width:none;pointer-events:none}
+.hm-svg{position:absolute;left:0;top:0;pointer-events:none}
+.hm-arc-t{fill:#fff;font-family:var(--disp);font-weight:600;font-size:15px;paint-order:stroke;stroke:rgba(0,0,0,.55);stroke-width:3px}
+.hm-tag{position:absolute;transform:translateY(-50%);background:#fff;color:var(--ink);border-radius:9px;padding:3px 8px;display:flex;align-items:baseline;gap:3px;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.hm-tag .num{font-size:20px;font-weight:700}.hm-tag small{font-size:11px;color:#5a68d8;font-weight:700}
+.hm-flag{position:absolute;transform:translate(-50%,-100%);width:30px;height:30px;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
+.hm-flag span{width:14px;height:12px;background:var(--flag);border-radius:2px 5px 5px 2px;transform:skewX(-10deg)}
+.hm-flag::after{content:"";position:absolute;bottom:-9px;left:50%;width:2px;height:9px;background:#fff;transform:translateX(-50%)}
+.hm-hud{position:absolute;top:10px;left:10px;display:flex;gap:8px;align-items:flex-start}
+.hm-back{width:36px;height:36px;border-radius:10px;background:rgba(12,58,44,.9);color:#fff;display:flex;align-items:center;justify-content:center}
+.hm-green{background:#fff;border-radius:12px;padding:6px 11px;box-shadow:0 2px 10px rgba(0,0,0,.35)}
+.hm-green-num{font-size:32px;font-weight:700;line-height:1}.hm-green-num span{font-size:13px;color:var(--muted);margin-left:2px}
+.hm-green-sub{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.35}
+.hm-ctl{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:7px}
+.hm-btn{width:42px;height:42px;border-radius:12px;border:none;background:rgba(12,24,20,.85);color:#fff;font-size:22px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.hm-btn.on{background:#fff;color:#3b5bdb}
+.hm-toast{position:absolute;top:96px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.75);color:#fff;font-size:12.5px;padding:6px 12px;border-radius:999px;white-space:nowrap}
+.hm-edit{position:absolute;left:10px;right:62px;bottom:78px;background:#fff;border-radius:13px;padding:10px 12px;box-shadow:0 3px 14px rgba(0,0,0,.4);font-size:13px}
+.hm-edit-h{margin-bottom:8px}
+.hm-edit-row{display:flex;gap:6px;flex-wrap:wrap}
+.hm-chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 11px;font-size:12.5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:4px;color:var(--ink)}
+.hm-chip.on{background:var(--green-700);border-color:var(--green-700);color:#fff}.hm-chip.ok{background:var(--flag-soft);border-color:#f0d79a;color:#7a5300}
+.hm-bar{position:absolute;left:8px;right:8px;bottom:8px;background:#fff;border-radius:16px;display:flex;align-items:center;justify-content:space-between;padding:6px 6px;box-shadow:0 3px 14px rgba(0,0,0,.35)}
+.hm-nav{background:none;border:none;color:#5a68d8;width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.hm-hole{display:flex;align-items:center;gap:9px}
+.hm-hole-n{font-size:34px;font-weight:700;line-height:1}
+.hm-hole-meta{font-size:12px;color:var(--muted);line-height:1.3}.hm-hole-meta b{color:var(--ink)}
+.hm-attr{position:absolute;right:6px;bottom:68px;font-size:9px;color:rgba(255,255,255,.75);text-shadow:0 1px 2px #000;pointer-events:none}
+.final-hero .btn svg{background:none;color:inherit;padding:0;width:15px;height:15px}
