@@ -75,9 +75,17 @@ class Hole:
             L.append(f'<path d="{wp}" fill="#e2dac6" fill-rule="evenodd"/><path d="{wp}" fill="url(#wave)" fill-rule="evenodd"/><path d="{wp}" fill="none" stroke="{INK}" stroke-width="1.4"/>')
         sp = path(s.sand, T)
         L.append(f'<path d="{sp}" fill="#fbf4e4" stroke="{INK}" stroke-width="1.1" fill-rule="evenodd"/><path d="{sp}" fill="url(#sand)" fill-rule="evenodd"/>')
-        G = T((gx, gy)); ang = -math.degrees(math.atan2(gx, gy))
-        L.append(f'<g transform="rotate({ang:.1f} {G[0]:.1f} {G[1]:.1f})"><ellipse cx="{G[0]:.1f}" cy="{G[1]:.1f}" rx="{13*PX}" ry="{16*PX}" fill="#f8f0de" stroke="{INK}" stroke-width="1.5"/>'
-                 f'<ellipse cx="{G[0]:.1f}" cy="{G[1]:.1f}" rx="{13*PX-4}" ry="{16*PX-4}" fill="none" stroke="{INK}" stroke-width=".6" stroke-dasharray="2 2"/></g>')
+        G = T((gx, gy))
+        gp = sk.get('greenPoly')
+        if gp:
+            cx = sum(p[0] for p in gp)/len(gp); cy = sum(p[1] for p in gp)/len(gp)
+            pg = lambda k: 'M' + 'L'.join(f'{T((cx+(p[0]-cx)*k, cy+(p[1]-cy)*k))[0]:.1f},{T((cx+(p[0]-cx)*k, cy+(p[1]-cy)*k))[1]:.1f}' for p in gp) + 'Z'
+            L.append(f'<path d="{pg(1.0)}" fill="none" stroke="{SEPIA}" stroke-width="5" opacity=".18" transform="translate(2,3)"/>')
+            L.append(f'<path d="{pg(1.0)}" fill="#f8f0de" stroke="{INK}" stroke-width="1.6" stroke-linejoin="round"/>')
+            L.append(f'<path d="{pg(0.86)}" fill="none" stroke="{INK}" stroke-width=".6" stroke-dasharray="2 2" stroke-linejoin="round"/>')
+        else:
+            ang = -math.degrees(math.atan2(gx, gy))
+            L.append(f'<g transform="rotate({ang:.1f} {G[0]:.1f} {G[1]:.1f})"><ellipse cx="{G[0]:.1f}" cy="{G[1]:.1f}" rx="{13*PX}" ry="{16*PX}" fill="#f8f0de" stroke="{INK}" stroke-width="1.5"/></g>')
         L.append(f'<line x1="{G[0]:.1f}" y1="{G[1]:.1f}" x2="{G[0]:.1f}" y2="{G[1]-22:.1f}" stroke="{INK}" stroke-width="1.2"/><path d="M{G[0]:.1f},{G[1]-22:.1f} l11,4 l-11,4z" fill="{INK}"/>')
         Te = T((0, 0))
         L.append(f'<rect x="{Te[0]-9}" y="{Te[1]-5}" width="18" height="10" rx="3" fill="#f8f0de" stroke="{INK}" stroke-width="1.2"/>')
@@ -130,7 +138,7 @@ def build(n):
         y += step
     crowns.sort(key=lambda c: c[1])
     forest = ''.join(tree(x, y, r) for x, y, r in crowns)
-    lw = min(W * .34, 220)
+    lw = min(W * .13, 105)
     svg = f'''<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="{W}" height="{H}" viewBox="0 0 {W} {H}">
 <defs><filter id="soft"><feGaussianBlur stdDeviation="{10*PXI}"/></filter>
 <mask id="fade"><rect x="{6*PXI}" y="{6*PXI}" width="{W-12*PXI}" height="{H-12*PXI}" rx="{20*PXI}" fill="#fff" filter="url(#soft)"/></mask>
@@ -138,7 +146,7 @@ def build(n):
  {DEFS}</defs>
 <rect width="{W}" height="{H}" fill="{PAPER}"/>
 <g filter="url(#rough)"><g mask="url(#fade)"><rect width="{W}" height="{H}" fill="url(#stip)"/>{feats}{forest}</g></g>
-<image href="data:image/png;base64,{LOGO}" x="{W - lw - 10*PXI}" y="{H - lw - 10*PXI}" width="{lw}" height="{lw}" opacity=".13" filter="url(#wm)"/>
+<image href="data:image/png;base64,{LOGO}" x="{W - lw - 10*PXI}" y="{H - lw - 10*PXI}" width="{lw}" height="{lw}" opacity=".16" filter="url(#wm)"/>
 <rect width="{W}" height="{H}" filter="url(#paper)"/>
 </svg>'''
     open(f'out/hole-{n}.svg', 'w').write(svg)

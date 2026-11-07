@@ -12,7 +12,7 @@ import {
 
 const MAX_K = 2 ** 21;            // closest zoom (screen px per world unit)
 const MIN_K = 2 ** 13;
-const PAD_TOP = 92, PAD_BOTTOM = 70;
+const PAD_TOP = 165, PAD_BOTTOM = 70;   // keep the whole green clear of the distance card
 const ARCS = [[50, "#5b8fd9"], [100, "#c8553d"], [150, "#7d7468"], [200, "#3d6fc4"], [250, "#d39a1c"], [300, "#8a5bbf"]]; // readable on the paper yardage book
 const LS_KEY = "gpf-holemap-v1";
 const SKETCH_URL = "/holes/pinheirinho-sketch.json"; // traced hole sketches, local metres from the tee (y towards the green)
@@ -97,11 +97,17 @@ export default function HoleMap() {
     const base = { ...h, tee, green, greenPoly: green === h.green ? h.greenPoly : null, by: sv.by, sketch, virtual: false, realTee: !!tee, realGreen: !!green };
     // Until both the real tee and green are set, lay the sketch out at a stand-in spot
     // so yardage-book distances work from the tee. GPS needs the real tee and green.
+    let out = base;
     if (!(tee && green) && sketch) {
       const vt = COURSE_MAP.centre;
-      return { ...base, virtual: true, tee: vt, green: sketchFrame(vt, null, sketch.green)(sketch.green) };
+      out = { ...base, virtual: true, tee: vt, green: sketchFrame(vt, null, sketch.green)(sketch.green) };
     }
-    return base;
+    // Traced green outline → front / back distances along the line of play.
+    if (sketch?.greenPoly && out.tee && out.green) {
+      const f = sketchFrame(out.tee, out.virtual ? null : out.green, sketch.green);
+      out = { ...out, greenPoly: sketch.greenPoly.map(f) };
+    }
+    return out;
   }, [idx, overrides, shared, sketches]);
   const mapped = !!(hole.tee && hole.green);
   const holeLen = mapped ? distance(hole.tee, hole.green) : null;
@@ -364,7 +370,7 @@ function Overlay({ view, size, hole, origin, target, gps, playerOnHole, toTarget
     if (hole.tee) { const te = S(hole.tee); els.push(<circle key="tee" cx={te[0]} cy={te[1]} r={8} fill="#f5c242" stroke="#000" strokeWidth={1.5} />); }
   }
 
-  if (hole.greenPoly) {
+  if (hole.greenPoly && !hole.sketch) {
     els.push(<polygon key="gp" points={hole.greenPoly.map((p) => S(p).join(",")).join(" ")} fill="none" stroke="rgba(255,255,255,.55)" strokeWidth={1.5} strokeDasharray="4 4" />);
   }
   if (hole.green) {
@@ -437,7 +443,9 @@ function Sketch({ view, size, hole }) {
         <path d={paths.water} className="sk-water" fillRule="evenodd" />
         <path d={paths.sand} className="sk-sand" fillRule="evenodd" />
         {(sk.trees || []).map(([x, y, r], i) => <circle key={i} cx={x} cy={y} r={Math.max(1.5, r)} className="sk-tree" />)}
-        <ellipse cx={gx} cy={gy} rx={13} ry={16} transform={`rotate(${-gAng} ${gx} ${gy})`} className="sk-green" />
+        {sk.greenPoly
+          ? <path d={`M${sk.greenPoly.map((p) => p.join(",")).join("L")}Z`} className="sk-green" />
+          : <ellipse cx={gx} cy={gy} rx={13} ry={16} transform={`rotate(${-gAng} ${gx} ${gy})`} className="sk-green" />}
         <rect x={-4} y={-2.5} width={8} height={5} rx={1.5} className="sk-tee" />
         </>}
       </g>
