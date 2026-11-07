@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import { Shield, Check, X, Pencil, Lock, Unlock, Download, Plus, Sparkles, History, Loader2, KeyRound, AlertTriangle } from "lucide-react";
+import { Shield, Check, X, Pencil, Lock, Unlock, Download, Plus, Sparkles, History, Loader2, KeyRound, AlertTriangle, Trash2 } from "lucide-react";
 import { api, fmtHcp } from "@/lib/client";
 
 const ROUNDING = { round: "Nearest whole (0.5 up)", floor: "Round down", ceil: "Round up", dp1: "One decimal" };
@@ -46,6 +46,7 @@ export default function Admin() {
               {r.status !== "REJECTED" && <button className="btn btn-ghost" onClick={() => act(r.id, { action: "reject", reason: prompt("Reason?") || "rejected" })}><X size={15} /> Reject</button>}
               <button className="btn btn-ghost" onClick={() => { const g = prompt("Edit gross", r.gross); if (g) act(r.id, { action: "edit", gross: g }); }}><Pencil size={15} /> Edit</button>
               {r.status !== "APPROVED" && <button className="btn btn-primary" onClick={() => act(r.id, { action: "approve" })}><Check size={15} /> Approve</button>}
+              <button className="btn btn-ghost" title="Delete round" onClick={async () => { if (!confirm(`Delete ${r.user?.name}'s ${r.gross} on ${r.date?.slice(0, 10)}? This can't be undone.`)) return; try { await api(`/api/rounds/${r.id}`, { method: "DELETE" }); load(); } catch (e) { alert(e.message); } }}><Trash2 size={15} /> Delete</button>
             </div>
           </div>))}
       </div>)}
