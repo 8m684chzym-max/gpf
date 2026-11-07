@@ -12,3 +12,4 @@ GPF sketch data at `public/holes/pinheirinho-sketch.json`.
     SHOTS_DIR=/path/to/screenshots python3 vec.py && cp sketch.json ../../public/holes/pinheirinho-sketch.json
 
 The sketch is approximate. GPS distances use the real tee and green placed on the map.
+- `engrave.py`: draws the engraved yardage-book image for each hole (public/holes/engraved/), GPF logo watermark.
