@@ -13,7 +13,13 @@ export default defineConfig({
       ].flatMap((p) => [
         [`/${p}`, { redirect: { to: `https://app.gpf.golf/${p}`, status: 308 } }],
         [`/${p}/**`, { redirect: { to: `https://app.gpf.golf/${p}/**`, status: 308 } }],
-      ]),
+      ]).concat(
+        // Events and Play are hidden for now: send them to the home page (temporary).
+        ["events", "play"].flatMap((p) => [
+          [`/${p}`, { redirect: { to: "/", status: 302 } }],
+          [`/${p}/**`, { redirect: { to: "/", status: 302 } }],
+        ]),
+      ),
     ),
   },
   tanstackStart: {

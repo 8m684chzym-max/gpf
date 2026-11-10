@@ -118,7 +118,7 @@ function Index() {
 
       {/* Three pillars */}
       <section className="mx-auto max-w-6xl px-6 py-28">
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2">
           <Pillar
             eyebrow="Members"
             title="The Clubhouse."
@@ -131,12 +131,8 @@ function Index() {
             body="A tight edit of course-tested apparel, equipment, and accessories. Open to everyone."
             href="/shop"
           />
-          <Pillar
-            eyebrow="Play"
-            title="The Round."
-            body="Book tees, join events, keep score, and track handicap — everything for the day, in one place."
-            href="/play"
-          />
+          {/* "Play" pillar hidden for now:
+          <Pillar eyebrow="Play" title="The Round." body="Book tees, join events, keep score, and track handicap — everything for the day, in one place." href="/play" /> */}
         </div>
       </section>
 

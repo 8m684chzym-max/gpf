@@ -6,8 +6,7 @@ import { useCart } from "@/lib/cart";
 const nav = [
   { to: "/", label: "Home" },
   { to: "/shop", label: "Shop" },
-  { to: "/events", label: "Events" },
-  { to: "/play", label: "Play" },
+  // Events and Play are hidden for now (see vite.config.ts routeRules).
   { to: "/members", label: "Members" },
 ] as const;
 
@@ -83,7 +82,7 @@ export function SiteFooter() {
             A private clubhouse, a public shop, and a companion for every round.
           </p>
         </div>
-        <FooterCol title="Club" links={[["/members", "Membership"], ["/events", "Events"], ["/play", "Play the course"]]} />
+        <FooterCol title="Club" links={[["/members", "Membership"]]} />
         <FooterCol title="Shop" links={[["/shop", "All products"], ["/shop", "Apparel"], ["/shop", "Equipment"]]} />
         <FooterCol title="Members" links={[["https://app.gpf.golf", "GPF App"], ["https://tracer.gpf.golf", "Shot Tracer"]]} />
         <FooterCol title="Company" links={[["/", "About"], ["/", "Contact"], ["/", "Press"]]} />
