@@ -10,7 +10,7 @@ export async function GET() {
   const comp = await getActiveCompetition();
   if (!comp) return NextResponse.json({ final: [], road: [], config: null });
   const config = configFrom(comp);
-  const users = await prisma.user.findMany({ where: { role: "MEMBER" }, select: { id: true, name: true, declaredHandicap: true, manualHandicap: true, tiebreakOverride: true } });
+  const users = await prisma.user.findMany({ where: { role: "MEMBER", approved: true }, select: { id: true, name: true, declaredHandicap: true, manualHandicap: true, tiebreakOverride: true } });
   const rounds = await getScopedRounds(comp.id);
   const final = buildFinalBoard(users, rounds, config).map((r) => ({ name: r.user.name, hcp: r.hcp, ph: r.ph, tee: r.tee, bonus: r.bonus, gross: r.gross, net1: r.net1, net2: r.net2, total: r.total }));
   const bonus = roadBonusMap(users, rounds, config);

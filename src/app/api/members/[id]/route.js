@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/guard";
 import { logAudit } from "@/lib/data";
+import { notifyApproved } from "@/lib/mail";
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,14 @@ export async function PATCH(req, { params: paramsPromise }) {
     await prisma.user.update({ where: { id: params.id }, data: { passwordHash } });
     await logAudit(admin.name, "member.resetPassword", params.id, null);
     return NextResponse.json({ ok: true, tempPassword });
+  }
+
+  // Approve a self-registered member (and let them know by email).
+  if (body.approve) {
+    const u = await prisma.user.update({ where: { id: params.id }, data: { approved: true } });
+    await logAudit(admin.name, "member.approve", params.id, u.name);
+    await notifyApproved(u);
+    return NextResponse.json({ ok: true });
   }
 
   const data = {};

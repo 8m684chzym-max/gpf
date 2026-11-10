@@ -43,6 +43,9 @@ const providers = [
         return null;
       }
 
+      // Self-registered members can only log in once the committee approves them.
+      if (!user.approved) throw new Error("PENDING_APPROVAL");
+
       console.log("[auth] login success for:", email);
       return { id: user.id, name: user.name, email: user.email, role: user.role };
     },
