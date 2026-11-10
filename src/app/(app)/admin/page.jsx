@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Shield, Check, X, Pencil, Lock, Unlock, Download, Plus, Sparkles, History, Loader2, KeyRound, AlertTriangle, Trash2 } from "lucide-react";
 import { api, fmtHcp } from "@/lib/client";
+import AdminShop from "@/components/admin/AdminShop";
 
 const ROUNDING = { round: "Nearest whole (0.5 up)", floor: "Round down", ceil: "Round up", dp1: "One decimal" };
 const TIEBREAK = { "final-net": "Net countback (last 9/6/3/1)", manual: "Committee decision" };
@@ -25,7 +26,7 @@ export default function Admin() {
     <div className="stack">
       <div className="admin-head"><Shield size={18} /><h2 className="page-h tight">Committee panel</h2></div>
       <div className="adm-tabs">
-        {[["rounds", "Rounds"], ["members", "Members"], ["config", "Competition"], ["courses", "Courses"]].map(([k, l]) => (
+        {[["rounds", "Rounds"], ["members", "Members"], ["config", "Competition"], ["courses", "Courses"], ["shop", "Shop"]].map(([k, l]) => (
           <button key={k} className={tab === k ? "adm-on" : ""} onClick={() => setTab(k)}>{l}{k === "rounds" && pending.length ? <span className="pill">{pending.length}</span> : null}</button>))}
       </div>
 
@@ -52,6 +53,8 @@ export default function Admin() {
       </div>)}
 
       {tab === "members" && <Members members={d.members} reload={load} />}
+
+      {tab === "shop" && <AdminShop />}
 
       {tab === "config" && (<div className="card form">
         <div className="grid2">
