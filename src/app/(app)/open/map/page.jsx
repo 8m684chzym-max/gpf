@@ -12,8 +12,8 @@ import {
 
 const MAX_K = 2 ** 21;            // closest zoom (screen px per world unit)
 const MIN_K = 2 ** 13;
-const PAD_TOP = 92, PAD_BOTTOM = 70;
-const ARCS = [[50, "#a9c4ff"], [100, "#ff7a59"], [150, "#e4e4e4"], [200, "#6f9dff"], [250, "#f5c242"], [300, "#d58bff"]];
+const PAD_TOP = 165, PAD_BOTTOM = 70;   // keep the whole green clear of the distance card
+const ARCS = [[50, "#5b8fd9"], [100, "#c8553d"], [150, "#7d7468"], [200, "#3d6fc4"], [250, "#d39a1c"], [300, "#8a5bbf"]]; // readable on the paper yardage book
 const LS_KEY = "gpf-holemap-v1";
 const SKETCH_URL = "/holes/pinheirinho-sketch.json"; // traced hole sketches, local metres from the tee (y towards the green)
 const PLAYER_RANGE = 700;         // within this of the green you are "on the hole" and distances start from you
@@ -97,11 +97,17 @@ export default function HoleMap() {
     const base = { ...h, tee, green, greenPoly: green === h.green ? h.greenPoly : null, by: sv.by, sketch, virtual: false, realTee: !!tee, realGreen: !!green };
     // Until both the real tee and green are set, lay the sketch out at a stand-in spot
     // so yardage-book distances work from the tee. GPS needs the real tee and green.
+    let out = base;
     if (!(tee && green) && sketch) {
       const vt = COURSE_MAP.centre;
-      return { ...base, virtual: true, tee: vt, green: sketchFrame(vt, null, sketch.green)(sketch.green) };
+      out = { ...base, virtual: true, tee: vt, green: sketchFrame(vt, null, sketch.green)(sketch.green) };
     }
-    return base;
+    // Traced green outline → front / back distances along the line of play.
+    if (sketch?.greenPoly && out.tee && out.green) {
+      const f = sketchFrame(out.tee, out.virtual ? null : out.green, sketch.green);
+      out = { ...out, greenPoly: sketch.greenPoly.map(f) };
+    }
+    return out;
   }, [idx, overrides, shared, sketches]);
   const mapped = !!(hole.tee && hole.green);
   const holeLen = mapped ? distance(hole.tee, hole.green) : null;
@@ -343,12 +349,15 @@ function Overlay({ view, size, hole, origin, target, gps, playerOnHole, toTarget
       els.push(<text key={`t${r}`} x={lp[0]} y={lp[1] + 18} className="hm-arc-t" textAnchor="middle">{r}</text>);
     }
     const pts = target ? [o, S(target), g] : [o, g];
-    els.push(<polyline key="line" points={pts.map((p) => p.join(",")).join(" ")} stroke="#fff" strokeWidth={3} fill="none" strokeLinejoin="round" />);
+    const line = pts.map((p) => p.join(",")).join(" ");
+    els.push(<polyline key="line-h" points={line} stroke="#f7efdc" strokeWidth={6} fill="none" strokeLinejoin="round" opacity={0.85} />);
+    els.push(<polyline key="line" points={line} stroke="#1e3b28" strokeWidth={2.5} fill="none" strokeLinejoin="round" strokeDasharray="10 5" />);
 
     if (target) {
       const t = S(target);
-      els.push(<circle key="tc" cx={t[0]} cy={t[1]} r={30} stroke="#fff" strokeWidth={4} fill="rgba(255,255,255,.08)" />);
-      els.push(<circle key="td" cx={t[0]} cy={t[1]} r={2.5} fill="#fff" />);
+      els.push(<circle key="tch" cx={t[0]} cy={t[1]} r={30} stroke="#f7efdc" strokeWidth={7} fill="rgba(240,168,24,.12)" />);
+      els.push(<circle key="tc" cx={t[0]} cy={t[1]} r={30} stroke="#1e3b28" strokeWidth={3} fill="none" />);
+      els.push(<circle key="td" cx={t[0]} cy={t[1]} r={3} fill="#1e3b28" />);
       const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
       labels.push(<DistTag key="l1" at={mid(o, t)} value={toTarget} dir="down" />);
       labels.push(<DistTag key="l2" at={mid(t, g)} value={targetToGreen} dir="up" />);
@@ -361,7 +370,7 @@ function Overlay({ view, size, hole, origin, target, gps, playerOnHole, toTarget
     if (hole.tee) { const te = S(hole.tee); els.push(<circle key="tee" cx={te[0]} cy={te[1]} r={8} fill="#f5c242" stroke="#000" strokeWidth={1.5} />); }
   }
 
-  if (hole.greenPoly) {
+  if (hole.greenPoly && !hole.sketch) {
     els.push(<polygon key="gp" points={hole.greenPoly.map((p) => S(p).join(",")).join(" ")} fill="none" stroke="rgba(255,255,255,.55)" strokeWidth={1.5} strokeDasharray="4 4" />);
   }
   if (hole.green) {
@@ -424,13 +433,21 @@ function Sketch({ view, size, hole }) {
   return (
     <svg className="hm-svg" width={size.W} height={size.H} aria-hidden>
       <g transform={`matrix(${a},${b},${c},${d},${o[0]},${o[1]})`}>
+        {sk.img ? (
+          // Engraved yardage-book drawing, placed in the same metre frame (y up, so flip it).
+          <image href={sk.img.src} x={sk.img.x0} y={-sk.img.y1} width={sk.img.x1 - sk.img.x0} height={sk.img.y1 - sk.img.y0}
+                 transform="scale(1,-1)" preserveAspectRatio="none" />
+        ) : <>
         <path d={paths.woods} className="sk-woods" fillRule="evenodd" />
         <path d={paths.grass} className="sk-grass" fillRule="evenodd" />
         <path d={paths.water} className="sk-water" fillRule="evenodd" />
         <path d={paths.sand} className="sk-sand" fillRule="evenodd" />
         {(sk.trees || []).map(([x, y, r], i) => <circle key={i} cx={x} cy={y} r={Math.max(1.5, r)} className="sk-tree" />)}
-        <ellipse cx={gx} cy={gy} rx={13} ry={16} transform={`rotate(${-gAng} ${gx} ${gy})`} className="sk-green" />
+        {sk.greenPoly
+          ? <path d={`M${sk.greenPoly.map((p) => p.join(",")).join("L")}Z`} className="sk-green" />
+          : <ellipse cx={gx} cy={gy} rx={13} ry={16} transform={`rotate(${-gAng} ${gx} ${gy})`} className="sk-green" />}
         <rect x={-4} y={-2.5} width={8} height={5} rx={1.5} className="sk-tee" />
+        </>}
       </g>
     </svg>
   );
