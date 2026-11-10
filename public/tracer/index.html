@@ -1,0 +1,846 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="GPF Shot Tracer: desenhe a trajetória da bola nos seus vídeos de golfe.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 24 24%27%3E%3Cpath d=%27M3 20C6 9 12 4 21 6%27 stroke=%27%23ff3b30%27 stroke-width=%273%27 fill=%27none%27 stroke-linecap=%27round%27/%3E%3Ccircle cx=%274%27 cy=%2719.5%27 r=%272.6%27 fill=%27%23888%27/%3E%3C/svg%3E">
+<title>GPF Shot Tracer</title>
+<style>
+:root{
+  --bg:#f3f3f0; --panel:#ffffff; --ink:#18181a; --muted:#6b6b70; --line:#e3e3df;
+  --field:#f0f0ec; --stage:#1d1d1f; --accent:#1d8a55; --accent-ink:#ffffff; --warn:#b4541a;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121213; --panel:#1b1b1d; --ink:#ececec; --muted:#9a9aa0; --line:#2c2c30;
+    --field:#252528; --stage:#0b0b0c; --accent:#38c97f; --accent-ink:#04200f; --warn:#f0954f;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121213; --panel:#1b1b1d; --ink:#ececec; --muted:#9a9aa0; --line:#2c2c30;
+  --field:#252528; --stage:#0b0b0c; --accent:#38c97f; --accent-ink:#04200f; --warn:#f0954f;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:13px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;
+  display:grid;grid-template-rows:auto 1fr;overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:var(--field);border:1px solid var(--line);border-radius:7px;padding:6px 11px;cursor:pointer;white-space:nowrap}
+button:hover:not(:disabled){filter:brightness(1.06)}
+button:disabled{opacity:.45;cursor:default}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent;font-weight:600}
+button.active{outline:2px solid var(--accent);outline-offset:-1px}
+button.ghost{background:transparent;border-color:transparent;padding:4px 7px}
+.bar{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
+.brand{display:flex;align-items:center;gap:8px;font-weight:650;font-size:14px;letter-spacing:-.01em}
+.brand svg{width:22px;height:22px}
+.fname{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.spacer{flex:1}
+main{display:grid;grid-template-columns:minmax(0,1fr) 320px;min-height:0}
+.stage-col{display:grid;grid-template-rows:1fr auto;min-height:0;min-width:0}
+.stage{position:relative;background:var(--stage);display:flex;align-items:center;justify-content:center;min-height:0;overflow:hidden}
+.frame{position:relative;box-shadow:0 10px 40px rgba(0,0,0,.45)}
+.frame video{display:block;width:100%;height:100%}
+.frame canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+.empty{color:#d8d8d8;text-align:center;padding:30px;border:1.5px dashed #4a4a4e;border-radius:14px;max-width:440px;margin:16px}
+.empty h2{margin:0 0 6px;font-size:17px;font-weight:600;color:#f2f2f2}
+.empty p{margin:0 0 16px;color:#a5a5aa}
+.empty .links{margin-top:12px}
+.empty .links button{background:transparent;border:0;color:#cfcfd4;text-decoration:underline;padding:2px}
+.stage.drag .empty{border-color:var(--accent)}
+.hint{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.72);color:#fff;padding:6px 12px;border-radius:999px;font-size:12.5px;pointer-events:none;backdrop-filter:blur(6px);white-space:nowrap;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis}
+.hint:empty{display:none}
+.transport{background:var(--panel);border-top:1px solid var(--line);padding:10px 16px 12px;display:grid;gap:8px}
+.tbtns{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tbtns button{padding:5px 9px;min-width:34px}
+.readout{font-family:var(--mono);font-size:12px;color:var(--muted);margin-left:auto;font-variant-numeric:tabular-nums}
+.readout b{color:var(--ink);font-weight:600}
+.timeline{position:relative;height:26px}
+.timeline input{position:absolute;inset:0;width:100%;margin:0;background:transparent;-webkit-appearance:none;appearance:none;z-index:3}
+.timeline input::-webkit-slider-runnable-track{height:26px;background:transparent}
+.timeline input::-webkit-slider-thumb{-webkit-appearance:none;width:3px;height:26px;background:var(--ink);border-radius:2px}
+.timeline input::-moz-range-thumb{width:3px;height:26px;background:var(--ink);border:0;border-radius:2px}
+.track{position:absolute;left:0;right:0;top:9px;height:8px;background:var(--field);border-radius:4px;border:1px solid var(--line)}
+.range-in{position:absolute;top:9px;height:8px;background:color-mix(in srgb,var(--accent) 22%,transparent);border-radius:4px}
+.flight{position:absolute;top:6px;height:14px;border-radius:3px;background:color-mix(in srgb,var(--tc,#ff3b30) 55%,transparent)}
+.imp{position:absolute;top:2px;width:2px;height:22px;background:var(--tc,#ff3b30);transform:translateX(-1px)}
+.panel{background:var(--panel);border-left:1px solid var(--line);overflow-y:auto;padding:4px 0 24px}
+.sec{padding:14px 16px 12px;border-bottom:1px solid var(--line)}
+.sec h3{margin:0 0 10px;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600;display:flex;align-items:center;gap:8px}
+.sec h3 .n{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:var(--field);color:var(--ink);font-size:10px;letter-spacing:0}
+.sec h3 .n.ok{background:var(--accent);color:var(--accent-ink)}
+.mark{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:6px;margin:6px 0}
+.mark .lbl{display:flex;flex-direction:column}
+.mark .val{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.mark .val.set{color:var(--accent)}
+kbd{font-family:var(--mono);font-size:10px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px;color:var(--muted);background:var(--field)}
+.row{display:grid;grid-template-columns:104px 1fr 52px;align-items:center;gap:8px;margin:7px 0}
+.row label{color:var(--ink)}
+.row output{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.sw{display:flex;gap:7px;align-items:center;margin:4px 0 10px;flex-wrap:wrap}
+.sw button{width:24px;height:24px;border-radius:50%;padding:0;border:2px solid var(--panel);box-shadow:0 0 0 1px var(--line)}
+.sw button.on{box-shadow:0 0 0 2px var(--ink)}
+.sw input[type=color]{width:28px;height:26px;border:1px solid var(--line);border-radius:6px;background:var(--field);padding:1px;cursor:pointer}
+.chk{display:flex;align-items:center;gap:8px;margin:7px 0;cursor:pointer}
+.chk input{accent-color:var(--accent);width:15px;height:15px;margin:0}
+.inline{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.inline input[type=number]{width:62px;font:inherit;color:inherit;background:var(--field);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
+.small{font-size:11.5px;color:var(--muted);margin:6px 0 0}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:grid;place-items:center;z-index:50;padding:16px}
+.modal[hidden]{display:none}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;width:min(560px,100%);box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.card h2{margin:0 0 4px;font-size:16px}
+.card p{margin:0 0 12px;color:var(--muted)}
+.prog{height:8px;background:var(--field);border-radius:4px;overflow:hidden;border:1px solid var(--line)}
+.prog i{display:block;height:100%;width:0;background:var(--accent);transition:width .15s}
+.card video{width:100%;border-radius:8px;background:#000;margin:4px 0 12px;max-height:50vh}
+.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
+/* guide */
+.card.guide{width:min(720px,100%);max-height:88vh;display:flex;flex-direction:column;padding:0}
+.guide-head{display:flex;align-items:center;gap:10px;padding:16px 20px;border-bottom:1px solid var(--line)}
+.guide-head h2{margin:0;font-size:17px}
+.guide-body{overflow-y:auto;padding:6px 20px 20px;font-size:13.5px;line-height:1.55}
+.guide-body p{color:var(--ink);margin:8px 0}
+.guide-body .lead{color:var(--muted)}
+.guide-body h4{margin:22px 0 6px;font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.gstep{display:grid;grid-template-columns:28px 1fr;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.gstep:last-of-type{border-bottom:0}
+.gstep .gn{width:26px;height:26px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-weight:700;font-size:13px}
+.gstep b.t{display:block;font-size:14px;margin:2px 0 3px}
+.gstep ul{margin:6px 0 0;padding-left:18px}
+.gstep li{margin:3px 0}
+.gtable{width:100%;border-collapse:collapse;margin:6px 0;font-size:13px}
+.gtable td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.gtable td:first-child{white-space:nowrap;width:1%;font-weight:600}
+.tip{background:color-mix(in srgb,var(--accent) 10%,transparent);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent);border-radius:10px;padding:10px 12px;margin:12px 0}
+@media (max-width:860px){
+  body{overflow:auto;height:auto}
+  main{grid-template-columns:1fr}
+  .stage{min-height:56vw}
+  .panel{border-left:0;border-top:1px solid var(--line);overflow:visible}
+  .bar{padding:9px 16px}
+}
+@media print{
+  html,body{height:auto;overflow:visible;display:block;background:#fff;color:#000}
+  body > *:not(#guide){display:none !important}
+  #guide{position:static;display:block;background:none;padding:0}
+  #guide .card{box-shadow:none;border:0;max-height:none;width:100%}
+  #guide .guide-body{overflow:visible}
+  .no-print{display:none !important}
+}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="brand">
+    <svg viewBox="0 0 24 24" fill="none"><path d="M3 20C6 9 12 4 21 6" stroke="#ff3b30" stroke-width="2.4" stroke-linecap="round"/><circle cx="3.5" cy="19.5" r="2.2" fill="currentColor"/></svg>
+    Shot Tracer
+  </div>
+  <div class="fname" id="fileName"></div>
+  <div class="spacer"></div>
+  <button id="guideBtn">Guia</button>
+  <button id="openBtn">Abrir vídeo…</button>
+  <button id="exportBtn" class="primary" disabled>Exportar vídeo</button>
+</header>
+
+<main>
+  <section class="stage-col">
+    <div class="stage" id="stage">
+      <div class="empty" id="empty">
+        <h2>Arraste um vídeo de golfe para aqui</h2>
+        <p>MP4 ou MOV do telemóvel, WhatsApp, etc. Nada é enviado: o vídeo fica no seu computador.</p>
+        <button class="primary" id="openBtn2">Escolher vídeo…</button>
+        <div class="links"><button id="guideBtn2">Primeira vez? Leia o guia passo a passo</button></div>
+      </div>
+      <div class="frame" id="frame" hidden>
+        <video id="video" playsinline preload="auto"></video>
+        <canvas id="overlay"></canvas>
+      </div>
+      <div class="hint" id="hint"></div>
+    </div>
+    <div class="transport">
+      <div class="tbtns">
+        <button id="bBack10" title="Recuar 10 frames (Shift+←)">−10</button>
+        <button id="bBack1" title="Recuar 1 frame (←)">◂ 1</button>
+        <button id="bPlay" title="Reproduzir / pausar (Espaço)" style="min-width:72px">▶ Play</button>
+        <button id="bFwd1" title="Avançar 1 frame (→)">1 ▸</button>
+        <button id="bFwd10" title="Avançar 10 frames (Shift+→)">+10</button>
+        <button id="bImpactNow" title="Marcar o impacto neste frame (I)">Marcar impacto aqui</button>
+        <div class="readout" id="readout">frame <b>—</b> · 0:00.00</div>
+      </div>
+      <div class="timeline" id="timeline">
+        <div class="track"></div>
+        <div class="range-in" id="rangeIn"></div>
+        <div class="flight" id="flightBand" hidden></div>
+        <div class="imp" id="impMark" hidden></div>
+        <input type="range" id="scrub" min="0" max="1" step="0.001" value="0" disabled aria-label="Linha do tempo">
+      </div>
+    </div>
+  </section>
+
+  <aside class="panel">
+    <div class="sec">
+      <h3><span class="n" id="n1">1</span>Marcar a pancada</h3>
+      <div class="mark">
+        <div class="lbl">Frame do impacto <span class="val" id="vImpact">não definido</span></div>
+        <button class="ghost" id="goImpact" title="Ir para o impacto" disabled>Ir</button>
+        <button id="setImpact" disabled>Marcar <kbd>I</kbd></button>
+      </div>
+      <div class="mark">
+        <div class="lbl">Posição da bola <span class="val" id="vStart">não definida</span></div>
+        <span></span>
+        <button id="placeStart" disabled>Colocar <kbd>B</kbd></button>
+      </div>
+      <div class="mark">
+        <div class="lbl">Ponto de queda <span class="val" id="vLand">não definido</span></div>
+        <span></span>
+        <button id="placeLand" disabled>Colocar <kbd>L</kbd></button>
+      </div>
+      <p class="small">Com o vídeo em pausa pode arrastar as alças <b>Bola</b>, <b>Queda</b> e <b>Ápice</b>. Arraste o Ápice para cima/baixo para mudar a altura.</p>
+    </div>
+
+    <div class="sec">
+      <h3><span class="n">2</span>Trajetória</h3>
+      <div class="row"><label for="rHeight">Altura</label><input type="range" id="rHeight" min="0" max="110" step="1"><output id="oHeight"></output></div>
+      <div class="row"><label for="rApex">Ponto de pico</label><input type="range" id="rApex" min="25" max="85" step="1"><output id="oApex"></output></div>
+      <div class="row"><label for="rCurv">Curvatura</label><input type="range" id="rCurv" min="0" max="100" step="1"><output id="oCurv"></output></div>
+      <div class="row"><label for="rBend">Torção</label><input type="range" id="rBend" min="-60" max="60" step="1"><output id="oBend"></output></div>
+      <div class="row"><label for="rFlight">Tempo de voo</label><input type="range" id="rFlight" min="0.5" max="9" step="0.1"><output id="oFlight"></output></div>
+      <div class="row"><label for="rEase">Desaceleração</label><input type="range" id="rEase" min="1" max="4" step="0.1"><output id="oEase"></output></div>
+      <p class="small"><b>Curvatura</b>: forma do arco (baixo = subida aguda, alto = arco redondo e cheio). <b>Torção</b>: dobra a bola para a esquerda (E) ou direita (D), mais no fim do voo, como um draw ou fade.</p>
+    </div>
+
+    <div class="sec">
+      <h3><span class="n">3</span>Aspeto</h3>
+      <div class="sw" id="swatches"></div>
+      <div class="row"><label for="rW0">Largura inicial</label><input type="range" id="rW0" min="1" max="20" step="0.5"><output id="oW0"></output></div>
+      <div class="row"><label for="rW1">Largura final</label><input type="range" id="rW1" min="0.5" max="20" step="0.5"><output id="oW1"></output></div>
+      <div class="row"><label for="rGlow">Brilho</label><input type="range" id="rGlow" min="0" max="100" step="1"><output id="oGlow"></output></div>
+      <label class="chk"><input type="checkbox" id="cCore"> Núcleo brilhante</label>
+      <label class="chk"><input type="checkbox" id="cHead"> Bola na ponta durante o voo</label>
+    </div>
+
+    <div class="sec">
+      <h3><span class="n">4</span>Depois da queda</h3>
+      <div class="row"><label for="rHold">Manter</label><input type="range" id="rHold" min="0" max="10" step="0.1"><output id="oHold"></output></div>
+      <div class="row"><label for="rFade">Desvanecer</label><input type="range" id="rFade" min="0" max="3" step="0.1"><output id="oFade"></output></div>
+    </div>
+
+    <div class="sec">
+      <h3><span class="n">5</span>Exportar</h3>
+      <div class="mark">
+        <div class="lbl">Começar em <span class="val" id="vIn">0:00.00</span></div>
+        <span></span><button id="setIn" disabled>Usar o atual</button>
+      </div>
+      <div class="mark">
+        <div class="lbl">Terminar em <span class="val" id="vOut">fim</span></div>
+        <span></span><button id="setOut" disabled>Usar o atual</button>
+      </div>
+      <div class="inline" style="margin-top:8px">
+        <button class="ghost" id="resetRange" disabled>Clip completo</button>
+        <span class="spacer"></span>
+        <label for="fps" style="color:var(--muted)">Frames/s</label>
+        <input type="number" id="fps" min="10" max="240" step="1" value="30">
+      </div>
+      <label class="chk"><input type="checkbox" id="cGuide"> Mostrar guias em pausa</label>
+      <p class="small">A exportação reproduz o clip uma vez em tempo real e grava-o com o traço e o som original. No Safari e no Chrome recente sai em MP4, nos outros em WebM.</p>
+    </div>
+  </aside>
+</main>
+
+<div class="modal" id="modal" hidden>
+  <div class="card">
+    <h2 id="mTitle">A renderizar…</h2>
+    <p id="mText">A reproduzir o clip em tempo real para o gravar. Mantenha este separador à frente.</p>
+    <div class="prog" id="mProg"><i id="mBar"></i></div>
+    <video id="mVideo" controls playsinline hidden></video>
+    <div class="actions">
+      <button id="mCancel">Cancelar</button>
+      <button id="mSave" class="primary" hidden>Guardar vídeo</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="guide" hidden>
+  <div class="card guide" role="dialog" aria-labelledby="gTitle">
+    <div class="guide-head">
+      <h2 id="gTitle">Guia passo a passo</h2>
+      <span class="spacer"></span>
+      <button class="no-print" id="gPrint">Imprimir / PDF</button>
+      <button class="primary no-print" id="gClose">Fechar</button>
+    </div>
+    <div class="guide-body">
+      <p class="lead">O Shot Tracer desenha a trajetória da bola por cima dos seus vídeos de golfe e exporta um novo vídeo com o traço e o som original. Tudo acontece no seu computador: o vídeo não é enviado para lado nenhum. Funciona melhor no <b>Safari</b> do Mac.</p>
+
+      <div class="gstep"><div class="gn">1</div><div><b class="t">Abra o vídeo</b>
+        Arraste o clip para a área escura ou clique em <b>Abrir vídeo…</b>. Aceita MP4 e MOV do iPhone, Android ou WhatsApp. Funciona melhor com a câmara fixa (tripé ou telemóvel apoiado).</div></div>
+
+      <div class="gstep"><div class="gn">2</div><div><b class="t">Encontre o frame do impacto</b>
+        Avance com <b>1 ▸</b> e <b>◂ 1</b> (ou as setas <kbd>→</kbd> <kbd>←</kbd>; com <kbd>Shift</kbd> salta 10 frames) até ao frame em que o taco toca na bola. Também pode arrastar a linha do tempo por baixo do vídeo. Clique em <b>Marcar impacto aqui</b> ou carregue em <kbd>I</kbd>. Aparece uma marca vermelha na linha do tempo.</div></div>
+
+      <div class="gstep"><div class="gn">3</div><div><b class="t">Clique na bola</b>
+        Logo a seguir, a app pede-lhe para clicar na bola. Clique no centro da bola, na posição em que está no impacto. É daqui que o traço vai sair.</div></div>
+
+      <div class="gstep"><div class="gn">4</div><div><b class="t">Clique no ponto de queda</b>
+        Depois clique onde a bola cai. Se não se vê a queda, clique onde a bola desaparece ou onde acha que caiu (no green, no fairway, …). Aparece uma linha tracejada com a trajetória prevista.</div></div>
+
+      <div class="gstep"><div class="gn">5</div><div><b class="t">Ajuste a trajetória</b>
+        Em <b>Trajetória</b>, no painel da direita:
+        <ul>
+          <li><b>Altura</b>: quanto a bola sobe no ecrã.</li>
+          <li><b>Ponto de pico</b>: em que parte do voo a bola atinge o ponto mais alto. Num voo real o pico chega tarde (55–65%).</li>
+          <li><b>Curvatura</b>: a forma do arco. Valores baixos dão uma subida aguda e reta, valores altos dão um arco mais redondo e cheio no topo.</li>
+          <li><b>Torção</b>: dobra a trajetória para a esquerda (E) ou para a direita (D), como num draw ou fade. Acentua-se no fim do voo, tal como numa bola real.</li>
+          <li><b>Tempo de voo</b>: segundos entre o impacto e a queda. Conte no vídeo, ou ajuste até o traço acompanhar a bola.</li>
+          <li><b>Desaceleração</b>: a bola sai rápida do taco e abranda no fim. Valores mais altos acentuam o efeito, o que fica bem em vídeos filmados por trás do jogador.</li>
+        </ul>
+        Com o vídeo em pausa também pode arrastar as alças diretamente no vídeo: <b>Bola</b> e <b>Queda</b> mudam o início e o fim, e o <b>Ápice</b> sobe ou desce para mudar a altura.</div></div>
+
+      <div class="gstep"><div class="gn">6</div><div><b class="t">Escolha o aspeto</b>
+        Em <b>Aspeto</b> escolha a cor do traço, a largura inicial e final (mais largo perto do jogador, mais fino ao longe dá sensação de profundidade), o <b>Brilho</b>, o <b>Núcleo brilhante</b> (centro claro, estilo TV) e se quer ver uma <b>Bola na ponta</b> enquanto voa. Em <b>Depois da queda</b> defina quantos segundos o traço fica no ecrã (<b>Manter</b>) e quanto tempo demora a desaparecer (<b>Desvanecer</b>). A app guarda estas escolhas para a próxima vez.</div></div>
+
+      <div class="gstep"><div class="gn">7</div><div><b class="t">Veja o resultado</b>
+        Volte um pouco atrás do impacto e carregue em <b>▶ Play</b> (ou <kbd>Espaço</kbd>). Confirme que o traço sai da bola no momento certo e que acompanha o voo. Se estiver adiantado ou atrasado, ajuste o <b>Tempo de voo</b> ou a <b>Desaceleração</b>. Se começar cedo ou tarde demais, marque o impacto de novo.</div></div>
+
+      <div class="gstep"><div class="gn">8</div><div><b class="t">Exporte o vídeo</b>
+        Se quiser cortar o vídeo, vá ao frame onde quer começar e clique em <b>Começar em → Usar o atual</b>; faça o mesmo para <b>Terminar em</b>. Depois clique em <b>Exportar vídeo</b>. A app reproduz o clip uma vez em tempo real para o gravar, por isso mantenha o separador à frente. No fim clique em <b>Guardar vídeo</b>: o ficheiro vai para as Transferências, pronto para o WhatsApp ou Instagram.</div></div>
+
+      <h4>Atalhos de teclado</h4>
+      <table class="gtable">
+        <tr><td><kbd>Espaço</kbd></td><td>Reproduzir / pausar</td></tr>
+        <tr><td><kbd>←</kbd> <kbd>→</kbd></td><td>Recuar / avançar 1 frame (com <kbd>Shift</kbd>: 10 frames)</td></tr>
+        <tr><td><kbd>I</kbd></td><td>Marcar o impacto no frame atual</td></tr>
+        <tr><td><kbd>B</kbd></td><td>Voltar a colocar a bola</td></tr>
+        <tr><td><kbd>L</kbd></td><td>Voltar a colocar o ponto de queda</td></tr>
+        <tr><td><kbd>Esc</kbd></td><td>Cancelar a colocação</td></tr>
+      </table>
+
+      <h4>Problemas comuns</h4>
+      <table class="gtable">
+        <tr><td>O vídeo não abre</td><td>Use o Safari: abre os ficheiros HEVC/MOV do iPhone que o Chrome às vezes recusa.</td></tr>
+        <tr><td>Não aparece o traço</td><td>Confirme que estão marcados os três pontos (impacto, bola e queda) e que está depois do frame do impacto.</td></tr>
+        <tr><td>Não vejo as alças</td><td>Pause o vídeo e confirme que a opção <b>Mostrar guias em pausa</b> está ativa.</td></tr>
+        <tr><td>Vídeo exportado sem som</td><td>Carregue em Play pelo menos uma vez antes de exportar e não silencie o separador.</td></tr>
+        <tr><td>A exportação engasga</td><td>Feche outros separadores pesados e não mude de separador durante a gravação.</td></tr>
+      </table>
+
+      <div class="tip"><b>Dica:</b> para usar como uma app do Mac, abra o site no Safari e escolha <b>Ficheiro → Adicionar à Dock</b>.</div>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="file" accept="video/*,.mov,.mp4,.m4v" hidden>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const video = $('video'), ov = $('overlay'), octx = ov.getContext('2d');
+const stage = $('stage'), frame = $('frame');
+
+// ---------- state ----------
+const STYLE_KEYS = ['height','apex','curv','bend','flight','ease','hold','fade','color','w0','w1','glow','core','head','guide'];
+const S = {
+  impact: null, p0: null, p2: null,
+  height: 0.32, apex: 0.6, curv: 2, bend: 0, flight: 3.2, ease: 2.2, hold: 1.5, fade: 0.8,
+  color: '#ff3b30', w0: 7, w1: 2.5, glow: 0.6, core: true, head: true, guide: true,
+  fps: 30, fpsManual: false, tin: 0, tout: null
+};
+try { const saved = JSON.parse(localStorage.getItem('shotTracer.style') || '{}'); STYLE_KEYS.forEach(k => { if (k in saved) S[k] = saved[k]; }); } catch (e) {}
+const persist = () => { try { const o = {}; STYLE_KEYS.forEach(k => o[k] = S[k]); localStorage.setItem('shotTracer.style', JSON.stringify(o)); } catch (e) {} };
+
+let mode = null;          // 'start' | 'land' | null
+let drag = null;          // 'p0' | 'p2' | 'apex'
+let fileBase = 'pancada';
+let exporting = false;
+
+// ---------- geometry ----------
+// arc: 0 at both ends, 1 at the apex; S.curv is the exponent (2 = parabola, lower = sharper, higher = rounder)
+const arc = (s, a) => { const u = s < a ? (a - s) / a : (s - a) / (1 - a); return 1 - Math.pow(Math.min(1, u), S.curv); };
+const sideShape = s => s * s * (1 - s) * 6.75;   // 0 at ends, 1 at s = 2/3: the bend grows late like a real draw/fade
+function geom(W, H) {
+  const a = { x: S.p0.x * W, y: S.p0.y * H }, b = { x: S.p2.x * W, y: S.p2.y * H };
+  const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
+  return { a, b, dx, dy, len, W, H };
+}
+function pt(g, s) {
+  const h = S.height * g.H * arc(s, S.apex);
+  const side = S.bend * g.len * sideShape(s);      // torção: left/right on screen
+  return { x: g.a.x + g.dx * s + side, y: g.a.y + g.dy * s - h };
+}
+function tracerState(t) {
+  if (S.impact == null || !S.p0 || !S.p2) return null;
+  const p = (t - S.impact) / S.flight;
+  if (p < 0) return null;
+  const end = S.impact + S.flight;
+  let alpha = 1;
+  if (t > end + S.hold) alpha = S.fade > 0 ? 1 - (t - end - S.hold) / S.fade : 0;
+  if (alpha <= 0) return null;
+  const pc = Math.min(p, 1);
+  return { s: 1 - Math.pow(1 - pc, S.ease), alpha, flying: p < 1 };
+}
+
+// Filled tapered ribbon from s=0..s1 (fill, not stroke, so translucent glow has no beading)
+function ribbon(ctx, g, s1, mult, k) {
+  if (s1 < 0.002) return;
+  const n = Math.max(3, Math.ceil(180 * s1));
+  const P = [];
+  for (let i = 0; i <= n; i++) { const s = s1 * i / n; const p = pt(g, s); p.w = (S.w0 + (S.w1 - S.w0) * s) * k * mult / 2; P.push(p); }
+  const L = [], R = [], ang = [];
+  for (let i = 0; i <= n; i++) {
+    const p0 = P[Math.max(0, i - 1)], p1 = P[Math.min(n, i + 1)];
+    let tx = p1.x - p0.x, ty = p1.y - p0.y; const l = Math.hypot(tx, ty) || 1; tx /= l; ty /= l;
+    const nx = -ty, ny = tx;
+    L.push({ x: P[i].x + nx * P[i].w, y: P[i].y + ny * P[i].w });
+    R.push({ x: P[i].x - nx * P[i].w, y: P[i].y - ny * P[i].w });
+    ang.push(Math.atan2(ny, nx));
+  }
+  ctx.beginPath();
+  ctx.moveTo(L[0].x, L[0].y);
+  for (let i = 1; i <= n; i++) ctx.lineTo(L[i].x, L[i].y);
+  ctx.arc(P[n].x, P[n].y, P[n].w, ang[n], ang[n] - Math.PI, true);
+  for (let i = n; i >= 0; i--) ctx.lineTo(R[i].x, R[i].y);
+  ctx.arc(P[0].x, P[0].y, P[0].w, ang[0] + Math.PI, ang[0], true);
+  ctx.closePath();
+  ctx.fill();
+}
+function mixWhite(hex, f) {
+  const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  const m = c => Math.round(c + (255 - c) * f);
+  return `rgb(${m(r)},${m(g)},${m(b)})`;
+}
+function drawTracer(ctx, W, H, t) {
+  const st = tracerState(t); if (!st) return;
+  const g = geom(W, H), k = H / 720;
+  ctx.save();
+  ctx.fillStyle = S.color;
+  if (S.glow > 0) {
+    for (const [m, a] of [[5, 0.06], [3, 0.12], [1.9, 0.22]]) {
+      ctx.globalAlpha = Math.min(1, st.alpha * a * S.glow * 1.7);
+      ribbon(ctx, g, st.s, m, k);
+    }
+  }
+  ctx.globalAlpha = st.alpha;
+  ribbon(ctx, g, st.s, 1, k);
+  if (S.core) { ctx.fillStyle = mixWhite(S.color, 0.78); ribbon(ctx, g, st.s, 0.38, k); }
+  if (S.head && st.flying && st.s > 0.002) {
+    const p = pt(g, st.s), w = (S.w0 + (S.w1 - S.w0) * st.s) * k;
+    ctx.shadowColor = S.color; ctx.shadowBlur = 10 * k;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(p.x, p.y, Math.max(w * 0.85, 2.2 * k), 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ---------- overlay (preview + handles) ----------
+let cssW = 0, cssH = 0, dpr = 1;
+function layout() {
+  if (!video.videoWidth) return;
+  const r = stage.getBoundingClientRect();
+  const ar = video.videoWidth / video.videoHeight;
+  let w = r.width - 32, h = w / ar;
+  if (h > r.height - 32) { h = r.height - 32; w = h * ar; }
+  w = Math.max(80, w); h = Math.max(45, h);
+  frame.style.width = w + 'px'; frame.style.height = h + 'px';
+  dpr = window.devicePixelRatio || 1; cssW = w; cssH = h;
+  ov.width = Math.round(w * dpr); ov.height = Math.round(h * dpr);
+}
+new ResizeObserver(layout).observe(stage);
+
+function handlePositions() {
+  const out = {};
+  if (S.p0) out.p0 = { x: S.p0.x * cssW, y: S.p0.y * cssH };
+  if (S.p2) out.p2 = { x: S.p2.x * cssW, y: S.p2.y * cssH };
+  if (S.p0 && S.p2) out.apex = pt(geom(cssW, cssH), S.apex);
+  return out;
+}
+function drawHandle(ctx, p, label, shape) {
+  ctx.save();
+  ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.fillStyle = 'rgba(0,0,0,.45)';
+  ctx.beginPath();
+  if (shape === 'diamond') { ctx.moveTo(p.x, p.y - 8); ctx.lineTo(p.x + 8, p.y); ctx.lineTo(p.x, p.y + 8); ctx.lineTo(p.x - 8, p.y); ctx.closePath(); }
+  else ctx.arc(p.x, p.y, 7, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(p.x, p.y, 1.8, 0, Math.PI * 2); ctx.fill();
+  ctx.font = '600 11px -apple-system,system-ui,sans-serif';
+  const tw = ctx.measureText(label).width;
+  const bx = Math.min(Math.max(p.x - tw / 2 - 6, 2), cssW - tw - 14), by = p.y - 30 < 2 ? p.y + 13 : p.y - 28;
+  ctx.fillStyle = 'rgba(0,0,0,.7)';
+  ctx.beginPath(); (ctx.roundRect ? ctx.roundRect(bx, by, tw + 12, 17, 8.5) : ctx.rect(bx, by, tw + 12, 17)); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.fillText(label, bx + 6, by + 12.5);
+  ctx.restore();
+}
+function renderOverlay() {
+  if (!cssW) return;
+  octx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  octx.clearRect(0, 0, cssW, cssH);
+  drawTracer(octx, cssW, cssH, video.currentTime);
+  const showGuide = (S.guide && video.paused && !exporting) || drag;
+  if (!showGuide) return;
+  const hp = handlePositions();
+  if (S.p0 && S.p2) {
+    const g = geom(cssW, cssH);
+    octx.save();
+    octx.setLineDash([5, 5]); octx.lineWidth = 1.4; octx.strokeStyle = 'rgba(255,255,255,.75)';
+    octx.beginPath();
+    for (let i = 0; i <= 120; i++) { const p = pt(g, i / 120); i ? octx.lineTo(p.x, p.y) : octx.moveTo(p.x, p.y); }
+    octx.stroke();
+    octx.setLineDash([2, 4]); octx.strokeStyle = 'rgba(255,255,255,.3)';
+    octx.beginPath(); octx.moveTo(g.a.x, g.a.y); octx.lineTo(g.b.x, g.b.y); octx.stroke();
+    octx.restore();
+    drawHandle(octx, hp.apex, 'Ápice', 'diamond');
+  }
+  if (hp.p0) drawHandle(octx, hp.p0, 'Bola');
+  if (hp.p2) drawHandle(octx, hp.p2, 'Queda');
+}
+function loop() { renderOverlay(); updateTimeUI(); requestAnimationFrame(loop); }
+requestAnimationFrame(loop);
+
+// ---------- pointer ----------
+const mpos = e => { const r = ov.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+function hitTest(m) {
+  if (!(S.guide || drag) || !video.paused) return null;
+  const hp = handlePositions();
+  let best = null, bd = 14;
+  for (const k of ['apex', 'p0', 'p2']) { if (!hp[k]) continue; const d = Math.hypot(hp[k].x - m.x, hp[k].y - m.y); if (d < bd) { bd = d; best = k; } }
+  return best;
+}
+function applyDrag(m) {
+  const n = { x: clamp(m.x / cssW, 0, 1), y: clamp(m.y / cssH, 0, 1) };
+  if (drag === 'p0') S.p0 = n;
+  else if (drag === 'p2') S.p2 = n;
+  else if (drag === 'apex') {
+    const g = geom(cssW, cssH);
+    if (Math.abs(g.dx) / g.len > 0.5) {      // flight mostly across the screen (face-on): sideways moves the peak
+      S.apex = clamp((m.x - g.a.x - S.bend * g.len * sideShape(S.apex)) / g.dx, 0.25, 0.85);
+    } else {                                  // flight mostly into the screen (from behind): sideways is torção
+      const ss = sideShape(S.apex) || 1e-3;
+      S.bend = clamp((m.x - (g.a.x + g.dx * S.apex)) / (g.len * ss), -0.6, 0.6);
+    }
+    const by = g.a.y + g.dy * S.apex;
+    S.height = clamp((by - m.y) / cssH, 0, 1.1);
+    syncControls();
+  }
+  updateMarks();
+}
+ov.addEventListener('pointerdown', e => {
+  if (!video.videoWidth) return;
+  const m = mpos(e);
+  if (mode) {
+    if (!video.paused) video.pause();
+    drag = mode === 'start' ? 'p0' : 'p2';
+    applyDrag(m);
+    const was = mode;
+    mode = (was === 'start' && !S.p2) ? 'land' : null;
+    ov.setPointerCapture(e.pointerId);
+    updateMode();
+    return;
+  }
+  const h = hitTest(m);
+  if (h) { drag = h; ov.setPointerCapture(e.pointerId); }
+});
+ov.addEventListener('pointermove', e => {
+  const m = mpos(e);
+  if (drag) { applyDrag(m); return; }
+  ov.style.cursor = mode ? 'crosshair' : hitTest(m) ? 'grab' : 'default';
+});
+const endDrag = () => { if (drag) { drag = null; persist(); updateMarks(); } };
+ov.addEventListener('pointerup', endDrag);
+ov.addEventListener('pointercancel', endDrag);
+
+// ---------- loading ----------
+function openFile(f) {
+  if (!f) return;
+  if (video.src) URL.revokeObjectURL(video.src);
+  fileBase = (f.name || 'pancada').replace(/\.[^.]+$/, '');
+  $('fileName').textContent = f.name;
+  video.src = URL.createObjectURL(f);
+  video.load();
+}
+$('file').addEventListener('change', e => { openFile(e.target.files[0]); e.target.value = ''; });
+$('openBtn').onclick = $('openBtn2').onclick = () => $('file').click();
+['dragenter', 'dragover'].forEach(ev => stage.addEventListener(ev, e => { e.preventDefault(); stage.classList.add('drag'); }));
+['dragleave', 'drop'].forEach(ev => stage.addEventListener(ev, e => { e.preventDefault(); stage.classList.remove('drag'); }));
+stage.addEventListener('drop', e => { const f = [...(e.dataTransfer?.files || [])].find(f => f.type.startsWith('video') || /\.(mov|mp4|m4v)$/i.test(f.name)); openFile(f); });
+
+video.addEventListener('loadedmetadata', () => {
+  $('empty').hidden = true; frame.hidden = false;
+  S.impact = null; S.p0 = null; S.p2 = null; S.tin = 0; S.tout = null; S.fpsManual = false;
+  fpsSamples = [];
+  $('scrub').max = video.duration; $('scrub').disabled = false;
+  ['setImpact', 'placeStart', 'placeLand', 'setIn', 'setOut', 'resetRange'].forEach(id => $(id).disabled = false);
+  layout(); seekTo(0); updateMarks();
+  mode = null; updateMode();
+});
+video.addEventListener('error', () => { setHint('Não foi possível abrir este formato aqui. Experimente o Safari para ficheiros HEVC/MOV.'); });
+
+// ---------- transport ----------
+const frameOf = t => Math.floor(t * S.fps + 1e-4);
+const timeOfFrame = f => (f + 0.5) / S.fps;
+function seekTo(t) { video.currentTime = clamp(t, 0, Math.max(0, (video.duration || 0) - 0.001)); }
+function step(n) { if (!video.videoWidth) return; video.pause(); seekTo(timeOfFrame(frameOf(video.currentTime) + n)); }
+$('bBack10').onclick = () => step(-10); $('bBack1').onclick = () => step(-1);
+$('bFwd1').onclick = () => step(1); $('bFwd10').onclick = () => step(10);
+function togglePlay() {
+  if (!video.videoWidth || exporting) return;
+  ensureAudio();
+  if (video.paused) { if (video.ended || video.currentTime >= video.duration - 0.05) seekTo(0); video.play(); } else video.pause();
+}
+$('bPlay').onclick = togglePlay;
+video.addEventListener('play', () => $('bPlay').textContent = '❚❚ Pausa');
+video.addEventListener('pause', () => $('bPlay').textContent = '▶ Play');
+$('scrub').addEventListener('input', e => { video.pause(); seekTo(+e.target.value); });
+
+// frame-rate detection while playing
+let fpsSamples = [], lastMT = null;
+function fpsWatch(now, meta) {
+  if (lastMT != null && !video.paused) { const d = meta.mediaTime - lastMT; if (d > 0.003 && d < 0.1) fpsSamples.push(d); }
+  lastMT = meta.mediaTime;
+  if (!S.fpsManual && fpsSamples.length >= 20) {
+    const s = [...fpsSamples].sort((a, b) => a - b), med = s[s.length >> 1];
+    const est = 1 / med, common = [24, 25, 30, 48, 50, 60, 120, 240];
+    const best = common.reduce((a, b) => Math.abs(b - est) < Math.abs(a - est) ? b : a);
+    if (Math.abs(best - est) / best < 0.08 && best !== S.fps) { S.fps = best; $('fps').value = best; updateMarks(); }
+  }
+  if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(fpsWatch);
+}
+if (video.requestVideoFrameCallback) video.requestVideoFrameCallback(fpsWatch);
+video.addEventListener('seeked', () => { lastMT = null; });
+$('fps').addEventListener('change', e => { const v = +e.target.value; if (v >= 10 && v <= 240) { S.fps = v; S.fpsManual = true; updateMarks(); } });
+
+// ---------- marks ----------
+const fmt = t => { const m = Math.floor(t / 60), s = t - m * 60; return `${m}:${s.toFixed(2).padStart(5, '0')}`; };
+function setImpact() {
+  if (!video.videoWidth) return;
+  video.pause();
+  const f = frameOf(video.currentTime);
+  S.impact = timeOfFrame(f);
+  if (!S.p0) mode = 'start'; else if (!S.p2) mode = 'land';
+  updateMode(); updateMarks();
+}
+$('setImpact').onclick = $('bImpactNow').onclick = setImpact;
+$('goImpact').onclick = () => { if (S.impact != null) { video.pause(); seekTo(S.impact); } };
+$('placeStart').onclick = () => { video.pause(); mode = mode === 'start' ? null : 'start'; updateMode(); };
+$('placeLand').onclick = () => { video.pause(); mode = mode === 'land' ? null : 'land'; updateMode(); };
+$('setIn').onclick = () => { S.tin = video.currentTime; if (S.tout != null && S.tout <= S.tin) S.tout = null; updateMarks(); };
+$('setOut').onclick = () => { if (video.currentTime > S.tin) S.tout = video.currentTime; updateMarks(); };
+$('resetRange').onclick = () => { S.tin = 0; S.tout = null; updateMarks(); };
+
+function setHint(t) { $('hint').textContent = t; }
+function updateMode() {
+  $('placeStart').classList.toggle('active', mode === 'start');
+  $('placeLand').classList.toggle('active', mode === 'land');
+  if (mode === 'start') setHint('Clique na bola, na posição em que está no impacto');
+  else if (mode === 'land') setHint('Clique onde a bola cai');
+  else if (video.videoWidth && S.impact == null) setHint('Avance até ao frame do impacto e carregue em “Marcar impacto aqui” (I)');
+  else setHint('');
+}
+function updateMarks() {
+  const d = video.duration || 1;
+  const vi = $('vImpact');
+  vi.textContent = S.impact == null ? 'não definido' : `frame ${frameOf(S.impact)} · ${fmt(S.impact)}`;
+  vi.classList.toggle('set', S.impact != null);
+  $('vStart').textContent = S.p0 ? `${Math.round(S.p0.x * 100)}%, ${Math.round(S.p0.y * 100)}%` : 'não definida';
+  $('vStart').classList.toggle('set', !!S.p0);
+  $('vLand').textContent = S.p2 ? `${Math.round(S.p2.x * 100)}%, ${Math.round(S.p2.y * 100)}%` : 'não definido';
+  $('vLand').classList.toggle('set', !!S.p2);
+  $('goImpact').disabled = S.impact == null;
+  const ready = S.impact != null && S.p0 && S.p2;
+  $('n1').classList.toggle('ok', !!ready);
+  $('exportBtn').disabled = !ready;
+  $('vIn').textContent = fmt(S.tin);
+  $('vOut').textContent = S.tout == null ? `fim (${fmt(d)})` : fmt(S.tout);
+  const ri = $('rangeIn'); ri.style.left = (S.tin / d * 100) + '%'; ri.style.width = (((S.tout ?? d) - S.tin) / d * 100) + '%';
+  document.documentElement.style.setProperty('--tc', S.color);
+  const im = $('impMark'), fb = $('flightBand');
+  if (S.impact != null) {
+    im.hidden = false; im.style.left = (S.impact / d * 100) + '%';
+    fb.hidden = false; fb.style.left = (S.impact / d * 100) + '%';
+    fb.style.width = (Math.min(S.flight, d - S.impact) / d * 100) + '%';
+  } else { im.hidden = true; fb.hidden = true; }
+  if (!mode) updateMode();
+}
+function updateTimeUI() {
+  if (!video.videoWidth) return;
+  const t = video.currentTime;
+  if (document.activeElement !== $('scrub') || !video.paused) $('scrub').value = t;
+  $('readout').innerHTML = `frame <b>${frameOf(t)}</b> · ${fmt(t)} / ${fmt(video.duration)}`;
+}
+
+// ---------- controls ----------
+const curvToV = s => Math.round(50 + 50 * Math.log2(s / 2));
+const controls = [
+  ['rHeight', 'oHeight', 'height', v => v / 100, s => Math.round(s * 100), s => Math.round(s * 100) + '%'],
+  ['rApex', 'oApex', 'apex', v => v / 100, s => Math.round(s * 100), s => Math.round(s * 100) + '%'],
+  ['rCurv', 'oCurv', 'curv', v => 2 * Math.pow(2, (v - 50) / 50), curvToV, s => String(curvToV(s))],
+  ['rBend', 'oBend', 'bend', v => v / 100, s => Math.round(s * 100), s => { const v = Math.round(s * 100); return v === 0 ? 'reta' : (v < 0 ? 'E ' : 'D ') + Math.abs(v); }],
+  ['rFlight', 'oFlight', 'flight', v => +v, s => s, s => s.toFixed(1) + ' s'],
+  ['rEase', 'oEase', 'ease', v => +v, s => s, s => s.toFixed(1) + '×'],
+  ['rW0', 'oW0', 'w0', v => +v, s => s, s => s.toFixed(1)],
+  ['rW1', 'oW1', 'w1', v => +v, s => s, s => s.toFixed(1)],
+  ['rGlow', 'oGlow', 'glow', v => v / 100, s => Math.round(s * 100), s => Math.round(s * 100) + '%'],
+  ['rHold', 'oHold', 'hold', v => +v, s => s, s => s.toFixed(1) + ' s'],
+  ['rFade', 'oFade', 'fade', v => +v, s => s, s => s.toFixed(1) + ' s'],
+];
+function syncControls() {
+  for (const [r, o, k, , toV, show] of controls) { $(r).value = toV(S[k]); $(o).textContent = show(S[k]); }
+  $('cCore').checked = S.core; $('cHead').checked = S.head; $('cGuide').checked = S.guide;
+  document.querySelectorAll('#swatches button').forEach(b => b.classList.toggle('on', b.dataset.c.toLowerCase() === S.color.toLowerCase()));
+  $('cPick').value = S.color;
+}
+for (const [r, o, k, fromV, , show] of controls) {
+  $(r).addEventListener('input', e => { S[k] = fromV(+e.target.value); $(o).textContent = show(S[k]); updateMarks(); });
+  $(r).addEventListener('change', persist);
+}
+$('cCore').onchange = e => { S.core = e.target.checked; persist(); };
+$('cHead').onchange = e => { S.head = e.target.checked; persist(); };
+$('cGuide').onchange = e => { S.guide = e.target.checked; persist(); };
+const SW = ['#ff3b30', '#ffffff', '#ffd60a', '#30d158', '#0a84ff', '#ff2d92'];
+const swEl = $('swatches');
+SW.forEach(c => { const b = document.createElement('button'); b.style.background = c; b.dataset.c = c; b.title = c; b.onclick = () => { S.color = c; syncControls(); updateMarks(); persist(); }; swEl.appendChild(b); });
+const pick = document.createElement('input'); pick.type = 'color'; pick.id = 'cPick'; pick.title = 'Outra cor';
+pick.oninput = e => { S.color = e.target.value; syncControls(); updateMarks(); }; pick.onchange = persist;
+swEl.appendChild(pick);
+syncControls();
+
+// ---------- guide ----------
+const openGuide = () => { $('guide').hidden = false; try { localStorage.setItem('shotTracer.seenGuide', '1'); } catch (e) {} };
+const closeGuide = () => { $('guide').hidden = true; };
+$('guideBtn').onclick = $('guideBtn2').onclick = openGuide;
+$('gClose').onclick = closeGuide;
+$('gPrint').onclick = () => { try { window.print(); } catch (e) {} };
+$('guide').addEventListener('click', e => { if (e.target === $('guide')) closeGuide(); });
+try { if (!localStorage.getItem('shotTracer.seenGuide')) openGuide(); } catch (e) {}
+
+// ---------- keyboard ----------
+document.addEventListener('keydown', e => {
+  if (!$('guide').hidden) { if (e.key === 'Escape') closeGuide(); return; }
+  if (e.target.closest('input[type=number],input[type=text]') || e.metaKey || e.ctrlKey) return;
+  if (!$('modal').hidden) return;
+  const k = e.key;
+  if (k === ' ') { e.preventDefault(); togglePlay(); }
+  else if (k === 'ArrowLeft') { e.preventDefault(); step(e.shiftKey ? -10 : -1); }
+  else if (k === 'ArrowRight') { e.preventDefault(); step(e.shiftKey ? 10 : 1); }
+  else if (k === 'i' || k === 'I') setImpact();
+  else if ((k === 'b' || k === 'B') && video.videoWidth) { video.pause(); mode = 'start'; updateMode(); }
+  else if ((k === 'l' || k === 'L') && video.videoWidth) { video.pause(); mode = 'land'; updateMode(); }
+  else if (k === 'Escape') { mode = null; updateMode(); }
+});
+
+// ---------- audio routing (for export with sound) ----------
+let actx = null, msDest = null;
+function ensureAudio() {
+  if (actx) { if (actx.state === 'suspended') actx.resume(); return; }
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    actx = new AC();
+    const src = actx.createMediaElementSource(video);
+    src.connect(actx.destination);
+    if (actx.createMediaStreamDestination) { msDest = actx.createMediaStreamDestination(); src.connect(msDest); }
+  } catch (e) { actx = null; msDest = null; }
+}
+
+// ---------- export ----------
+function pickMime() {
+  if (!window.MediaRecorder) return null;
+  const c = ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs=avc1', 'video/mp4',
+             'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+  return c.find(m => MediaRecorder.isTypeSupported(m)) || '';
+}
+const waitSeek = t => new Promise(res => {
+  let done = false; const fin = () => { if (!done) { done = true; video.removeEventListener('seeked', fin); res(); } };
+  video.addEventListener('seeked', fin); seekTo(t); setTimeout(fin, 2000);
+});
+let cancelExport = null, resultBlob = null, resultURL = null, resultName = '';
+async function runExport() {
+  const mime = pickMime();
+  if (mime === null) { alert('Este navegador não consegue gravar vídeo. Use o Safari 14.1+ ou o Chrome.'); return; }
+  video.pause(); mode = null; updateMode();
+  ensureAudio(); if (actx && actx.state === 'suspended') await actx.resume();
+  openModal();
+  const W = video.videoWidth, H = video.videoHeight;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const cx = c.getContext('2d');
+  const stream = c.captureStream(S.fps);
+  if (msDest) msDest.stream.getAudioTracks().forEach(t => stream.addTrack(t));
+  const vbr = Math.round(clamp(W * H * S.fps * 0.18, 4e6, 40e6));
+  let rec;
+  try { rec = new MediaRecorder(stream, mime ? { mimeType: mime, videoBitsPerSecond: vbr, audioBitsPerSecond: 192000 } : { videoBitsPerSecond: vbr }); }
+  catch (e) { rec = new MediaRecorder(stream); }
+  const chunks = [];
+  rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+  const tin = S.tin, tout = S.tout ?? video.duration;
+  await waitSeek(tin);
+  const render = t => { cx.drawImage(video, 0, 0, W, H); drawTracer(cx, W, H, t); };
+  render(tin);
+  exporting = true;
+  let cancelled = false;
+  rec.start(250);
+  const blob = await new Promise(resolve => {
+    const finish = () => {
+      if (!exporting) return; exporting = false; video.pause();
+      rec.onstop = () => resolve(cancelled ? null : new Blob(chunks, { type: (rec.mimeType || mime || 'video/webm').split(';')[0] }));
+      rec.stop();
+    };
+    cancelExport = () => { cancelled = true; finish(); };
+    const tick = (now, meta) => {
+      if (!exporting) return;
+      const t = meta ? meta.mediaTime : video.currentTime;
+      render(t);
+      $('mBar').style.width = (clamp((t - tin) / (tout - tin), 0, 1) * 100) + '%';
+      if (t >= tout - 0.5 / S.fps || video.ended) { finish(); return; }
+      schedule();
+    };
+    const schedule = () => video.requestVideoFrameCallback ? video.requestVideoFrameCallback(tick) : requestAnimationFrame(() => tick());
+    video.addEventListener('ended', finish, { once: true });
+    schedule();
+    video.play().catch(() => { cancelled = true; finish(); });
+  });
+  cancelExport = null;
+  if (!blob) { closeModal(); return; }
+  const ext = /mp4/.test(blob.type) ? 'mp4' : 'webm';
+  resultBlob = blob; resultName = `${fileBase}-tracer.${ext}`;
+  if (resultURL) URL.revokeObjectURL(resultURL);
+  resultURL = URL.createObjectURL(blob);
+  $('mTitle').textContent = 'Concluído';
+  $('mText').textContent = `${resultName} · ${(blob.size / 1048576).toFixed(1)} MB`;
+  $('mProg').hidden = true;
+  const mv = $('mVideo'); mv.src = resultURL; mv.hidden = false;
+  $('mSave').hidden = false; $('mCancel').textContent = 'Fechar';
+}
+function openModal() {
+  $('mTitle').textContent = 'A renderizar…';
+  $('mText').textContent = 'A reproduzir o clip em tempo real para o gravar. Mantenha este separador à frente.';
+  $('mProg').hidden = false; $('mBar').style.width = '0';
+  $('mVideo').hidden = true; $('mVideo').removeAttribute('src');
+  $('mSave').hidden = true; $('mCancel').textContent = 'Cancelar';
+  $('modal').hidden = false;
+}
+function closeModal() { $('modal').hidden = true; $('mVideo').pause(); }
+$('mCancel').onclick = () => { if (cancelExport) cancelExport(); else closeModal(); };
+$('mSave').onclick = async () => {
+  if (!resultBlob) return;
+  try {
+    if (window.claude && typeof window.claude.use === 'function') {
+      const dl = await window.claude.use('downloads');
+      if (dl) {
+        try { await dl.save({ filename: resultName, data: resultBlob }); $('mText').textContent = `Guardado: ${resultName}`; }
+        catch (e) { if (e && e.code !== 'declined') $('mText').textContent = 'Não foi possível guardar aqui. Clique com o botão direito no vídeo acima e escolha “Guardar vídeo como…”.'; }
+        return;
+      }
+    }
+  } catch (e) {}
+  const a = document.createElement('a'); a.href = resultURL; a.download = resultName;
+  document.body.appendChild(a); a.click(); a.remove();
+  $('mText').textContent = `Guardado nas Transferências: ${resultName}`;
+};
+$('exportBtn').onclick = () => { if (!exporting) runExport(); };
+
+updateMode();
+})();
+</script>
+</body>
+</html>

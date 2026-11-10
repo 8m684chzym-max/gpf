@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { Home, Plus, Trophy, Dices, Shield, User, LogOut } from "lucide-react";
+import { Home, Plus, Trophy, Dices, Shield, User, LogOut, Spline } from "lucide-react";
 import Logo from "./Logo";
 
 export default function Nav() {
@@ -17,7 +17,8 @@ export default function Nav() {
         <Link href="/dashboard" className="brand"><Logo size={30} withText={false} /><span>Golf P'la Fresquinha</span></Link>
         <div className="top-right">
           <Link href={last[0]} className="ghost-link"><span className="who">{data?.user?.name}</span></Link>
-          <button className="icon-btn" title="Log out" onClick={() => signOut({ callbackUrl: "/" })}><LogOut size={16} /></button>
+          <a className="icon-btn" title="Shot Tracer" href={process.env.NEXT_PUBLIC_TRACER_URL || "https://tracer.gpf.golf"}><Spline size={16} /></a>
+          <button className="icon-btn" title="Log out" onClick={() => signOut({ callbackUrl: "/login" })}><LogOut size={16} /></button>
         </div>
       </header>
       <nav className="tabbar">

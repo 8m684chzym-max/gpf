@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "sdk_version": "0.24.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://zqsipdhbhumztdymfqdh.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "gpf-golf-mcp",
+      "version": "0.1.0",
+      "title": "GPF Golf"
+    },
+    "tools": [
+      {
+        "name": "get_shop_products",
+        "title": "Get shop products",
+        "description": "List products in the GPF Golf shop. Optionally filter by category (Apparel, Accessories, Equipment).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "category": {
+              "description": "Optional product category filter.",
+              "type": "string",
+              "enum": [
+                "Apparel",
+                "Accessories",
+                "Equipment"
+              ]
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_events",
+        "title": "Get club events",
+        "description": "List upcoming GPF Golf events (tournaments, member matches, and open events). Optionally filter by kind.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "kind": {
+              "description": "Filter by 'Members' (member-only) or 'Open' (public).",
+              "type": "string",
+              "enum": [
+                "Members",
+                "Open"
+              ]
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_my_profile",
+        "title": "Get my profile",
+        "description": "Return the signed-in GPF member's profile derived from the OAuth token (user id and email).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}

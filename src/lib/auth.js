@@ -54,10 +54,16 @@ export const authOptions = {
   providers,
   // Force the session cookie to be Secure + SameSite=Lax in production so it
   // is never sent over plain HTTP and is not attached to cross-site requests.
+  // COOKIE_DOMAIN (e.g. ".gpf.golf", production only) shares the login across
+  // app.gpf.golf and tracer.gpf.golf. Leave it unset on preview deployments
+  // (*.vercel.app), where a .gpf.golf cookie would be rejected.
   cookies: process.env.NODE_ENV === "production" ? {
     sessionToken: {
       name: "__Secure-next-auth.session-token",
-      options: { httpOnly: true, sameSite: "lax", path: "/", secure: true },
+      options: {
+        httpOnly: true, sameSite: "lax", path: "/", secure: true,
+        ...(process.env.COOKIE_DOMAIN ? { domain: process.env.COOKIE_DOMAIN } : {}),
+      },
     },
   } : undefined,
   callbacks: {

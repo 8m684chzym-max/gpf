@@ -33,6 +33,8 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       // Images: same-origin, local object blobs (scorecard preview), data URIs, HTTPS.
       "img-src 'self' blob: data: https:",
+      // Video/audio: the Shot Tracer plays the member's own clip from a local blob: URL.
+      "media-src 'self' blob:",
       // Fetch/XHR: same-origin API calls + Anthropic for scorecard OCR.
       "connect-src 'self' https://api.anthropic.com",
       // Fonts: next/font self-hosts at build time — no external CDN needed.
