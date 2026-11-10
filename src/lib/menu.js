@@ -10,6 +10,7 @@ export const MENU = [
   [HOME_URL, "Home", true],
   ["/play", "Play"],
   ["/open", "Open"],
+  ["/team-cup", "Team Cup"],
   ["/rank", "Rank"],
   ["/submit", "Submit score"],
   ["/shop", "Shop"],

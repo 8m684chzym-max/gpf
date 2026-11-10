@@ -10,6 +10,7 @@ const menu: [string, string][] = [
   ["/", "Home"],
   [`${APP}/play`, "Play"],
   [`${APP}/open`, "Open"],
+  [`${APP}/team-cup`, "Team Cup"],
   [`${APP}/rank`, "Rank"],
   [`${APP}/submit`, "Submit score"],
   [`${APP}/shop`, "Shop"],

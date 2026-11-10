@@ -439,3 +439,14 @@ a{color:inherit;text-decoration:none}
   .board-head.lb-head,.board-row.lb-row{grid-template-columns:22px minmax(0,1fr) 58px 40px 40px 36px}
   .board-head{font-size:10px;letter-spacing:.08em}
 }
+/* Hole map · individual round score entry (bottom bar) */
+.hm-live{display:flex;align-items:center;gap:4px;margin-left:auto;margin-right:2px}
+.hm-step{width:38px;height:44px;border:none;border-radius:12px;background:var(--soft);color:var(--ink);font-size:22px;font-weight:500;cursor:pointer}
+.hm-strokes{min-width:52px;height:44px;border:none;border-radius:12px;background:var(--ink);color:#fbfaf7;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;line-height:1}
+.hm-strokes .num{font-size:20px;font-weight:700}.hm-strokes small{font-size:10px;opacity:.75;margin-top:2px}
+.hm-card{display:flex;flex-direction:column;align-items:center;justify-content:center;height:44px;padding:0 8px;border-radius:12px;color:var(--ink);line-height:1}
+.hm-card .num{font-size:16px;font-weight:700}.hm-card small{font-size:10px;color:var(--muted);margin-top:2px}
+.hm-score{background:var(--ink)}
+@media (max-width:380px){.hm-hole-meta{display:none}}
+@media (min-width:1024px) and (max-width:1199px){.nav-links{gap:16px}}
+@media (max-width:480px){.row-card{flex-wrap:wrap}.row-card .row-right{margin-left:auto}}

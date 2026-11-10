@@ -96,24 +96,6 @@ export default function GamesHub() {
     [members, picked]
   );
 
-  const league = useMemo(() => {
-    const POS = [4, 3, 2, 1];
-    const agg = new Map();
-    for (const g of history) {
-      if (holesPlayed(g) === 0) continue;
-      const board = standings(g);
-      if (!board.length || board[0].points <= 0) continue;
-      board.forEach((p) => {
-        const rank = board.filter((q) => q.points > p.points).length;
-        const pts = POS[rank] ?? 0;
-        const key = p.userId || `guest:${p.name.toLowerCase()}`;
-        const cur = agg.get(key) || { name: p.name, points: 0, games: 0, wins: 0 };
-        cur.points += pts; cur.games += 1; if (rank === 0) cur.wins += 1; cur.name = p.name;
-        agg.set(key, cur);
-      });
-    }
-    return [...agg.values()].sort((a, b) => b.points - a.points || b.wins - a.wins || a.name.localeCompare(b.name));
-  }, [history]);
 
   const toggleMember = (m) => {
     if (picked.some((p) => p.id === m.id)) setPicked(picked.filter((p) => p.id !== m.id));
@@ -221,38 +203,9 @@ export default function GamesHub() {
   /* ————— SCREEN 1 · MODE GRID (+ live / league / history) ————— */
   return (
     <div className="stack">
-      <div className="seg" style={{ marginBottom: 4 }}>
-        <button className={view === "play" ? "seg-on" : ""} onClick={() => setView("play")}><Dices size={15} /> Play</button>
-        <button className={view === "league" ? "seg-on" : ""} onClick={() => setView("league")}><Medal size={15} /> League</button>
-      </div>
-
-      {view === "league" ? (
+      {(
         <>
-          <div className="sec-h" style={{ display: "flex", alignItems: "center", gap: 7 }}><Trophy size={15} /> Points League</div>
-          <p className="muted small">Position points from finished side games — 4 / 3 / 2 / 1 to the top four in each game. A season-long side ladder, separate from the Road to GPF Open.</p>
-          {league.length === 0 ? (
-            <div className="card muted small">No finished games yet. Play a game and tap &ldquo;Finish&rdquo; to put it on the board.</div>
-          ) : (
-            <div className="board">
-              <div className="board-head" style={{ display: "grid", gridTemplateColumns: "30px 1fr 38px 38px 50px", gap: 6, padding: "10px 13px" }}>
-                <span>#</span><span>Player</span>
-                <span style={{ textAlign: "right" }}>Pld</span><span style={{ textAlign: "right" }}>W</span><span style={{ textAlign: "right" }}>Pts</span>
-              </div>
-              {league.map((r, i) => (
-                <div key={r.name + i} className={`board-row ${i === 0 ? "lead" : ""}`} style={{ display: "grid", gridTemplateColumns: "30px 1fr 38px 38px 50px", gap: 6, padding: "10px 13px", alignItems: "center" }}>
-                  <span className="bh-rank num">{i === 0 ? <Crown size={14} style={{ color: "var(--flag)" }} /> : i + 1}</span>
-                  <span className="bh-name">{r.name}</span>
-                  <span className="bh-c num" style={{ textAlign: "right" }}>{r.games}</span>
-                  <span className="bh-c num" style={{ textAlign: "right" }}>{r.wins}</span>
-                  <span className="bh-c tot num" style={{ textAlign: "right" }}>{r.points}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
-      ) : (
-        <>
-          <div className="ocr-note"><Flag size={14} /> Just for fun while you play — none of this counts toward the Road to GPF Open.</div>
+          <div className="ocr-note"><Flag size={14} /> Finished games add points to the Individual league (4 / 3 / 2 / 1). Nothing here counts toward Rank or the Open.</div>
 
           {live.length > 0 && (
             <>

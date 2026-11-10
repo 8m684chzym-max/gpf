@@ -1,22 +1,30 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Flag, Dices, Map as MapIcon, ChevronRight, Loader2 } from "lucide-react";
+import { Flag, Dices, Map as MapIcon, ChevronRight, Loader2, Swords, Medal } from "lucide-react";
 import GamesHub from "@/components/games/GamesHub";
+import MatchPlay from "@/components/play/MatchPlay";
+import IndividualLeague from "@/components/play/IndividualLeague";
+import { loadLive, totals } from "@/lib/liveRound";
 import { COURSE_MAP } from "@/lib/holes";
 import { api } from "@/lib/client";
 
 // Courses with a hole map (GPS distances, hole sketches). Add an entry here when
 // another course gets mapped (src/lib/holes.js + public/holes/*).
 const MAPPED = [
-  { match: COURSE_MAP.name.toLowerCase(), name: COURSE_MAP.name, place: "Comporta", href: "/play/map", image: "/courses/pinheirinho.jpeg" },
+  { match: COURSE_MAP.name.toLowerCase(), name: COURSE_MAP.name, place: "Comporta", href: "/play/round", mapHref: "/play/map", image: "/courses/pinheirinho.jpeg" },
 ];
 const mappedFor = (name) => MAPPED.find((m) => name.toLowerCase().includes(m.match));
 
+const TABS = [["start", "Start play", Flag], ["match", "Match play", Swords], ["games", "Games", Dices], ["league", "Individual league", Medal]];
+
 export default function Play() {
   const [tab, setTab] = useState("start");
-  useEffect(() => { if (window.location.hash === "#games" || new URLSearchParams(window.location.search).get("tab") === "games") setTab("games"); }, []);
-  const pick = (k) => { setTab(k); window.history.replaceState(null, "", k === "games" ? "/play#games" : "/play"); };
+  useEffect(() => {
+    const k = window.location.hash.replace("#", "") || new URLSearchParams(window.location.search).get("tab");
+    if (TABS.some(([t]) => t === k)) setTab(k);
+  }, []);
+  const pick = (k) => { setTab(k); window.history.replaceState(null, "", k === "start" ? "/play" : `/play#${k}`); };
 
   return (
     <div className="stack">
@@ -25,10 +33,10 @@ export default function Play() {
         <h1 className="page-h">On the course.</h1>
       </div>
       <div className="seg" role="tablist">
-        <button role="tab" aria-selected={tab === "start"} className={tab === "start" ? "seg-on" : ""} onClick={() => pick("start")}><Flag size={14} /> Start play</button>
-        <button role="tab" aria-selected={tab === "games"} className={tab === "games" ? "seg-on" : ""} onClick={() => pick("games")}><Dices size={14} /> Games</button>
+        {TABS.map(([k, label, Icon]) => (
+          <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "seg-on" : ""} onClick={() => pick(k)}><Icon size={14} /> {label}</button>))}
       </div>
-      {tab === "games" ? <GamesHub /> : <StartPlay />}
+      {tab === "games" ? <GamesHub /> : tab === "match" ? <MatchPlay /> : tab === "league" ? <IndividualLeague /> : <StartPlay />}
     </div>
   );
 }
@@ -42,9 +50,16 @@ function StartPlay() {
   const withMap = MAPPED.map((m) => ({ ...m, course: courses.find((c) => mappedFor(c.name) === m) }));
   const others = courses.filter((c) => !mappedFor(c.name));
 
+  const live = typeof window !== "undefined" ? loadLive() : null;
   return (
     <>
-      <p className="muted" style={{ margin: 0, fontSize: 15 }}>Pick the course you&rsquo;re playing. Mapped courses open the hole-by-hole map with live GPS distances to the green.</p>
+      {live && (
+        <Link href="/play/round" className="card course-card" style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: "18px 20px", borderColor: "var(--ink)" }}>
+          <span><span className="eyebrow">Round in progress</span><br /><b>{live.courseName} · {live.teeName}</b>
+            <span className="muted small"> · {totals(live).played}/18 holes · {totals(live).points} pts</span></span>
+          <ChevronRight size={18} />
+        </Link>)}
+      <p className="muted" style={{ margin: 0, fontSize: 15 }}>Pick the course you&rsquo;re playing. On a mapped course you get live GPS distances and enter your score hole by hole; at the end your card goes to Rank.</p>
       <div className="sec-h">Courses with maps</div>
       <div className="course-grid">
         {withMap.map((m) => (
@@ -53,7 +68,7 @@ function StartPlay() {
             <div className="course-body">
               <span className="course-name">{m.name}</span>
               <span className="muted small">{m.place}{m.course?.tees?.length ? ` · ${m.course.tees.length} tees` : ""} · 18 holes mapped</span>
-              <span style={{ marginTop: 8, fontSize: 14, display: "flex", alignItems: "center", gap: 4 }}>Start round <ChevronRight size={15} /></span>
+              <span style={{ marginTop: 8, fontSize: 14, display: "flex", alignItems: "center", gap: 4 }}>Start a round <ChevronRight size={15} /></span>
             </div>
           </Link>))}
       </div>

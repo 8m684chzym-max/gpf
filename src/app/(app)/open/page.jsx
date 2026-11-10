@@ -1,21 +1,20 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Trophy, Loader2, Calendar, MapPin, Swords } from "lucide-react";
-import TeamMatch from "@/components/open/TeamMatch";
+import { Trophy, Loader2, Calendar, MapPin } from "lucide-react";
 import { api, fmtHcp } from "@/lib/client";
 import { MAJOR, TIEBREAK } from "@/lib/major";
 
-// GPF Open: this year's edition, next year's placeholder, and the 2027 team league
-// (Warriors vs Patuas — the team match play that used to sit under "Teams").
-const TABS = [["2026", "2026"], ["2027", "2027"], ["league", "Team league 2027"]];
+// GPF Open: this year's edition and next year's placeholder.
+// The team match play is its own event now: Team Cup (/team-cup).
+const TABS = [["2026", "2026"], ["2027", "2027"]];
 
 export default function GpfOpen() {
   const [d, setD] = useState(null);
   const [tab, setTab] = useState("2026");
   useEffect(() => {
     const h = window.location.hash.replace("#", "");
-    if (h === "teams" || h === "league") setTab("league");
-    else if (TABS.some(([k]) => k === h)) setTab(h);
+    if (h === "teams" || h === "league") { window.location.replace("/team-cup" + window.location.search); return; }
+    if (TABS.some(([k]) => k === h)) setTab(h);
   }, []);
   useEffect(() => {
     Promise.all([api("/api/leaderboard"), api("/api/config")])
@@ -33,11 +32,10 @@ export default function GpfOpen() {
       <div className="seg" role="tablist">
         {TABS.map(([k, label]) => (
           <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "seg-on" : ""} onClick={() => pick(k)}>
-            {k === "league" && <Swords size={14} />}{label}
+            {label}
           </button>))}
       </div>
-      {tab === "league" ? <TeamMatch />
-        : tab === "2027" ? <Open2027 />
+      {tab === "2027" ? <Open2027 />
         : !d ? <div className="loading"><Loader2 className="spin" size={22} /> Loading…</div>
         : <Open2026 d={d} />}
     </div>
@@ -104,7 +102,7 @@ function Open2027() {
     <div className="card placeholder">
       <div className="eyebrow">Open 2027</div>
       <h3>Venue and date to be announced.</h3>
-      <p>The 2027 edition will appear here once the committee confirms the course. Meanwhile, the road to it is on Rank and the team league is already on.</p>
+      <p>The 2027 edition will appear here once the committee confirms the course. Meanwhile, the road to it is on Rank.</p>
     </div>
   );
 }

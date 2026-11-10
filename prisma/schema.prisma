@@ -48,6 +48,8 @@ model User {
   sideGamesCreated SideGame[]       @relation("SideGameCreator")
   sideGameSpots    SideGamePlayer[]
   shopOrders       ShopOrder[]
+  matchPlaysA      MatchPlay[]      @relation("MatchPlayA")
+  matchPlaysB      MatchPlay[]      @relation("MatchPlayB")
 }
 
 model PasswordResetToken {
@@ -82,6 +84,7 @@ model Course {
   par    Int
   tees   Tee[]
   rounds Round[]
+  matchPlays MatchPlay[]
 }
 
 model Tee {
@@ -257,4 +260,26 @@ model ShopOrderItem {
 model ShopSetting {
   key   String @id
   value String
+}
+
+// Play › Match play: a 1v1 match between two members on a course and date.
+// Player A registers it; it counts in the Points League (win 1, halved ½) once
+// player B (or an admin) confirms.
+model MatchPlay {
+  id          String    @id @default(cuid())
+  date        DateTime
+  courseId    String
+  course      Course    @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  playerAId   String
+  playerA     User      @relation("MatchPlayA", fields: [playerAId], references: [id], onDelete: Cascade)
+  playerBId   String
+  playerB     User      @relation("MatchPlayB", fields: [playerBId], references: [id], onDelete: Cascade)
+  result      String    // "A" | "B" | "HALVED"
+  margin      String?   // e.g. "3&2", "1 up"
+  status      String    @default("PENDING") // "PENDING" | "CONFIRMED"
+  confirmedBy String?
+  confirmedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([status])
 }

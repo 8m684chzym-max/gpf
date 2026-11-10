@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { HOLES, COURSE_MAP } from "@/lib/holes";
 import { api } from "@/lib/client";
+import { loadLive, saveLive, holePoints, totals, strokesOn, parOf } from "@/lib/liveRound";
 import {
   distance, along, toWorld, fromWorld, toScreen, fromScreen, fitLine, worldPerMetre, frontBack,
 } from "@/lib/geo";
@@ -43,6 +44,8 @@ export default function HoleMap() {
   const [edit, setEdit] = useState(null);         // null | "tee" | "green"
   const [copied, setCopied] = useState(false);
   const [sketches, setSketches] = useState(null);
+  const [live, setLive] = useState(null);           // individual round in progress (lib/liveRound.js)
+  useEffect(() => setLive(loadLive()), []);
   const userMoved = useRef(false);
   const fitOrigin = useRef(null);
 
@@ -319,10 +322,33 @@ export default function HoleMap() {
           <span className="hm-hole-n num">{String(hole.n).padStart(2, "0")}</span>
           <span className="hm-hole-meta"><b>PAR {hole.par}</b><br />S.I. {hole.si}{holeLen ? <> · {Math.round(holeLen)} m</> : null}</span>
         </div>
-        <Link href={`/open?score=${hole.n}#league`} className="hm-score" aria-label={`Enter score for hole ${hole.n}`}><ClipboardList size={17} /><span>Score</span></Link>
+        {live ? (
+          <LiveScore live={live} i={hole.n - 1} onChange={(r) => { saveLive(r); setLive(r); }} />
+        ) : (
+          <Link href="/play/round" className="hm-score" aria-label="Start an individual round"><ClipboardList size={17} /><span>Score</span></Link>
+        )}
         <button className="hm-nav" onClick={() => setIdx((idx + 1) % 18)} aria-label="Next hole"><ChevronRight size={24} /></button>
       </div>
       <div className="hm-attr">GPF yardage book · approximate</div>
+    </div>
+  );
+}
+
+// Individual round: strokes on this hole (− / +), Stableford points, link to the card.
+function LiveScore({ live, i, onChange }) {
+  const s = live.holes[i];
+  const setS = (v) => onChange({ ...live, holes: live.holes.map((x, j) => (j === i ? v : x)) });
+  const pts = holePoints(live, i);
+  const t = totals(live);
+  const base = parOf(live, i) + Math.max(0, strokesOn(live, i));
+  return (
+    <div className="hm-live">
+      <button className="hm-step" aria-label="One stroke less" onClick={() => setS(s ? (s > 1 ? s - 1 : null) : base)}>−</button>
+      <button className="hm-strokes" aria-label={`Strokes on hole ${i + 1}`} onClick={() => !s && setS(base)}>
+        <span className="num">{s ?? "–"}</span><small>{pts != null ? `${pts} pt${pts === 1 ? "" : "s"}` : "tap"}</small>
+      </button>
+      <button className="hm-step" aria-label="One stroke more" onClick={() => setS(Math.min(20, (s ?? base - 1) + 1))}>+</button>
+      <Link href="/play/round" className="hm-card" aria-label="Scorecard"><span className="num">{t.points}</span><small>card</small></Link>
     </div>
   );
 }

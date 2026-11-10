@@ -1,5 +1,5 @@
 "use client";
-// GPF Open · Team match play — two teams, 3 groups of 4, six 1v1 net matches.
+// Team Cup · team match play — two teams, 3 groups of 4, six 1v1 net matches.
 // Live-synced (4 s polling) like the other side games; maths in src/lib/teammatch.js.
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -15,7 +15,7 @@ export default function TeamMatch() {
   const [scoring, setScoring] = useState(null); // group index being scored
   const [openMatch, setOpenMatch] = useState(null);
   const pending = useRef(new Map());         // "player-hole" → local gross not yet confirmed
-  const [startHole, setStartHole] = useState(null); // from the hole map: /open?score=N#league
+  const [startHole, setStartHole] = useState(null); // from the hole map: /team-cup?score=N
   const jumped = useRef(false);
 
   const load = () => api("/api/open-match").then((r) => {
@@ -29,13 +29,13 @@ export default function TeamMatch() {
     const iv = setInterval(() => { if (!document.hidden) load(); }, 4000);
     return () => clearInterval(iv);
   }, [!!d?.match, editing]);
-  // Arrived from the hole map (/open?score=N#league): open my group's score entry on that hole, once.
+  // Arrived from the hole map (/team-cup?score=N): open my group's score entry on that hole, once.
   useEffect(() => {
     if (!d || jumped.current) return;
     jumped.current = true;
     const n = Number(new URLSearchParams(window.location.search).get("score"));
     if (!n) return;
-    window.history.replaceState(null, "", "/open#league");
+    window.history.replaceState(null, "", "/team-cup");
     const me = d.match ? d.match.players.findIndex((p) => p.userId && p.userId === d.me) : -1;
     if (n >= 1 && n <= 18 && me >= 0) { setStartHole(n); setScoring(groupOf(me)); }
   }, [d]);
@@ -47,7 +47,7 @@ export default function TeamMatch() {
       return <Intro onStart={() => setEditing(true)} />;
     return <Setup d={d} onCancel={() => setEditing(false)} onSaved={() => { setEditing(false); load(); }} />;
   }
-  if (!d.match) return <div className="card muted small">The team match for the GPF Open hasn&rsquo;t been set up yet.</div>;
+  if (!d.match) return <div className="card muted small">The Team Cup hasn&rsquo;t been set up yet.</div>;
 
   const m = d.match;
   const myIdx = m.players.findIndex((p) => p.userId && p.userId === d.me);
@@ -337,7 +337,7 @@ function Setup({ d, onCancel, onSaved }) {
       <div className="g-top">
         {match && <button className="g-back" onClick={onCancel} aria-label="Back"><ArrowLeft size={20} /></button>}
         <div style={{ flex: 1 }}>
-          <div className="muted small" style={{ letterSpacing: 1, textTransform: "uppercase" }}>GPF Open · Team match</div>
+          <div className="muted small" style={{ letterSpacing: 1, textTransform: "uppercase" }}>Team Cup</div>
           <h2 className="page-h tight">{match ? "Edit line-ups" : "Set up teams"}</h2>
         </div>
       </div>
