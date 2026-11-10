@@ -32,6 +32,12 @@ export function SiteHeader() {
           ))}
         </nav>
         <div className="flex items-center gap-4">
+          <a href="https://app.gpf.golf" className="text-[13px] text-muted-foreground hover:text-foreground">
+            App
+          </a>
+          <a href="https://tracer.gpf.golf" className="text-[13px] text-muted-foreground hover:text-foreground">
+            Tracer
+          </a>
           <a
             href="https://app.gpf.golf/login"
             className="hidden text-[13px] text-muted-foreground hover:text-foreground sm:inline"
@@ -67,7 +73,7 @@ function BagLink() {
 export function SiteFooter() {
   return (
     <footer className="mt-32 border-t border-border/60">
-      <div className="mx-auto grid max-w-6xl gap-10 px-6 py-16 sm:grid-cols-2 md:grid-cols-4">
+      <div className="mx-auto grid max-w-6xl gap-10 px-6 py-16 sm:grid-cols-2 md:grid-cols-5">
         <div>
           <div className="flex items-center gap-2 text-sm font-semibold">
             <img src={logo} alt="GPF" width={22} height={22} className="h-[22px] w-[22px]" />
@@ -79,6 +85,7 @@ export function SiteFooter() {
         </div>
         <FooterCol title="Club" links={[["/members", "Membership"], ["/events", "Events"], ["/play", "Play the course"]]} />
         <FooterCol title="Shop" links={[["/shop", "All products"], ["/shop", "Apparel"], ["/shop", "Equipment"]]} />
+        <FooterCol title="Members" links={[["https://app.gpf.golf", "GPF App"], ["https://tracer.gpf.golf", "Shot Tracer"]]} />
         <FooterCol title="Company" links={[["/", "About"], ["/", "Contact"], ["/", "Press"]]} />
       </div>
       <div className="border-t border-border/60">
