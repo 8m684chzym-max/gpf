@@ -1,6 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageShell } from "@/components/site-chrome";
 import hero from "@/assets/hero-course.jpg";
+// Rendered with Higgsfield (Kling 4.0, image-to-video from hero-course.jpg), served from
+// Higgsfield's CDN. If it ever goes away the poster photo is what visitors see.
+const heroVideo =
+  "https://d8j0ntlcm91z4.cloudfront.net/user_3EgZl6XTm29RFytRBe8DU6rbJSJ/hf_20261110_224053_5829db58-7676-4187-bee9-014e96a16447.mp4";
 
 
 export const Route = createFileRoute("/")({
@@ -38,26 +42,28 @@ function Index() {
       {/* Hero only: the menu in the header is the way in. */}
       <section className="relative isolate overflow-hidden">
         <div className="absolute inset-0 -z-10 h-[calc(100svh-3.5rem)] w-full overflow-hidden">
+          {/* Summer sunrise with a waving flag (rendered with Higgsfield from the hero photo).
+              Plays once and holds on the last frame; the photo is the poster and the
+              reduced-motion / no-video fallback. */}
+          <video
+            className="h-full w-full object-cover motion-reduce:hidden"
+            src={heroVideo}
+            poster={hero}
+            autoPlay
+            muted
+            playsInline
+            preload="auto"
+            aria-hidden
+          />
           <img
             src={hero}
-            alt="Rolling fairway at dawn with a red pin flag on the green and the sun rising behind distant hills"
+            alt="Golf green on a summer morning with the pin flag and the sun rising behind the hills"
             width={1920}
             height={1200}
             decoding="async"
             fetchPriority="high"
-            className="hero-image h-full w-full object-cover"
+            className="hidden h-full w-full object-cover motion-reduce:block"
           />
-          <div className="hero-sun-rise" aria-hidden />
-          <div className="hero-mist" aria-hidden />
-          <div className="hero-flag" aria-hidden>
-            <svg viewBox="0 0 120 160" width="100%" height="100%">
-              <line x1="20" y1="10" x2="20" y2="150" stroke="oklch(0.25 0.01 260)" strokeWidth="1.6" strokeLinecap="round" />
-              <circle cx="20" cy="9" r="2.2" fill="oklch(0.25 0.01 260)" />
-              <g className="hero-flag-cloth">
-                <path d="M20 12 C 45 6, 70 22, 95 14 L 95 46 C 70 54, 45 38, 20 46 Z" fill="oklch(0.58 0.22 27)" />
-              </g>
-            </svg>
-          </div>
         </div>
         <div className="absolute inset-0 -z-10 h-[calc(100svh-3.5rem)] bg-gradient-to-b from-background/10 via-background/0 to-background/60" />
 
