@@ -73,9 +73,10 @@ export default function Shop() {
 
   return (
     <div className="stack">
-      <div>
-        <h1 className="page-h">Shop</h1>
-        <div className="muted small" style={{ display: "flex", alignItems: "center", gap: 5 }}><Lock size={12} /> GPF gear, for members only. Pay by MB WAY or Revolut.</div>
+      <div className="page-top">
+        <div className="eyebrow">Shop</div>
+        <h1 className="page-h">The Collection.</h1>
+        <p className="lede" style={{ display: "flex", alignItems: "center", gap: 6 }}><Lock size={13} /> GPF gear, for members only. Pay by MB WAY or Revolut.</p>
       </div>
 
       {closed && <div className="warn-strip"><AlertCircle size={14} /> The shop is closed for now. You can still see your orders below.</div>}

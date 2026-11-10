@@ -15,7 +15,7 @@ const TRACER_HOST = process.env.TRACER_HOST || "tracer.gpf.golf";
 const LEGACY_HOSTS = (process.env.LEGACY_APP_HOSTS || "gpf.golf,www.gpf.golf").split(",").map((h) => h.trim()).filter(Boolean);
 
 // Pages anyone may open on the app host.
-const PUBLIC_PAGES = ["/login", "/forgot-password", "/reset-password", "/privacy"];
+const PUBLIC_PAGES = ["/logout", "/login", "/forgot-password", "/reset-password", "/privacy"];
 
 const isPublicPage = (p) => PUBLIC_PAGES.some((x) => p === x || p.startsWith(x + "/"));
 // Static files (logos, icons, course images, manifest) stay public, except the tracer.
@@ -54,7 +54,7 @@ export async function proxy(req) {
     return NextResponse.redirect(login);
   }
 
-  if (path === "/") return NextResponse.redirect(new URL("/dashboard", req.url));
+  if (path === "/") return NextResponse.redirect(new URL("/profile", req.url));
   return NextResponse.next();
 }
 

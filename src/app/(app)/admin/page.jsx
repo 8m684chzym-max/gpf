@@ -24,7 +24,7 @@ export default function Admin() {
 
   return (
     <div className="stack">
-      <div className="admin-head"><Shield size={18} /><h2 className="page-h tight">Committee panel</h2></div>
+      <div className="page-top"><div className="eyebrow">Admin</div><h1 className="page-h">Committee panel.</h1></div>
       <div className="adm-tabs">
         {[["rounds", "Rounds"], ["members", "Members"], ["config", "Competition"], ["courses", "Courses"], ["shop", "Shop"]].map(([k, l]) => (
           <button key={k} className={tab === k ? "adm-on" : ""} onClick={() => setTab(k)}>{l}{k === "rounds" && pending.length ? <span className="pill">{pending.length}</span> : null}{k === "members" && d.members.some((u) => !u.approved) ? <span className="pill">{d.members.filter((u) => !u.approved).length}</span> : null}</button>))}

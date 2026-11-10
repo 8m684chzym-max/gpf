@@ -1,52 +1,62 @@
 import { Link } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import logo from "@/assets/logo.svg";
 import { useCart } from "@/lib/cart";
 
-const nav = [
-  { to: "/", label: "Home" },
-  // Events and Play are hidden for now (see vite.config.ts routeRules).
-  { to: "/members", label: "Members" },
-] as const;
+// One menu for every GPF surface — keep in sync with the app (src/lib/menu.js)
+// and the Shot Tracer (public/tracer/index.html) in the main repo.
+const APP = "https://app.gpf.golf";
+const menu: [string, string][] = [
+  ["/", "Home"],
+  [`${APP}/play`, "Play"],
+  [`${APP}/open`, "Open"],
+  [`${APP}/rank`, "Rank"],
+  [`${APP}/submit`, "Submit score"],
+  [`${APP}/shop`, "Shop"],
+  ["https://tracer.gpf.golf", "Tracer"],
+  [`${APP}/profile`, "My profile"],
+  [`${APP}/login`, "Login"],
+];
+
+function MenuLink({ href, label, big = false }: { href: string; label: string; big?: boolean }) {
+  const cls = big
+    ? "py-2.5 text-[17px] text-foreground"
+    : "text-[13px] text-muted-foreground transition-colors hover:text-foreground";
+  if (href === "/")
+    return (
+      <Link to="/" className={cls} activeProps={{ className: "text-foreground" }} activeOptions={{ exact: true }}>
+        {label}
+      </Link>
+    );
+  return <a href={href} className={cls}>{label}</a>;
+}
 
 export function SiteHeader() {
+  const [open, setOpen] = useState(false);
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/70 backdrop-blur-xl backdrop-saturate-150">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
-        <Link to="/" className="flex items-center gap-2 text-[15px] font-semibold tracking-tight" aria-label="GPF">
+        <Link to="/" className="flex items-center" aria-label="GPF">
           <img src={logo} alt="GPF" width={24} height={24} className="h-6 w-6" />
         </Link>
-        <nav className="hidden items-center gap-8 md:flex">
-          {nav.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className="text-[13px] text-muted-foreground transition-colors hover:text-foreground"
-              activeProps={{ className: "text-foreground" }}
-              activeOptions={{ exact: item.to === "/" }}
-            >
-              {item.label}
-            </Link>
-          ))}
-          <a href="https://app.gpf.golf/shop" className="text-[13px] text-muted-foreground transition-colors hover:text-foreground">
-            Shop
-          </a>
+        <nav className="hidden items-center gap-7 lg:flex" aria-label="Main">
+          {menu.map(([href, label]) => <MenuLink key={label} href={href} label={label} />)}
         </nav>
-        <div className="flex items-center gap-4">
-          <a href="https://app.gpf.golf" className="text-[13px] text-muted-foreground hover:text-foreground">
-            App
-          </a>
-          <a href="https://tracer.gpf.golf" className="text-[13px] text-muted-foreground hover:text-foreground">
-            Tracer
-          </a>
-          <a
-            href="https://app.gpf.golf/login"
-            className="hidden text-[13px] text-muted-foreground hover:text-foreground sm:inline"
-          >
-            Sign in
-          </a>
-        </div>
+        <button
+          type="button"
+          className="-mr-2 grid h-9 w-9 place-items-center text-foreground lg:hidden"
+          aria-label={open ? "Close menu" : "Open menu"}
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+        >
+          <span aria-hidden className="text-[20px] leading-none">{open ? "×" : "☰"}</span>
+        </button>
       </div>
+      {open && (
+        <nav className="flex flex-col border-t border-border/60 px-6 pb-4 pt-1 lg:hidden" aria-label="Main">
+          {menu.map(([href, label]) => <MenuLink key={label} href={href} label={label} big />)}
+        </nav>
+      )}
     </header>
   );
 }
@@ -72,46 +82,12 @@ function BagLink() {
 
 export function SiteFooter() {
   return (
-    <footer className="mt-32 border-t border-border/60">
-      <div className="mx-auto grid max-w-6xl gap-10 px-6 py-16 sm:grid-cols-2 md:grid-cols-5">
-        <div>
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <img src={logo} alt="GPF" width={22} height={22} className="h-[22px] w-[22px]" />
-            GPF.golf
-          </div>
-          <p className="mt-3 text-[13px] text-muted-foreground">
-            A private clubhouse, a public shop, and a companion for every round.
-          </p>
-        </div>
-        <FooterCol title="Club" links={[["/members", "Membership"]]} />
-        <FooterCol title="Shop" links={[["https://app.gpf.golf/shop", "Members' shop"]]} />
-        <FooterCol title="Members" links={[["https://app.gpf.golf", "GPF App"], ["https://tracer.gpf.golf", "Shot Tracer"]]} />
-        <FooterCol title="Company" links={[["/", "About"], ["/", "Contact"], ["/", "Press"]]} />
-      </div>
-      <div className="border-t border-border/60">
-        <div className="mx-auto flex max-w-6xl flex-col justify-between gap-2 px-6 py-6 text-[12px] text-muted-foreground sm:flex-row">
-          <span>© {new Date().getFullYear()} GPF Golf. All rights reserved.</span>
-          <span>Handcrafted on the fairway.</span>
-        </div>
+    <footer className="border-t border-border/60">
+      <div className="mx-auto flex max-w-6xl justify-between gap-2 px-6 py-6 text-[12px] text-muted-foreground">
+        <span>© {new Date().getFullYear()} Golf P'la Fresquinha</span>
+        <span>gpf.golf</span>
       </div>
     </footer>
-  );
-}
-
-function FooterCol({ title, links }: { title: string; links: [string, string][] }) {
-  return (
-    <div>
-      <div className="text-[12px] font-semibold uppercase tracking-widest text-muted-foreground">{title}</div>
-      <ul className="mt-4 space-y-2">
-        {links.map(([href, label]) => (
-          <li key={label}>
-            <a href={href} className="text-[13px] text-foreground/80 hover:text-foreground">
-              {label}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }
 

@@ -86,7 +86,10 @@ export default function Submit() {
   const memberOptions = members.filter((m) => m.role !== "ADMIN");
   return (
     <div className="stack">
-      <h2 className="page-h">Submit a round</h2>
+      <div className="page-top">
+        <div className="eyebrow">Submit score</div>
+        <h1 className="page-h">Log a round.</h1>
+      </div>
       <div className="seg">
         <button className={tab === "manual" ? "seg-on" : ""} onClick={() => setTab("manual")}>Enter manually</button>
         <button className={tab === "upload" ? "seg-on" : ""} onClick={() => setTab("upload")}>Upload scorecard</button>

@@ -1,34 +1,41 @@
 /* Fonts are self-hosted via next/font (no Google Fonts request from the browser). */
 :root{
-  --green-900:#0c3a2c;--green-800:#11503c;--green-700:#176b4f;--green-600:#1f8a64;
-  --paper:#f4f2ec;--card:#fff;--ink:#15211c;--muted:#6c7a72;--line:#e6e2d8;
-  --flag:#f0a818;--flag-soft:#fdeccb;--ok:#1f8a64;--ok-soft:#e3f1ea;
-  --warn:#a9760a;--warn-soft:#f8edd4;--bad:#b23b3b;--bad-soft:#f6e3e1;
-  --disp:var(--font-oswald,'Arial Narrow',system-ui,sans-serif);--body:var(--font-inter,system-ui,Arial,sans-serif);
+  /* Aligned with gpf.golf (homepage/src/styles.css): warm off-white paper, near-black ink,
+     quiet greys, one fairway green and the red pin flag as accents. */
+  --green-900:#1c1e24;--green-800:#25272e;--green-700:#1c1e24;--green-600:#4a4e57;
+  --paper:#fbfaf7;--card:#fff;--ink:#1c1e24;--muted:#686c74;--line:#e6e5e1;--soft:#f2f1ed;
+  --fairway:#2e6a4b;--flag:#d4442f;--flag-soft:#f2f1ed;--ok:#2e6a4b;--ok-soft:#e8f1ec;
+  --warn:#9a6a0b;--warn-soft:#f7efdc;--bad:#c0392b;--bad-soft:#f8e6e3;
+  --disp:var(--font-inter,system-ui,-apple-system,"SF Pro Display",sans-serif);--body:var(--font-inter,system-ui,-apple-system,"SF Pro Text",sans-serif);
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0}
-body{background:var(--paper);color:var(--ink);font-family:var(--body)}
+body{background:var(--paper);color:var(--ink);font-family:var(--body);-webkit-font-smoothing:antialiased;letter-spacing:-.011em;font-feature-settings:"ss01","cv11"}
 a{color:inherit;text-decoration:none}
 .spin{animation:sp 1s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}
 .logo-text{fill:#f1ead6;font-family:var(--disp);font-weight:700;font-size:17px;letter-spacing:2px}
-.gpf-app{max-width:560px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative}
+.gpf-app{min-height:100vh;display:flex;flex-direction:column;position:relative}
 .muted{color:var(--muted)}.small{font-size:12.5px}.center{text-align:center}
-.num{font-family:var(--disp);font-variant-numeric:tabular-nums;letter-spacing:.3px}
-.link{background:none;border:none;color:var(--green-700);font-weight:600;font-size:12.5px;cursor:pointer}
+.num{font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.link{background:none;border:none;color:var(--ink);text-decoration:underline;text-underline-offset:3px;font-weight:600;font-size:12.5px;cursor:pointer}
 .loading{min-height:60vh;display:flex;align-items:center;justify-content:center;color:var(--muted);gap:10px}
 
-.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:11px 15px;background:var(--green-900);color:#fff}
-.brand{display:flex;align-items:center;gap:9px;font-family:var(--disp);font-weight:600;font-size:16px;letter-spacing:.6px;white-space:nowrap;color:#fff}
-.top-right{display:flex;align-items:center;gap:6px}
-.ghost-link{color:#cfe6da;font-size:13px}.who{font-weight:600}
-.icon-btn{background:rgba(255,255,255,.12);border:none;color:#fff;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer}
-.member-ctl .icon-btn,.row-card .icon-btn{background:#eee9dd;color:var(--ink)}
+.topbar{position:sticky;top:0;z-index:40;border-bottom:1px solid rgba(230,229,225,.7);background:rgba(251,250,247,.72);backdrop-filter:saturate(1.5) blur(20px);-webkit-backdrop-filter:saturate(1.5) blur(20px)}
+.topbar-in{max-width:1152px;margin:0 auto;height:56px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center}.brand img{display:block;width:24px;height:24px}
+.nav-links{display:none;align-items:center;gap:26px}
+.nav-a{font-size:13px;color:var(--muted);transition:color .15s;white-space:nowrap}
+.nav-a:hover,.nav-on{color:var(--ink)}
+.nav-btn{background:none;border:none;padding:0;cursor:pointer;font-family:inherit}
+.nav-toggle{display:grid;place-items:center;width:38px;height:38px;border:none;background:none;color:var(--ink);cursor:pointer;margin-right:-8px}
+.nav-sheet{display:flex;flex-direction:column;padding:6px 24px 16px;border-top:1px solid var(--line)}
+.nav-sheet .nav-a{font-size:17px;padding:11px 0;color:var(--ink);text-align:left}
+.nav-sheet .nav-on{font-weight:600}
+@media (min-width:1024px){.nav-links{display:flex}.nav-toggle,.nav-sheet{display:none}}
+.icon-btn{background:var(--soft);border:none;color:var(--ink);width:34px;height:34px;border-radius:999px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.member-ctl .icon-btn,.row-card .icon-btn{background:var(--soft);color:var(--ink)}
 
-.content{flex:1;padding:18px 16px 92px}
-.tabbar{position:fixed;bottom:0;left:0;right:0;max-width:560px;margin:0 auto;display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:#fff;border-top:1px solid var(--line);padding:7px 6px;z-index:20}
-.tab{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);font-size:10.5px;font-weight:600;padding:5px 0;border-radius:9px}
-.tab-on,.tab-on svg{color:var(--green-700)}
+.content{flex:1;width:100%;max-width:880px;margin:0 auto;padding:40px 20px 72px}
 
 .stack{display:flex;flex-direction:column;gap:13px}
 .page-h{font-family:var(--disp);font-weight:600;font-size:27px;letter-spacing:.5px;margin:0}.page-h.tight{font-size:23px}
@@ -143,7 +150,7 @@ a{color:inherit;text-decoration:none}
 .stat{text-align:center}
 .audit-row{display:grid;gap:2px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:12.5px}
 .audit-time{color:var(--muted);font-size:11px}.audit-act{font-family:var(--disp);letter-spacing:.5px;color:var(--green-800);font-weight:600}
-@media(min-width:600px){.gpf-app,.auth-wrap,.tabbar,.home-wrap{max-width:600px}}
+@media(min-width:600px){.auth-wrap,.home-wrap{max-width:600px}}
 /* ============================================================
    GPF · Games — on-course flow (append to src/app/globals.css)
    Big touch targets, square mode tiles, 3-screen wizard.
@@ -192,7 +199,7 @@ a{color:inherit;text-decoration:none}
 .g-cta.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
 .g-cta:disabled{opacity:.45;cursor:not-allowed}
 /* ── Hole map (GPF Open › Hole map) ── */
-.hm{position:fixed;left:0;right:0;top:54px;bottom:64px;max-width:560px;margin:0 auto;overflow:hidden;background:#1d2a22;touch-action:none;user-select:none;-webkit-user-select:none;z-index:5}
+.hm{position:fixed;left:0;right:0;top:57px;bottom:0;max-width:none;margin:0 auto;overflow:hidden;background:#1d2a22;touch-action:none;user-select:none;-webkit-user-select:none;z-index:5}
 .hm-tiles,.hm-labels{position:absolute;inset:0;pointer-events:none}
 .hm-svg{position:absolute;left:0;top:0;pointer-events:none}
 .hm-arc-t{fill:#1e3b28;font-family:var(--disp);font-weight:700;font-size:15px;paint-order:stroke;stroke:#f7efdc;stroke-width:4px}
@@ -270,39 +277,19 @@ a{color:inherit;text-decoration:none}
 .hm-flag span{position:absolute;left:2.5px;top:0;width:15px;height:10px;background:var(--flag);clip-path:polygon(0 0,100% 50%,0 100%);filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
 .hm-flag::after{content:"";position:absolute;left:-2.5px;bottom:-3px;width:7px;height:4px;border-radius:50%;background:rgba(30,59,40,.45)}
 
-/* ============================================================
-   Desktop layout (≥1024px): sidebar navigation, wide content.
-   Phones and tablets keep the single-column layout above.
-   ============================================================ */
+/* Desktop (≥1024px): the menu sits in the header; content stays a calm centred column. */
 @media (min-width:1024px){
-  .gpf-app{max-width:none;display:grid;grid-template-columns:232px minmax(0,1fr);grid-template-rows:auto 1fr;min-height:100vh}
-  .topbar{grid-column:1/-1;padding:12px 24px}
-  .brand{font-size:18px}
-  .tabbar{position:sticky;top:56px;grid-column:1;grid-row:2;align-self:start;height:calc(100vh - 56px);max-width:none;margin:0;
-          display:flex;flex-direction:column;gap:4px;padding:20px 12px;border-top:none;border-right:1px solid var(--line);background:#fff}
-  .tab{flex-direction:row;justify-content:flex-start;gap:12px;font-size:14px;padding:11px 14px;border-radius:11px;color:var(--ink)}
-  .tab svg{color:var(--muted)}
-  .tab:hover{background:var(--paper)}
-  .tab-on{background:var(--ok-soft)}.tab-on svg{color:var(--green-700)}
-  .content{grid-column:2;grid-row:2;padding:32px 40px 56px;width:100%;max-width:1120px}
-  .page-h{font-size:32px}
+  .content{max-width:960px;padding:56px 24px 80px}
   .content .form{max-width:680px}
-  /* dashboard shortcuts and "how the year runs" side by side */
-  .content .grid2:has(> .quick){grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
   .content .steps{display:grid;grid-template-columns:repeat(3,1fr);align-items:start}
   .tile-grid{grid-template-columns:repeat(4,minmax(0,200px))}
   .add-grid{max-width:640px}
-  .g-foot{margin:14px -40px -56px;padding:16px 40px 20px}
+  .g-foot{margin:14px -24px -80px;padding:16px 24px 20px}
   .g-cta{max-width:420px;margin:0 auto}
-  /* hole map fills the area right of the sidebar */
-  .hm{left:232px;right:0;bottom:0;max-width:none}
-  /* login: hero and form side by side */
+  .hm{max-width:none}
   .auth-wrap{max-width:1000px;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:40px;padding:40px 32px}
-  .auth-hero{border-radius:26px;padding:56px 32px}
   .auth-card{margin:0}
 }
-/* narrow phones: the member name is also reachable via Profile in the tab bar */
-@media (max-width:430px){.top-right .ghost-link{display:none}}
 
 /* ── Members' shop ── */
 .shop-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -342,3 +329,113 @@ a{color:inherit;text-decoration:none}
   .content .shop-bag,.content .pay-card{max-width:620px}
 }
 .ok-note{display:flex;align-items:center;gap:6px;color:var(--ok);font-size:13px;background:var(--ok-soft);padding:9px 11px;border-radius:9px}
+
+
+/* ============================================================
+   GPF look & feel (Nov 2026) — aligned with gpf.golf.
+   Light surfaces, near-black ink, rounded-full buttons, eyebrow
+   labels. Overrides the older dark-green boards and cards above.
+   ============================================================ */
+.stack{gap:16px}
+.page-h{font-family:var(--disp);font-weight:600;font-size:34px;letter-spacing:-.03em;line-height:1.08}
+.page-h.tight{font-size:28px}
+.eyebrow,.auth-eyebrow{font-family:var(--body);font-size:12px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}
+.page-top{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
+.page-top .lede{color:var(--muted);font-size:15px;line-height:1.55;max-width:60ch;margin:0}
+.sec-h{font-family:var(--body);font-weight:600;font-size:12px;letter-spacing:.2em;color:var(--muted);margin-top:18px}
+.card{border-radius:22px;padding:20px;border-color:var(--line)}
+.hint{font-size:12.5px;line-height:1.5}
+.label{font-weight:600;font-size:13px}
+.input{border-radius:12px;background:#fff;border-color:var(--line)}
+.input:focus{outline:2px solid var(--ink);outline-offset:1px;border-color:var(--ink)}
+.btn{border-radius:999px;font-weight:500;font-size:14px;padding:11px 20px;transition:opacity .15s,background .15s}
+.btn-primary{background:var(--ink);color:#fbfaf7}.btn-primary:hover:not(:disabled){opacity:.9}
+.btn-ghost{background:rgba(255,255,255,.7);border-color:rgba(28,30,36,.18);color:var(--ink)}.btn-ghost:hover:not(:disabled){background:#fff}
+.btn-accent{background:var(--soft);border-color:transparent;color:var(--ink)}
+.small-btn{padding:8px 15px;font-size:13px}
+.badge{font-weight:600;text-transform:none;letter-spacing:0}
+.badge-accent{background:var(--soft);color:var(--ink)}
+.seg{background:var(--soft);border-radius:999px;padding:4px;display:inline-flex;align-self:flex-start;max-width:100%;overflow-x:auto}
+.seg button{border-radius:999px;padding:8px 16px;font-size:13.5px;font-weight:500;color:var(--muted);display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.seg .seg-on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.quick{border-radius:20px;font-weight:500}.quick svg{color:var(--ink)}
+.step{border-radius:20px}.step-n{background:var(--ink);color:#fbfaf7;font-family:var(--body);font-size:14px;border-radius:999px}
+.gross{font-family:var(--body);font-weight:600;letter-spacing:-.02em}
+.hcp-big{font-family:var(--body);font-weight:600;letter-spacing:-.04em}
+.hcp-card{background:var(--soft);color:var(--ink);border:none}
+.hcp-card .muted,.hcp-meter .meter-label{color:var(--muted)}
+.qdot{background:#fff;color:var(--muted);border:1px solid var(--line)}.qdot.on{background:var(--ink);color:#fbfaf7;border-color:var(--ink)}
+.avatar{background:var(--ink);font-family:var(--body);font-weight:600;font-size:20px}
+.warn-strip,.ocr-note{border-radius:14px}
+.ocr-note{background:var(--soft);color:var(--ink)}
+.final-hero svg,.admin-head svg{background:var(--soft);color:var(--ink);border-radius:999px}
+/* Boards: light table on a white card */
+.board{background:#fff;border:1px solid var(--line);border-radius:22px}
+.board-head{color:var(--muted);font-family:var(--body);font-weight:600;font-size:11px;letter-spacing:.14em;border-bottom:1px solid var(--line);padding:13px 16px}
+.board-row{color:var(--ink);border-bottom:1px solid var(--line);padding:13px 16px}
+.board-row:last-child{border-bottom:none}
+.board-row .num{font-size:15px}
+.board-row.lead{background:transparent}.board-row.champion{background:var(--soft)}
+.board-row.champion .bh-rank{color:var(--flag)}
+.board-row[role=button]:hover{background:var(--paper)}
+.bh-rank{color:var(--muted)}.bh-c.tot{color:var(--ink);font-weight:700}.ph{color:var(--muted)}
+.board .empty{color:var(--muted)!important}
+.rd{color:var(--ink);background:var(--paper)}
+.rd .muted,.rd .rd-dim{color:var(--muted);opacity:1}
+.rd th{font-family:var(--body);font-weight:600;color:var(--muted);opacity:1}
+.rd tr+tr,.rd tbody tr{border-top:1px solid var(--line)}
+/* Team match */
+.tm-score{background:#fff;border:1px solid var(--line);color:var(--ink);border-radius:22px}
+.tm-team,.tm-big,.tm-pill,.tm-cell,.tm-val,.tm-vs,.tm-hbtn,.p-idx{font-family:var(--body)}
+.tm-big .sep,.tm-sub{color:var(--muted)}.tm-win{font-family:var(--body);color:var(--fairway)}
+.tm-pill.h{background:var(--ink);color:#fbfaf7}
+.tm-hbtn.on{background:var(--ink);border-color:var(--ink)}
+:root{--tm-a:#2e6a4b;--tm-b:#d4442f}.tm-pill.b,.tm-cell.b{color:#fff}
+/* Games */
+.tile{border-radius:22px;border-color:var(--line)}.tile.sel{border-color:var(--ink);box-shadow:0 0 0 2px var(--ink) inset}
+.tile .tile-ic{background:var(--ink);border-radius:999px}.tile .tile-nm{font-weight:600}
+.p-row{border-radius:18px}.p-idx{background:var(--soft);color:var(--ink);border-radius:999px}
+.g-cta{border-radius:999px;font-weight:600}.g-cta.primary{background:var(--ink)}
+.adm-tabs button{font-weight:500}.adm-tabs .adm-on{background:var(--ink);border-color:var(--ink)}
+.pill{background:var(--flag);color:#fff;font-family:var(--body)}
+.audit-act{font-family:var(--body);color:var(--ink)}
+/* Shop */
+.shop-card{border-radius:22px}.shop-img{background:var(--soft)}
+.shop-size{border-radius:999px}.shop-size.on{background:var(--ink);border-color:var(--ink)}
+.pay-opt{border-radius:16px}.pay-opt.on{border-color:var(--ink);box-shadow:0 0 0 2px var(--ink) inset}
+.pay-amount b{color:var(--ink)}.pay-step svg{color:var(--fairway)}
+/* Login / auth pages: the same quiet hero as the homepage */
+.auth-hero{background:transparent;color:var(--ink);padding:56px 24px 24px;border-radius:0}
+.auth-title{font-family:var(--disp);font-weight:600;letter-spacing:-.03em;color:var(--ink)}.auth-title span{color:var(--ink)}
+.back-link{background:var(--soft);color:var(--ink);border-radius:999px}
+.auth-card{margin:0 20px;box-shadow:0 1px 40px -12px rgba(28,30,36,.12)}
+/* Course picker (Play › Start play) */
+.course-grid{display:grid;grid-template-columns:1fr;gap:12px}
+@media (min-width:640px){.course-grid{grid-template-columns:1fr 1fr}}
+.course-card{display:flex;flex-direction:column;overflow:hidden;padding:0;text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s;color:inherit;font:inherit}
+.course-card:hover{border-color:rgba(28,30,36,.25);box-shadow:0 1px 40px -12px rgba(28,30,36,.12)}
+.course-card.off{cursor:default;opacity:.6}.course-card.off:hover{border-color:var(--line);box-shadow:none}
+.course-img{aspect-ratio:16/9;background:var(--soft);display:grid;place-items:center;color:var(--muted)}
+.course-img img{width:100%;height:100%;object-fit:cover;display:block}
+.course-body{padding:16px 18px 18px;display:flex;flex-direction:column;gap:4px}
+.course-name{font-size:17px;font-weight:600;letter-spacing:-.02em}
+/* Open 2027 placeholder */
+.placeholder{text-align:center;padding:48px 24px;display:flex;flex-direction:column;align-items:center;gap:10px;background:var(--soft);border:none}
+.placeholder h3{margin:0;font-size:24px;font-weight:600;letter-spacing:-.03em}
+.placeholder p{margin:0;color:var(--muted);max-width:44ch;line-height:1.55}
+/* Round editor (My profile) */
+.round-edit{display:flex;flex-direction:column;gap:12px;margin-top:12px;padding-top:14px;border-top:1px solid var(--line)}
+.round-edit .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row-card.col{flex-direction:column;align-items:stretch}
+.row-card .row-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.board-head .tot,.lb .board-head .tot{font-size:11px;color:var(--muted)}
+.board-head,.board-row{grid-template-columns:30px minmax(0,1fr) 64px 68px 72px}
+.board-head.lb-head,.board-row.lb-row{grid-template-columns:30px minmax(0,1fr) 74px 54px 54px 50px}
+.course-img{position:relative;overflow:hidden}.course-img img{position:absolute;inset:0}
+.row-card .row-head{flex-wrap:wrap}
+.content .card.form{max-width:none}
+@media (max-width:480px){
+  .board-head,.board-row{padding-left:12px;padding-right:12px;gap:4px}
+  .board-head.lb-head,.board-row.lb-row{grid-template-columns:22px minmax(0,1fr) 58px 40px 40px 36px}
+  .board-head{font-size:10px;letter-spacing:.08em}
+}

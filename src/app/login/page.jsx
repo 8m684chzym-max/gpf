@@ -4,20 +4,19 @@ import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { ArrowLeft, AlertCircle, Loader2, CheckCircle2 } from "lucide-react";
-import GPFLoginMark from "@/components/GPFLoginMark";
 import { api } from "@/lib/client";
 
 // After login, go back to where the member was heading: a page of this app
 // ("/open/map") or another members' site on *.gpf.golf (the Shot Tracer).
 function nextUrl() {
   const raw = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("callbackUrl") : null;
-  if (!raw) return "/dashboard";
+  if (!raw) return "/profile";
   if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
   try {
     const u = new URL(raw);
     if (u.protocol === "https:" && (u.hostname === "gpf.golf" || u.hostname.endsWith(".gpf.golf"))) return u.href;
   } catch {}
-  return "/dashboard";
+  return "/profile";
 }
 
 const HOME_URL = process.env.NEXT_PUBLIC_HOME_URL || "https://gpf.golf";
@@ -59,9 +58,9 @@ export default function LoginPage() {
     <div className="auth-wrap">
       <div className="auth-hero">
         <a className="back-link" href={HOME_URL}><ArrowLeft size={16} /> Home</a>
-        <GPFLoginMark size={140} tagline={false} />
-        <div className="auth-eyebrow">Golf P'la Fresquinha</div>
-        <h1 className="auth-title">Road to <span>GPF</span></h1>
+        <img src="/brand/gpf-logo.svg" alt="GPF" width={56} height={56} style={{ marginTop: 24 }} />
+        <div className="auth-eyebrow" style={{ marginTop: 12 }}>Golf P'la Fresquinha</div>
+        <h1 className="auth-title">Members sign in.</h1>
       </div>
       <div className="card auth-card">
         <div className="seg">
@@ -82,7 +81,7 @@ export default function LoginPage() {
         {mode === "register" && (
           <p style={{ fontSize: 12, color: "var(--muted)", margin: "2px 0" }}>
             By creating an account you agree that your name, email and round data will be stored and used to run the competition. Read our{" "}
-            <Link href="/privacy" style={{ color: "var(--green-700)", textDecoration: "underline" }}>Privacy Policy</Link>.
+            <Link href="/privacy" style={{ color: "var(--ink)", textDecoration: "underline" }}>Privacy Policy</Link>.
           </p>
         )}
         <button className="btn btn-primary full" onClick={go} disabled={busy}>{busy ? <Loader2 className="spin" size={16} /> : mode === "login" ? "Log in" : "Request membership"}</button>

@@ -15,7 +15,7 @@ export default function TeamMatch() {
   const [scoring, setScoring] = useState(null); // group index being scored
   const [openMatch, setOpenMatch] = useState(null);
   const pending = useRef(new Map());         // "player-hole" → local gross not yet confirmed
-  const [startHole, setStartHole] = useState(null); // from the hole map: /open?score=N#teams
+  const [startHole, setStartHole] = useState(null); // from the hole map: /open?score=N#league
   const jumped = useRef(false);
 
   const load = () => api("/api/open-match").then((r) => {
@@ -29,13 +29,13 @@ export default function TeamMatch() {
     const iv = setInterval(() => { if (!document.hidden) load(); }, 4000);
     return () => clearInterval(iv);
   }, [!!d?.match, editing]);
-  // Arrived from the hole map (/open?score=N#teams): open my group's score entry on that hole, once.
+  // Arrived from the hole map (/open?score=N#league): open my group's score entry on that hole, once.
   useEffect(() => {
     if (!d || jumped.current) return;
     jumped.current = true;
     const n = Number(new URLSearchParams(window.location.search).get("score"));
     if (!n) return;
-    window.history.replaceState(null, "", "/open#teams");
+    window.history.replaceState(null, "", "/open#league");
     const me = d.match ? d.match.players.findIndex((p) => p.userId && p.userId === d.me) : -1;
     if (n >= 1 && n <= 18 && me >= 0) { setStartHole(n); setScoring(groupOf(me)); }
   }, [d]);
@@ -234,7 +234,7 @@ function ScoreEntry({ m, group, myIdx, canScore, startHole, onBack, onWrite }) {
           <div className="muted small" style={{ letterSpacing: 1, textTransform: "uppercase" }}>Team match · Group {group + 1}</div>
           <h2 className="page-h tight">Hole {hole}{par ? <span className="muted" style={{ fontSize: 15 }}> · Par {par} · SI {si}</span> : null}</h2>
         </div>
-        <Link href={`/open/map?hole=${hole}`} className="btn btn-accent small-btn" aria-label={`Hole ${hole} map`}><MapIcon size={15} /> Map</Link>
+        <Link href={`/play/map?hole=${hole}`} className="btn btn-accent small-btn" aria-label={`Hole ${hole} map`}><MapIcon size={15} /> Map</Link>
       </div>
 
       <div className="tm-holes" ref={holesRef}>
