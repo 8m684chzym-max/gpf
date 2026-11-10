@@ -7,6 +7,21 @@ import { ArrowLeft, AlertCircle, Loader2 } from "lucide-react";
 import GPFLoginMark from "@/components/GPFLoginMark";
 import { api } from "@/lib/client";
 
+// After login, go back to where the member was heading: a page of this app
+// ("/open/map") or another members' site on *.gpf.golf (the Shot Tracer).
+function nextUrl() {
+  const raw = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("callbackUrl") : null;
+  if (!raw) return "/dashboard";
+  if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
+  try {
+    const u = new URL(raw);
+    if (u.protocol === "https:" && (u.hostname === "gpf.golf" || u.hostname.endsWith(".gpf.golf"))) return u.href;
+  } catch {}
+  return "/dashboard";
+}
+
+const HOME_URL = process.env.NEXT_PUBLIC_HOME_URL || "https://gpf.golf";
+
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState("login");
@@ -22,7 +37,10 @@ export default function LoginPage() {
       }
       const res = await signIn("credentials", { email: form.email, password: form.password, redirect: false });
       if (res?.error) setErr("Email or password is incorrect.");
-      else router.push("/dashboard");
+      else {
+        const next = nextUrl();
+        if (next.startsWith("/")) router.push(next); else window.location.assign(next);
+      }
     } catch (e) { setErr(e.message); }
     setBusy(false);
   };
@@ -30,7 +48,7 @@ export default function LoginPage() {
   return (
     <div className="auth-wrap">
       <div className="auth-hero">
-        <button className="back-link" onClick={() => router.push("/")}><ArrowLeft size={16} /> Home</button>
+        <a className="back-link" href={HOME_URL}><ArrowLeft size={16} /> Home</a>
         <GPFLoginMark size={140} tagline={false} />
         <div className="auth-eyebrow">Golf P'la Fresquinha</div>
         <h1 className="auth-title">Road to <span>GPF</span></h1>
