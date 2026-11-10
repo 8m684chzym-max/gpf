@@ -61,19 +61,22 @@ export default function Home() {
           </div></div>
         </div>
       </section>
-      {board.length > 0 && (
-        <section className="home-sec">
-          <div className="sec-h"><Trophy size={14} /> Current standings</div>
-          <div className="board lb">
-            <div className="board-head lb-head"><span className="bh-rank">#</span><span className="bh-name">Player</span><span className="bh-c tot">Net</span></div>
-            {board.map((r, i) => (
-              <div key={r.name} className={`board-row lb-row ${i === 0 && r.total != null ? "champion" : ""}`}>
-                <span className="bh-rank num">{i === 0 && r.total != null ? <Trophy size={14} /> : i + 1}</span>
-                <span className="bh-name">{r.name}</span><span className="bh-c num tot">{r.total ?? "—"}</span>
-              </div>))}
-          </div>
-        </section>
-      )}
+      <section className="home-sec">
+  <div className="sec-h">GPF Open 2026 Champions</div>
+  <div style={{ display: "grid", gap: 16, marginTop: 12 }}>
+    <div>
+      <div className="auth-eyebrow">Individual</div>
+      <h3><Trophy size={18} /> Diogo</h3>
+    </div>
+    <div>
+      <div className="auth-eyebrow">Team</div>
+      <h3><Trophy size={18} /> Diogo + Lourenco Simas</h3>
+    </div>
+  </div>
+  <div style={{ marginTop: 24 }}>
+    <a href="/archive/2026" className="btn btn-ghost">View full results</a>
+  </div>
+</section>
       <footer className="home-foot">Private group · {year} · <button className="link" onClick={go}>Member sign in</button> · <a href="/privacy" style={{ color: "var(--muted)", fontSize: "inherit" }}>Privacy</a></footer>
     </div>
   );
