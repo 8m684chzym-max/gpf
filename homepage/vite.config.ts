@@ -14,6 +14,11 @@ export default defineConfig({
         [`/${p}`, { redirect: { to: `https://app.gpf.golf/${p}`, status: 308 } }],
         [`/${p}/**`, { redirect: { to: `https://app.gpf.golf/${p}/**`, status: 308 } }],
       ]).concat(
+        // The demo shop was replaced by the members' shop in the app.
+        ["shop", "cart", "checkout", "order"].flatMap((p) => [
+          [`/${p}`, { redirect: { to: "https://app.gpf.golf/shop", status: 302 } }],
+          [`/${p}/**`, { redirect: { to: "https://app.gpf.golf/shop", status: 302 } }],
+        ]),
         // Events and Play are hidden for now: send them to the home page (temporary).
         ["events", "play"].flatMap((p) => [
           [`/${p}`, { redirect: { to: "/", status: 302 } }],

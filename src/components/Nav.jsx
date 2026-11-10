@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { Home, Plus, Trophy, Dices, Shield, User, LogOut, Spline, House } from "lucide-react";
+import { Home, Plus, Trophy, Dices, Shield, User, LogOut, Spline, House, ShoppingBag } from "lucide-react";
 import Logo from "./Logo";
 
 export default function Nav() {
@@ -10,7 +10,7 @@ export default function Nav() {
   const { data } = useSession();
   const isAdmin = data?.user?.role === "ADMIN";
   const last = isAdmin ? ["/admin", "Admin", Shield] : ["/profile", "Profile", User];
-  const tabs = [["/dashboard", "Home", Home], ["/submit", "Submit", Plus], ["/open", "GPF Open", Trophy], ["/games", "Games", Dices], last];
+  const tabs = [["/dashboard", "Home", Home], ["/submit", "Submit", Plus], ["/open", "GPF Open", Trophy], ["/games", "Games", Dices], ["/shop", "Shop", ShoppingBag], last];
   return (
     <>
       <header className="topbar">
@@ -24,7 +24,7 @@ export default function Nav() {
       </header>
       <nav className="tabbar">
         {tabs.map(([href, label, Icon]) => (
-          <Link key={href} href={href} className={`tab ${path === href ? "tab-on" : ""}`}><Icon size={19} /><span>{label}</span></Link>
+          <Link key={href} href={href} className={`tab ${path === href || path.startsWith(href + "/") ? "tab-on" : ""}`}><Icon size={19} /><span>{label}</span></Link>
         ))}
       </nav>
     </>

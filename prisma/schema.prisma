@@ -46,6 +46,7 @@ model User {
   resetTokens      PasswordResetToken[]
   sideGamesCreated SideGame[]       @relation("SideGameCreator")
   sideGameSpots    SideGamePlayer[]
+  shopOrders       ShopOrder[]
 }
 
 model PasswordResetToken {
@@ -196,4 +197,63 @@ model SideGameHole {
   updatedAt DateTime @updatedAt
 
   @@unique([gameId, hole])
+}
+
+// ── Members' shop ─────────────────────────────────────────────────────────
+// Simple members-only shop. Payment happens outside the app (MB WAY or
+// Revolut); the committee confirms it in Admin › Shop. Money is in cents.
+// status is a plain string on purpose (no enum migrations):
+//   PENDING   order placed, waiting for payment
+//   SENT      member says they have paid
+//   PAID      committee confirmed the payment
+//   DELIVERED handed over
+//   CANCELLED cancelled (stock returned)
+model ShopProduct {
+  id          String          @id @default(cuid())
+  name        String
+  description String          @default("")
+  priceCents  Int
+  image       String?         // data: URL (uploaded) or a /public path
+  sizes       String          @default("") // comma separated, e.g. "S,M,L,XL"
+  stock       Int?            // null = unlimited
+  active      Boolean         @default(false)
+  sort        Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  items       ShopOrderItem[]
+}
+
+model ShopOrder {
+  id         String          @id @default(cuid())
+  ref        String          @unique // e.g. GPF-4821, used as payment reference
+  userId     String?
+  user       User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  buyerName  String
+  buyerEmail String
+  method     String          // "MBWAY" | "REVOLUT"
+  status     String          @default("PENDING")
+  totalCents Int
+  note       String          @default("")
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  sentAt     DateTime?
+  paidAt     DateTime?
+  items      ShopOrderItem[]
+}
+
+model ShopOrderItem {
+  id        String       @id @default(cuid())
+  orderId   String
+  order     ShopOrder    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?
+  product   ShopProduct? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  name      String
+  size      String       @default("")
+  qty       Int
+  unitCents Int
+}
+
+model ShopSetting {
+  key   String @id
+  value String
 }

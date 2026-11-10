@@ -5,7 +5,6 @@ import { useCart } from "@/lib/cart";
 
 const nav = [
   { to: "/", label: "Home" },
-  { to: "/shop", label: "Shop" },
   // Events and Play are hidden for now (see vite.config.ts routeRules).
   { to: "/members", label: "Members" },
 ] as const;
@@ -29,6 +28,9 @@ export function SiteHeader() {
               {item.label}
             </Link>
           ))}
+          <a href="https://app.gpf.golf/shop" className="text-[13px] text-muted-foreground transition-colors hover:text-foreground">
+            Shop
+          </a>
         </nav>
         <div className="flex items-center gap-4">
           <a href="https://app.gpf.golf" className="text-[13px] text-muted-foreground hover:text-foreground">
@@ -43,7 +45,6 @@ export function SiteHeader() {
           >
             Sign in
           </a>
-          <BagLink />
         </div>
       </div>
     </header>
@@ -83,7 +84,7 @@ export function SiteFooter() {
           </p>
         </div>
         <FooterCol title="Club" links={[["/members", "Membership"]]} />
-        <FooterCol title="Shop" links={[["/shop", "All products"], ["/shop", "Apparel"], ["/shop", "Equipment"]]} />
+        <FooterCol title="Shop" links={[["https://app.gpf.golf/shop", "Members' shop"]]} />
         <FooterCol title="Members" links={[["https://app.gpf.golf", "GPF App"], ["https://tracer.gpf.golf", "Shot Tracer"]]} />
         <FooterCol title="Company" links={[["/", "About"], ["/", "Contact"], ["/", "Press"]]} />
       </div>
