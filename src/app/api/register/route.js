@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/data";
+import { notifyNewRegistration } from "@/lib/mail";
 
 export const dynamic = 'force-dynamic';
 
@@ -22,10 +23,12 @@ export async function POST(req) {
       email: email.toLowerCase().trim(),
       passwordHash,
       role: "MEMBER",
-      declaredHandicap: handicapValue
+      declaredHandicap: handicapValue,
+      approved: false
     }
   });
   
   await logAudit(user.name, "member.register", user.id, null);
-  return NextResponse.json({ ok: true });
+  await notifyNewRegistration(user);
+  return NextResponse.json({ ok: true, pending: true });
 }

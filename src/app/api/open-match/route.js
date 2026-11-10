@@ -48,7 +48,7 @@ function shape(g) {
 // otherwise the 18 grosses entered here − playing handicap − road bonus.
 async function medalNets(match, comp, config) {
   const rounds = await getScopedRounds(comp.id);
-  const members = await prisma.user.findMany({ where: { role: "MEMBER" }, select: { id: true, name: true, declaredHandicap: true, manualHandicap: true } });
+  const members = await prisma.user.findMany({ where: { role: "MEMBER", approved: true }, select: { id: true, name: true, declaredHandicap: true, manualHandicap: true } });
   const bonus = roadBonusMap(members, rounds, config);
   const ids = match.players.map((p) => p.userId).filter(Boolean);
   const users = await prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true, declaredHandicap: true, manualHandicap: true } });
@@ -81,7 +81,7 @@ export async function GET() {
   let setup = null;
   if (user.role === "ADMIN") {
     const rounds = await getScopedRounds(comp.id);
-    const users = await prisma.user.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, declaredHandicap: true, manualHandicap: true } });
+    const users = await prisma.user.findMany({ where: { approved: true }, orderBy: { name: "asc" }, select: { id: true, name: true, declaredHandicap: true, manualHandicap: true } });
     const tees = await majorTees();
     setup = {
       config,

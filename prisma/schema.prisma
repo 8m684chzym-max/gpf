@@ -36,6 +36,7 @@ model User {
   email            String   @unique
   passwordHash     String?
   role             Role     @default(MEMBER)
+  approved         Boolean  @default(false) // self-registrations wait for the committee
   declaredHandicap Float?   // player's self-declared starting index; provisional, yields to results
   manualHandicap   Float?   // committee hard override; always wins when set
   tiebreakOverride Int?

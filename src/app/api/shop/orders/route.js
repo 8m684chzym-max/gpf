@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/guard";
 import { logAudit } from "@/lib/data";
-import { PAY_METHODS, getSettings, newOrderRef, publicOrder } from "@/lib/shop";
+import { PAY_METHODS, getSettings, newOrderRef, publicOrder, revolutLink } from "@/lib/shop";
+import { notifyOrderPlaced } from "@/lib/mail";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +69,7 @@ export async function POST(req) {
       });
     });
     await logAudit(user.name, "shop.order.create", order.id, `${order.ref} ${order.totalCents}`);
+    await notifyOrderPlaced(order, { ...settings, revolutLink: revolutLink(settings.revolutTag) });
     return NextResponse.json({ order: publicOrder(order) });
   } catch (e) {
     return NextResponse.json({ error: e.message }, { status: 400 });

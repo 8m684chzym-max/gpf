@@ -27,7 +27,7 @@ export default function Admin() {
       <div className="admin-head"><Shield size={18} /><h2 className="page-h tight">Committee panel</h2></div>
       <div className="adm-tabs">
         {[["rounds", "Rounds"], ["members", "Members"], ["config", "Competition"], ["courses", "Courses"], ["shop", "Shop"]].map(([k, l]) => (
-          <button key={k} className={tab === k ? "adm-on" : ""} onClick={() => setTab(k)}>{l}{k === "rounds" && pending.length ? <span className="pill">{pending.length}</span> : null}</button>))}
+          <button key={k} className={tab === k ? "adm-on" : ""} onClick={() => setTab(k)}>{l}{k === "rounds" && pending.length ? <span className="pill">{pending.length}</span> : null}{k === "members" && d.members.some((u) => !u.approved) ? <span className="pill">{d.members.filter((u) => !u.approved).length}</span> : null}</button>))}
       </div>
 
       {tab === "rounds" && (<div className="stack">
@@ -86,8 +86,25 @@ function Members({ members, reload }) {
     try { await api("/api/members", { method: "POST", body: JSON.stringify(f) }); setMsg(`Added ${f.name}. Temp password: ${f.password || "welcome123"}`); setF({ name: "", email: "", password: "", role: "MEMBER" }); reload(); }
     catch (e) { setMsg(e.message); }
   };
+  const pending = members.filter((u) => !u.approved);
+  const approved = members.filter((u) => u.approved);
+  const approve = async (u) => { try { await api(`/api/members/${u.id}`, { method: "PATCH", body: JSON.stringify({ approve: true }) }); reload(); } catch (e) { alert(e.message); } };
+  const reject = async (u) => { if (!confirm(`Reject and delete ${u.name}'s registration?`)) return; try { await api(`/api/members/${u.id}`, { method: "DELETE" }); reload(); } catch (e) { alert(e.message); } };
   return (
     <div className="stack">
+      {pending.length > 0 && (<>
+        <div className="sec-h">Waiting for approval</div>
+        {pending.map((u) => (
+          <div key={u.id} className="card approve-card">
+            <div><div className="row-title">{u.name} <span className="badge badge-warn">pending</span></div>
+              <div className="muted small">{u.email} · declared hcp {u.declaredHandicap != null ? fmtHcp(u.declaredHandicap) : "—"}{u.createdAt ? ` · registered ${u.createdAt.slice(0, 10)}` : ""}</div></div>
+            <div className="btn-row">
+              <button className="btn btn-ghost" onClick={() => reject(u)}><X size={15} /> Reject</button>
+              <button className="btn btn-primary" onClick={() => approve(u)}><Check size={15} /> Approve</button>
+            </div>
+          </div>))}
+        <div className="sec-h">Members</div>
+      </>)}
       <div className="card form"><div className="row-title">Add a member</div>
         <div className="grid2">
           <input className="input" placeholder="Name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
@@ -98,7 +115,7 @@ function Members({ members, reload }) {
         <button className="btn btn-primary full" onClick={add}><Plus size={15} /> Add member</button>
         {msg && <div className="hint center">{msg}</div>}
       </div>
-      {members.map((u) => (
+      {approved.map((u) => (
         <div key={u.id} className="card row-card">
           <div><div className="row-title">{u.name} {u.role === "ADMIN" && <span className="badge badge-accent">admin</span>}</div><div className="muted small">{u.email}</div>
             <div className="small">Declared hcp <b className="num">{u.declaredHandicap != null ? fmtHcp(u.declaredHandicap) : "—"}</b>

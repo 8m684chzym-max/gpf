@@ -9,9 +9,11 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   const user = await requireUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // Members only see approved members; admins also see pending registrations.
   const members = await prisma.user.findMany({
+    where: user.role === "ADMIN" ? {} : { approved: true },
     orderBy: { name: "asc" },
-    select: { id: true, name: true, email: true, role: true, declaredHandicap: true, manualHandicap: true },
+    select: { id: true, name: true, email: true, role: true, declaredHandicap: true, manualHandicap: true, approved: true, createdAt: true },
   });
   return NextResponse.json({ members });
 }
@@ -24,7 +26,7 @@ export async function POST(req) {
   const exists = await prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
   if (exists) return NextResponse.json({ error: "Email already in use." }, { status: 409 });
   const passwordHash = await bcrypt.hash(password || "welcome123", 10);
-  const u = await prisma.user.create({ data: { name: name.trim(), email: email.toLowerCase().trim(), passwordHash, role: role === "ADMIN" ? "ADMIN" : "MEMBER" } });
+  const u = await prisma.user.create({ data: { name: name.trim(), email: email.toLowerCase().trim(), passwordHash, role: role === "ADMIN" ? "ADMIN" : "MEMBER", approved: true } });
   await logAudit(admin.name, "member.add", u.id, `${u.name} (${u.role})`);
   return NextResponse.json({ ok: true });
 }

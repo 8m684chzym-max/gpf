@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
-import { ArrowLeft, AlertCircle, Loader2 } from "lucide-react";
+import { ArrowLeft, AlertCircle, Loader2, CheckCircle2 } from "lucide-react";
 import GPFLoginMark from "@/components/GPFLoginMark";
 import { api } from "@/lib/client";
 
@@ -27,16 +27,23 @@ export default function LoginPage() {
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({ name: "", handicap: "", email: "", password: "" });
   const [err, setErr] = useState(""); const [busy, setBusy] = useState(false);
+  const [info, setInfo] = useState("");
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const go = async () => {
-    setErr(""); setBusy(true);
+    setErr(""); setInfo(""); setBusy(true);
     try {
       if (mode === "register") {
+        // New members wait for the committee's approval before they can log in.
         await api("/api/register", { method: "POST", body: JSON.stringify(form) });
+        setInfo("Thanks! Your request was sent to the committee. You'll get an email when your account is approved.");
+        setMode("login"); setForm((f) => ({ ...f, password: "" }));
+        setBusy(false);
+        return;
       }
       const res = await signIn("credentials", { email: form.email, password: form.password, redirect: false });
-      if (res?.error) setErr("Email or password is incorrect.");
+      if (res?.error === "PENDING_APPROVAL") setErr("Your account is waiting for the committee's approval. You'll get an email when it's approved.");
+      else if (res?.error) setErr("Email or password is incorrect.");
       else {
         const next = nextUrl();
         // App pages use the client router; files such as /tracer/index.html and
@@ -71,13 +78,14 @@ export default function LoginPage() {
         <label className="field"><span className="label">Password</span><input className="input" type="password" value={form.password} onChange={set("password")} placeholder="••••••••" /></label>
         {mode === "login" && <button className="link" type="button" style={{ alignSelf: "flex-end" }} onClick={() => router.push("/forgot-password")}>Forgot password?</button>}
         {err && <div className="inline-err"><AlertCircle size={15} /> {err}</div>}
+        {info && <div className="ok-note"><CheckCircle2 size={15} /> {info}</div>}
         {mode === "register" && (
           <p style={{ fontSize: 12, color: "var(--muted)", margin: "2px 0" }}>
             By creating an account you agree that your name, email and round data will be stored and used to run the competition. Read our{" "}
             <Link href="/privacy" style={{ color: "var(--green-700)", textDecoration: "underline" }}>Privacy Policy</Link>.
           </p>
         )}
-        <button className="btn btn-primary full" onClick={go} disabled={busy}>{busy ? <Loader2 className="spin" size={16} /> : mode === "login" ? "Log in" : "Create account"}</button>
+        <button className="btn btn-primary full" onClick={go} disabled={busy}>{busy ? <Loader2 className="spin" size={16} /> : mode === "login" ? "Log in" : "Request membership"}</button>
       </div>
     </div>
   );

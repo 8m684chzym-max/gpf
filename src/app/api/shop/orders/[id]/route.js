@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/guard";
 import { logAudit } from "@/lib/data";
 import { ORDER_STATUSES, getSettings, revolutLink, publicOrder } from "@/lib/shop";
+import { notifyOrderStatus, notifyPaymentSent } from "@/lib/mail";
 
 export const dynamic = "force-dynamic";
 
@@ -57,5 +58,7 @@ export async function PATCH(req, { params: paramsPromise }) {
     return tx.shopOrder.update({ where: { id }, data, include: { items: true } });
   });
   await logAudit(user.name, "shop.order.status", id, `${o.ref} ${o.status}→${next}`);
+  if (next === "SENT") await notifyPaymentSent(updated);
+  else if (isAdmin && b.status) await notifyOrderStatus(updated); // paid / delivered / cancelled by the committee
   return NextResponse.json({ order: publicOrder(updated) });
 }

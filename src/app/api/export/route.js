@@ -14,7 +14,7 @@ export async function GET(req) {
   const type = new URL(req.url).searchParams.get("type") || "standings";
   const comp = await getActiveCompetition();
   const config = configFrom(comp);
-  const users = await prisma.user.findMany({ where: { role: "MEMBER" }, select: { id: true, name: true, declaredHandicap: true, manualHandicap: true, tiebreakOverride: true } });
+  const users = await prisma.user.findMany({ where: { role: "MEMBER", approved: true }, select: { id: true, name: true, declaredHandicap: true, manualHandicap: true, tiebreakOverride: true } });
   const rounds = await getScopedRounds(comp.id);
   let rows, filename;
   if (type === "road") {
