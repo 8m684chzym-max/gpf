@@ -32,6 +32,8 @@ button:disabled{opacity:.45;cursor:default}
 button.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent;font-weight:600}
 button.active{outline:2px solid var(--accent);outline-offset:-1px}
 button.ghost{background:transparent;border-color:transparent;padding:4px 7px}
+a.btn{font:inherit;color:inherit;background:var(--field);border:1px solid var(--line);border-radius:7px;padding:6px 11px;text-decoration:none;white-space:nowrap}
+a.btn:hover{filter:brightness(1.06)}
 .bar{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--line);background:var(--panel)}
 .brand{display:flex;align-items:center;gap:8px;font-weight:650;font-size:14px;letter-spacing:-.01em}
 .brand svg{width:22px;height:22px}
@@ -141,6 +143,8 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   </div>
   <div class="fname" id="fileName"></div>
   <div class="spacer"></div>
+  <a class="btn" href="https://www.gpf.golf" title="Voltar à página inicial do GPF">⌂ Home</a>
+  <a class="btn" href="https://app.gpf.golf" title="Abrir a app GPF">App</a>
   <button id="guideBtn">Guia</button>
   <button id="openBtn">Abrir vídeo…</button>
   <button id="exportBtn" class="primary" disabled>Exportar vídeo</button>
