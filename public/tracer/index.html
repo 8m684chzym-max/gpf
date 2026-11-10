@@ -120,10 +120,41 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 @media (max-width:860px){
   body{overflow:auto;height:auto}
   main{grid-template-columns:1fr}
-  .stage{min-height:56vw}
+  /* tall enough for vertical phone clips, leaves room to scroll to the controls */
+  .stage{height:62vh;min-height:300px}
   .panel{border-left:0;border-top:1px solid var(--line);overflow:visible}
   .bar{padding:9px 16px}
+  .transport{position:sticky;bottom:0;z-index:10;box-shadow:0 -6px 18px rgba(0,0,0,.08)}
 }
+/* phones */
+@media (max-width:640px){
+  .bar{gap:6px;padding:8px 10px;padding-top:max(8px,env(safe-area-inset-top))}
+  .brand{font-size:0;gap:0}
+  .fname{display:none}
+  .bar button,.bar a.btn{padding:8px 10px;font-size:13px}
+  .long{display:none}
+  .stage{height:56vh}
+  .frame{box-shadow:none}
+  .transport{padding:8px 10px calc(10px + env(safe-area-inset-bottom))}
+  .tbtns{gap:5px}
+  .tbtns button{min-width:44px;min-height:40px;padding:6px 8px;font-size:13px}
+  #bImpactNow{flex:1 1 100%;order:10;min-height:42px}
+  .readout{order:9;flex:1 1 100%;margin-left:0;text-align:center}
+  .timeline{height:34px}
+  .timeline input::-webkit-slider-runnable-track{height:34px}
+  .timeline input::-webkit-slider-thumb{height:34px;width:4px}
+  .track{top:13px}.range-in{top:13px}.flight{top:10px}.imp{top:6px}
+  .sec{padding:14px 14px 12px}
+  .row{grid-template-columns:96px 1fr 48px;margin:10px 0}
+  input[type=range]{height:28px}
+  .mark button{min-height:38px}
+  .mark kbd{display:none}
+  .sw button{width:32px;height:32px}
+  .hint{top:8px;font-size:12px;white-space:normal;text-align:center;border-radius:12px;width:max-content}
+  .card.guide{max-height:92vh}
+  .guide-head{padding:12px 14px}.guide-body{padding:4px 14px 16px}
+}
+@media (hover:none){ .mark kbd{display:none} }
 @media print{
   html,body{height:auto;overflow:visible;display:block;background:#fff;color:#000}
   body > *:not(#guide){display:none !important}
@@ -137,17 +168,17 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 <body>
 
 <header class="bar">
-  <div class="brand">
+  <div class="brand" id="brandEl">
     <svg viewBox="0 0 24 24" fill="none"><path d="M3 20C6 9 12 4 21 6" stroke="#ff3b30" stroke-width="2.4" stroke-linecap="round"/><circle cx="3.5" cy="19.5" r="2.2" fill="currentColor"/></svg>
     Shot Tracer
   </div>
   <div class="fname" id="fileName"></div>
   <div class="spacer"></div>
-  <a class="btn" href="https://www.gpf.golf" title="Voltar à página inicial do GPF">⌂ Home</a>
+  <a class="btn" href="https://www.gpf.golf" title="Voltar à página inicial do GPF">⌂<span class="long"> Home</span></a>
   <a class="btn" href="https://app.gpf.golf" title="Abrir a app GPF">App</a>
   <button id="guideBtn">Guia</button>
-  <button id="openBtn">Abrir vídeo…</button>
-  <button id="exportBtn" class="primary" disabled>Exportar vídeo</button>
+  <button id="openBtn">Abrir<span class="long"> vídeo…</span></button>
+  <button id="exportBtn" class="primary" disabled>Exportar<span class="long"> vídeo</span></button>
 </header>
 
 <main>
@@ -277,7 +308,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
       <button class="primary no-print" id="gClose">Fechar</button>
     </div>
     <div class="guide-body">
-      <p class="lead">O Shot Tracer desenha a trajetória da bola por cima dos seus vídeos de golfe e exporta um novo vídeo com o traço e o som original. Tudo acontece no seu computador: o vídeo não é enviado para lado nenhum. Funciona melhor no <b>Safari</b> do Mac.</p>
+      <p class="lead">O Shot Tracer desenha a trajetória da bola por cima dos seus vídeos de golfe e exporta um novo vídeo com o traço e o som original. Tudo acontece no seu computador: o vídeo não é enviado para lado nenhum. Funciona melhor no <b>Safari</b>, no Mac, iPhone ou iPad. No telemóvel, toque onde o guia diz "clique"; os atalhos de teclado são só para computador.</p>
 
       <div class="gstep"><div class="gn">1</div><div><b class="t">Abra o vídeo</b>
         Arraste o clip para a área escura ou clique em <b>Abrir vídeo…</b>. Aceita MP4 e MOV do iPhone, Android ou WhatsApp. Funciona melhor com a câmara fixa (tripé ou telemóvel apoiado).</div></div>
@@ -462,6 +493,7 @@ function handlePositions() {
 }
 function drawHandle(ctx, p, label, shape) {
   ctx.save();
+  if (coarse) { ctx.translate(p.x, p.y); ctx.scale(1.35, 1.35); ctx.translate(-p.x, -p.y); }
   ctx.lineWidth = 2; ctx.strokeStyle = '#fff'; ctx.fillStyle = 'rgba(0,0,0,.45)';
   ctx.beginPath();
   if (shape === 'diamond') { ctx.moveTo(p.x, p.y - 8); ctx.lineTo(p.x + 8, p.y); ctx.lineTo(p.x, p.y + 8); ctx.lineTo(p.x - 8, p.y); ctx.closePath(); }
@@ -505,10 +537,12 @@ requestAnimationFrame(loop);
 // ---------- pointer ----------
 const mpos = e => { const r = ov.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+let touchInput = false;
+const coarse = window.matchMedia && matchMedia('(pointer: coarse)').matches;
 function hitTest(m) {
   if (!(S.guide || drag) || !video.paused) return null;
   const hp = handlePositions();
-  let best = null, bd = 14;
+  let best = null, bd = touchInput ? 28 : 14;
   for (const k of ['apex', 'p0', 'p2']) { if (!hp[k]) continue; const d = Math.hypot(hp[k].x - m.x, hp[k].y - m.y); if (d < bd) { bd = d; best = k; } }
   return best;
 }
@@ -531,6 +565,7 @@ function applyDrag(m) {
   updateMarks();
 }
 ov.addEventListener('pointerdown', e => {
+  touchInput = e.pointerType !== 'mouse';
   if (!video.videoWidth) return;
   const m = mpos(e);
   if (mode) {
@@ -637,9 +672,9 @@ function setHint(t) { $('hint').textContent = t; }
 function updateMode() {
   $('placeStart').classList.toggle('active', mode === 'start');
   $('placeLand').classList.toggle('active', mode === 'land');
-  if (mode === 'start') setHint('Clique na bola, na posição em que está no impacto');
-  else if (mode === 'land') setHint('Clique onde a bola cai');
-  else if (video.videoWidth && S.impact == null) setHint('Avance até ao frame do impacto e carregue em “Marcar impacto aqui” (I)');
+  if (mode === 'start') setHint(coarse ? 'Toque na bola, na posição em que está no impacto' : 'Clique na bola, na posição em que está no impacto');
+  else if (mode === 'land') setHint(coarse ? 'Toque onde a bola cai' : 'Clique onde a bola cai');
+  else if (video.videoWidth && S.impact == null) setHint(coarse ? 'Avance até ao frame do impacto e toque em “Marcar impacto aqui”' : 'Avance até ao frame do impacto e carregue em “Marcar impacto aqui” (I)');
   else setHint('');
 }
 function updateMarks() {
