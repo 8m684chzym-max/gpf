@@ -64,7 +64,7 @@ const LISBON_SPORTS_CLUB = {
   },
   // Tee / green from Esri World Imagery (ArcGIS), Nov 2026; greens numbered by Joaquim.
   // Greens are on the real greens; tees are estimated from the card length (±15 m).
-  // Hole 7 tee and hole 17 tee / green still to confirm (Joaquim, Nov 2026).
+  // 17 / 18 placed from Joaquim's description; hole 7 tee still to confirm (Nov 2026).
   geo: [
     /*  1 */ [[38.797765, -9.274495], [38.796532, -9.274093], null],
     /*  2 */ [[38.796866, -9.274710], [38.793668, -9.273396], null],
@@ -82,8 +82,8 @@ const LISBON_SPORTS_CLUB = {
     /* 14 */ [[38.800657, -9.279274], [38.802559, -9.278255], null],
     /* 15 */ [[38.802120, -9.277208], [38.801535, -9.273748], null],
     /* 16 */ [[38.801222, -9.273561], [38.801117, -9.278925], null],
-    /* 17 */ [[38.799951, -9.279216], [38.798655, -9.279404], null],
-    /* 18 */ [[38.798237, -9.279189], [38.797389, -9.275032], null],
+    /* 17 */ [[38.798593, -9.277848], [38.797882, -9.279162], null],
+    /* 18 */ [[38.798049, -9.279189], [38.797389, -9.275032], null],
   ],
 };
 
