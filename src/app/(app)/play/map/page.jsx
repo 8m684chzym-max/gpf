@@ -136,8 +136,7 @@ function HoleMapInner({ cm }) {
     return out;
   }, [idx, overrides, shared, sketches, HOLES, cm.centre, liveHere, live]);
   const mapped = !!(hole.tee && hole.green);
-  const onThisCourse = !!live && courseMapFor(live.courseName)?.slug === cm.slug;
-  const teeKey = onThisCourse && hole.lens ? Object.keys(hole.lens).find((t) => live.teeName?.toLowerCase().startsWith(t.toLowerCase())) : null;
+  const teeKey = liveHere && hole.lens ? Object.keys(hole.lens).find((t) => live.teeName?.toLowerCase().startsWith(t.toLowerCase())) : null;
   const cardLen = (teeKey && hole.lens[teeKey]) ?? hole.len;
   const holeLen = mapped ? distance(hole.tee, hole.green) : null;
 
@@ -345,19 +344,11 @@ function HoleMapInner({ cm }) {
       <div className="hm-bar" onPointerDown={(e) => e.stopPropagation()}>
         <button className="hm-nav" onClick={() => setIdx((idx + nav - 1) % nav)} aria-label="Previous hole"><ChevronLeft size={24} /></button>
         <div className="hm-hole">
-<<<<<<< Updated upstream
           <span className="hm-hole-n num">{String(hole.cardN).padStart(2, "0")}</span>
-          <span className="hm-hole-meta"><b>PAR {hole.par}</b><br />S.I. {hole.si}{holeLen && !hole.virtual ? <> · {Math.round(holeLen)} m</> : hole.len ? <> · {hole.len} m</> : holeLen ? <> · {Math.round(holeLen)} m</> : null}</span>
+          <span className="hm-hole-meta"><b>PAR {hole.par}</b><br />S.I. {hole.si}{holeLen && !hole.virtual ? <> · {Math.round(holeLen)} m</> : cardLen ? <> · {cardLen} m</> : holeLen ? <> · {Math.round(holeLen)} m</> : null}</span>
         </div>
         {liveHere ? (
           <LiveScore live={live} i={idx} onChange={(r) => { saveLive(r); setLive(r); }} />
-=======
-          <span className="hm-hole-n num">{String(hole.n).padStart(2, "0")}</span>
-          <span className="hm-hole-meta"><b>PAR {hole.par}</b><br />S.I. {hole.si}{holeLen && !hole.virtual ? <> · {Math.round(holeLen)} m</> : cardLen ? <> · {cardLen} m</> : holeLen ? <> · {Math.round(holeLen)} m</> : null}</span>
-        </div>
-        {onThisCourse ? (
-          <LiveScore live={live} i={hole.n - 1} onChange={(r) => { saveLive(r); setLive(r); }} />
->>>>>>> Stashed changes
         ) : (
           <Link href={`/play/round?course=${cm.slug}`} className="hm-score" aria-label="Start an individual round"><ClipboardList size={17} /><span>Score</span></Link>
         )}

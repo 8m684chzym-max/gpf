@@ -83,14 +83,18 @@ const ESTORIL_BLUE = {
   geo: Array.from({ length: 9 }, () => [null, null, null]),
 };
 
-const build = (c) => ({
-  ...c,
-  holes: c.geo.map(([tee, green, greenPoly], i) => ({
-    n: i + 1, par: c.pars[i], si: c.si[i], tee, green, greenPoly,
-    lens: c.lengths ? Object.fromEntries(Object.entries(c.lengths).map(([t, ls]) => [t, ls[i]])) : null,
-    len: c.lengths ? Object.values(c.lengths)[0][i] : null,
-  })),
-});
+// lengths: one array (yellow metres) or { teeName: [metres per hole] }.
+const build = (c) => {
+  const byTee = Array.isArray(c.lengths) ? { Yellow: c.lengths } : c.lengths || null;
+  return {
+    ...c,
+    holes: c.geo.map(([tee, green, greenPoly], i) => ({
+      n: i + 1, par: c.pars[i], si: c.si[i], tee, green, greenPoly,
+      lens: byTee ? Object.fromEntries(Object.entries(byTee).map(([t, ls]) => [t, ls[i] ?? null])) : null,
+      len: byTee ? Object.values(byTee)[0][i] ?? null : null,
+    })),
+  };
+};
 
 export const COURSES = [PINHEIRINHO, LISBON_SPORTS_CLUB, ESTORIL_BLUE].map(build);
 export const DEFAULT_COURSE = COURSES[0];
