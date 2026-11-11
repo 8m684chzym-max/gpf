@@ -62,14 +62,35 @@ const LISBON_SPORTS_CLUB = {
     Yellow: [151, 389, 165, 317, 432, 279, 351, 135, 254,  250, 123, 446, 184, 251, 289, 458, 144, 357],
     White:  [168, 403, 174, 347, 440, 296, 358, 148, 272,  263, 126, 467, 198, 262, 326, 479, 163, 419],
   },
-  geo: Array.from({ length: 18 }, () => [null, null, null]),
+  // Tee / green read off Esri World Imagery (ArcGIS), Nov 2026: holes 14–16 only (the loop
+  // across the road); the rest still need the hole routing confirmed. Approximate (±10 m).
+  geo: [
+    /*  1 */ [null, null, null],
+    /*  2 */ [null, null, null],
+    /*  3 */ [null, null, null],
+    /*  4 */ [null, null, null],
+    /*  5 */ [null, null, null],
+    /*  6 */ [null, null, null],
+    /*  7 */ [null, null, null],
+    /*  8 */ [null, null, null],
+    /*  9 */ [null, null, null],
+    /* 10 */ [null, null, null],
+    /* 11 */ [null, null, null],
+    /* 12 */ [null, null, null],
+    /* 13 */ [null, null, null],
+    /* 14 */ [[38.800657, -9.279274], [38.802559, -9.278255], null],
+    /* 15 */ [[38.802120, -9.277208], [38.801535, -9.273748], null],
+    /* 16 */ [[38.801222, -9.273561], [38.801117, -9.278925], null],
+    /* 17 */ [null, null, null],
+    /* 18 */ [null, null, null],
+  ],
 };
 
 // ── Estoril Blue (Clube de Golf do Estoril, 9-hole Blue Course). Par 34, played as two
 // loops for an 18-hole card: holes 10–18 are holes 1–9 again (the tees in the DB carry
 // the 18-hole par / SI / rating, scripts/add-estoril-blue.mjs). Par / SI / yellow metres
 // from the Hole19 card; sketches traced from Hole19 screenshots (scripts/hole-sketches),
-// holes 4 and 5 not traced yet (GPS setup on the course still works).
+// holes 4 and 5 not traced yet. Tee / green positions below are from satellite imagery.
 const ESTORIL_BLUE = {
   slug: "estoril-blue",
   name: "Estoril Blue",
@@ -80,7 +101,20 @@ const ESTORIL_BLUE = {
   pars: [4, 4, 5, 4, 3, 4, 3, 3, 4],
   si: [5, 2, 4, 7, 6, 3, 8, 9, 1],
   lengths: [298, 351, 407, null, null, 304, 131, 97, 302], // yellow, metres
-  geo: Array.from({ length: 9 }, () => [null, null, null]),
+  // Tee / green read off Esri World Imagery (ArcGIS), Nov 2026: holes 1–3 and 6–9 by matching
+  // the traced sketches against the satellite image, 4 and 5 by eye (the two remaining greens
+  // between 3 and 6, 284 m and 150 m). Approximate (±10 m); GPS setup on the course overrides.
+  geo: [
+    /* 1 */ [[38.718073, -9.398016], [38.720521, -9.399189], null],
+    /* 2 */ [[38.720839, -9.399840], [38.723706, -9.401415], null],
+    /* 3 */ [[38.723940, -9.401760], [38.720446, -9.400498], null],
+    /* 4 */ [[38.720241, -9.400892], [38.722578, -9.402207], null],
+    /* 5 */ [[38.722668, -9.401912], [38.723991, -9.402234], null],
+    /* 6 */ [[38.724270, -9.402841], [38.721705, -9.402687], null],
+    /* 7 */ [[38.721305, -9.402107], [38.720209, -9.401517], null],
+    /* 8 */ [[38.720544, -9.401348], [38.720125, -9.400482], null],
+    /* 9 */ [[38.720057, -9.399412], [38.717340, -9.399377], null],
+  ],
 };
 
 // lengths: one array (yellow metres) or { teeName: [metres per hole] }.
