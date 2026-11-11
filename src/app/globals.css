@@ -481,3 +481,12 @@ a{color:inherit;text-decoration:none}
 .nav-a.nav-cta{background:var(--green-700);color:#fff;padding:6px 13px;border-radius:999px;font-weight:600}
 .nav-a.nav-cta:hover,.nav-a.nav-cta.nav-on{color:#fff;opacity:.9}
 .nav-sheet .nav-a.nav-cta{color:#fff;text-align:center;margin:6px 0;padding:11px 0}
+
+/* Open 2026: champion hero with the "Golffather" caricature */
+.champ-hero{background:var(--green-900);color:#fff;border-radius:18px;overflow:hidden;display:flex;flex-direction:column}
+.champ-art{display:block;width:100%;max-height:560px;object-fit:contain;background:#f6f3ec}
+.champ-copy{padding:16px 18px 18px;display:grid;gap:4px}
+.champ-eyebrow{display:flex;align-items:center;gap:6px;font-family:var(--disp);font-weight:600;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#f0a818}
+.champ-name{font-family:var(--disp);font-weight:700;font-size:26px;letter-spacing:-.02em}
+.champ-meta{font-size:13.5px;color:rgba(255,255,255,.72)}
+@media (min-width:760px){.champ-hero{flex-direction:row;align-items:stretch}.champ-art{width:46%;max-height:none}.champ-copy{align-content:center;padding:28px}.champ-name{font-size:34px}}

@@ -14,6 +14,10 @@ export const OPEN_2026 = {
   course: "Pinheirinho",
   tee: "Yellow",
   format: "single round · medal net",
+  // Champion caricature ("The Golffather"). Local file is the master; the CDN copy
+  // only covers the gap until public/open/golffather-2026.png is committed.
+  championArt: "/open/golffather-2026.png",
+  championArtFallback: "https://d8j0ntlcm91z4.cloudfront.net/user_3EgZl6XTm29RFytRBe8DU6rbJSJ/hf_20261111_091441_396c897d-0ff0-40be-bfa5-a1591d708eb7.png",
 };
 
 const rows = [

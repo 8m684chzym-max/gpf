@@ -58,9 +58,18 @@ function Open2026() {
         </div>
       </a>
 
-      <div className="card champ-card">
-        <Trophy size={22} />
-        <div><div className="eyebrow" style={{ margin: 0 }}>Champion 2026</div><b>{rows[0].name}</b> <span className="muted">· net {rows[0].net}</span></div>
+      <div className="champ-hero">
+        <img
+          src={OPEN_2026.championArt}
+          alt={`${rows[0].name}, The Golffather — GPF Open 2026 champion`}
+          className="champ-art"
+          onError={(e) => { if (OPEN_2026.championArtFallback && e.currentTarget.src !== OPEN_2026.championArtFallback) e.currentTarget.src = OPEN_2026.championArtFallback; }}
+        />
+        <div className="champ-copy">
+          <div className="champ-eyebrow"><Trophy size={14} /> Champion · GPF Open 2026</div>
+          <div className="champ-name">{rows[0].name}</div>
+          <div className="champ-meta">Net {rows[0].net} · gross {rows[0].gross} · {rows[0].pts} pts</div>
+        </div>
       </div>
 
       <div className="sec-h">Final results</div>
