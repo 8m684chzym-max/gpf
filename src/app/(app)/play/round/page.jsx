@@ -15,9 +15,37 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 export default function LiveRoundPage() {
   const [live, setLive] = useState(undefined); // undefined = loading, null = none
-  useEffect(() => setLive(loadLive()), []);
+  const [want, setWant] = useState(null);      // course asked for with ?course=<slug>
+  const [keep, setKeep] = useState(false);     // carry on with the round in progress anyway
+  useEffect(() => {
+    setLive(loadLive());
+    setWant(courseBySlug(new URLSearchParams(window.location.search).get("course")));
+  }, []);
   if (live === undefined) return <div className="loading"><Loader2 className="spin" size={22} /> Loading…</div>;
+  // A round in progress on another course must not hijack "Start a round" on this one.
+  const elsewhere = live && want && courseMapFor(live.courseName)?.slug !== want.slug;
+  if (elsewhere && !keep) return <OtherRound live={live} want={want} onKeep={() => setKeep(true)} onDiscard={() => { clearLive(); setLive(null); }} />;
   return live ? <Card live={live} setLive={setLive} /> : <Setup onStart={setLive} />;
+}
+
+function OtherRound({ live, want, onKeep, onDiscard }) {
+  const t = totals(live);
+  const discard = () => { if (confirm(`Discard your round at ${live.courseName}? The scores on this phone will be deleted.`)) onDiscard(); };
+  return (
+    <div className="stack">
+      <div className="page-top">
+        <Link href="/play" className="link small" style={{ display: "inline-flex", alignItems: "center", gap: 4, alignSelf: "flex-start" }}><ArrowLeft size={13} /> Play</Link>
+        <div className="eyebrow">Start play · {want.name}</div>
+        <h1 className="page-h">Round in progress elsewhere.</h1>
+        <p className="lede">You have a round at <b>{live.courseName}</b> on this phone ({t.played}/{live.holes.length} holes, {live.date}). Finish or discard it to start one at {want.name}.</p>
+      </div>
+      <div className="btn-row" style={{ justifyContent: "flex-start", flexWrap: "wrap" }}>
+        <Link href={`/play/map?course=${want.slug}`} className="btn btn-primary"><MapIcon size={15} /> {want.name} map</Link>
+        <button className="btn btn-ghost" onClick={onKeep}>Go to the {live.courseName} round</button>
+        <button className="btn btn-ghost" onClick={discard}><Trash2 size={15} /> Discard it and start here</button>
+      </div>
+    </div>
+  );
 }
 
 function Setup({ onStart }) {
