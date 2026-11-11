@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <clipPath id="sh"><path d="M256 46 L436 96 L436 262 C436 372 352 432 256 470 C160 432 76 372 76 262 L76 96 Z"/></clipPath>
+  </defs>
+  <!-- outer shield -->
+  <path d="M256 20 L460 78 L460 262 C460 392 362 458 256 496 C150 458 52 392 52 262 L52 78 Z" fill="#141414"/>
+  <path d="M256 46 L436 96 L436 262 C436 372 352 432 256 470 C160 432 76 372 76 262 L76 96 Z" fill="#b3261e"/>
+  <g clip-path="url(#sh)">
+    <!-- diagonal speed band -->
+    <path d="M60 330 L460 150 L460 200 L60 380 Z" fill="#8e1c16"/>
+    <g transform="translate(-34 6)" stroke="#141414" stroke-width="5" stroke-linejoin="round">
+    <!-- eagle: neck feathers (white, jagged) -->
+    <path d="M150 400 L170 330 L150 340 L176 270 L156 278 L188 214 L172 216 L214 160 L262 128 L318 118 L352 126 L380 146 L392 170
+             L380 196 L350 214 L330 240 L318 280 L322 330 L306 300 L300 350 L284 316 L274 372 L258 334 L244 398 L230 352 L212 412 L200 360 L184 420 Z" fill="#ffffff"/>
+    <!-- brow / head shading -->
+    <path d="M262 128 L318 118 L352 126 L380 146 L392 170 L346 166 L300 176 L258 196 L228 190 Z" fill="#e9e6df"/>
+    <!-- beak -->
+    <path d="M350 148 L404 150 C432 156 452 180 448 220 L436 246 L428 222 L404 208 L362 208 L338 190 Z" fill="#f0b323"/>
+    <path d="M362 208 L404 208 L428 222 L436 246 L414 234 L384 226 Z" fill="#c98a12"/>
+    <!-- eye -->
+    <path d="M300 160 L346 150 L338 172 L306 176 Z" fill="#141414"/>
+    <circle cx="326" cy="162" r="6" fill="#f0b323" stroke="none"/>
+    <path d="M286 150 L352 136 L356 144 L290 160 Z" fill="#141414"/>
+    </g>
+  </g>
+  <!-- name banner -->
+  <path d="M40 372 L472 372 L452 438 L60 438 Z" fill="#141414"/>
+  <path d="M52 380 L460 380 L444 430 L68 430 Z" fill="none" stroke="#f0b323" stroke-width="3"/>
+  <text x="256" y="424" text-anchor="middle" font-family="DejaVu Sans Condensed" font-weight="bold" font-size="52" letter-spacing="7" fill="#ffffff">WARRIORS</text>
+</svg>

@@ -277,6 +277,7 @@ model MatchPlay {
   result      String    // "A" | "B" | "HALVED"
   margin      String?   // e.g. "3&2", "1 up"
   status      String    @default("PENDING") // "PENDING" | "CONFIRMED"
+  cup         String?   // "teamcup" = a Team Cup match (Warriors v Patuas); null = plain match play
   confirmedBy String?
   confirmedAt DateTime?
   createdAt   DateTime  @default(now())

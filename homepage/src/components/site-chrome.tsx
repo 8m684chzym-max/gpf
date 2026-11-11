@@ -12,10 +12,10 @@ const menu: [string, string][] = [
   [`${APP}/open`, "Open"],
   [`${APP}/team-cup`, "Team Cup"],
   [`${APP}/rank`, "Rank"],
-  [`${APP}/submit`, "Submit score"],
   [`${APP}/shop`, "Shop"],
   ["https://tracer.gpf.golf", "Tracer"],
   [`${APP}/profile`, "My profile"],
+  [`${APP}/submit`, "Submit score"],
   [`${APP}/login`, "Login"],
 ];
 
@@ -23,6 +23,19 @@ function MenuLink({ href, label, big = false }: { href: string; label: string; b
   const cls = big
     ? "py-2.5 text-[17px] text-foreground"
     : "text-[13px] text-muted-foreground transition-colors hover:text-foreground";
+  if (label === "Submit score")
+    return (
+      <a
+        href={href}
+        className={
+          big
+            ? "my-2 rounded-full bg-primary py-2.5 text-center text-[16px] font-medium text-primary-foreground"
+            : "rounded-full bg-primary px-3.5 py-1.5 text-[13px] font-medium text-primary-foreground transition-opacity hover:opacity-90"
+        }
+      >
+        {label}
+      </a>
+    );
   if (href === "/")
     return (
       <Link to="/" className={cls} activeProps={{ className: "text-foreground" }} activeOptions={{ exact: true }}>

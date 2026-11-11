@@ -36,6 +36,31 @@ export const Route = createFileRoute("/")({
 });
 
 
+const APP = "https://app.gpf.golf";
+const sections: { title: string; kicker?: string; logos?: string[]; text: string; cta: string; href: string }[] = [
+  {
+    title: "Open",
+    kicker: "The major",
+    text: "One round, one champion. Medal net off your GPF handicap, with bonus strokes for the top three on the Rank. 2026 went to Pinheirinho — 2027 is next.",
+    cta: "Results and field",
+    href: `${APP}/open`,
+  },
+  {
+    title: "Team Cup",
+    logos: [`${APP}/teams/warriors.png`, `${APP}/teams/patuas.png`],
+    text: "Warriors vs Patuas. Season-long 1v1 match play between the two teams — 36 points in play, first to 18½ lifts the cup.",
+    cta: "Score and teams",
+    href: `${APP}/team-cup`,
+  },
+  {
+    title: "Ranking",
+    kicker: "All year",
+    text: "A continuous ranking from your best three cards. Keep submitting rounds: it sets your handicap for the next Open and the top three earn bonus strokes.",
+    cta: "See the ranking",
+    href: `${APP}/rank`,
+  },
+];
+
 function Index() {
   return (
     <PageShell>
@@ -74,6 +99,35 @@ function Index() {
           <h1 className="mt-5 max-w-3xl text-5xl font-semibold leading-[1.03] tracking-tight text-foreground sm:text-6xl md:text-7xl">
             A quieter way to play.
           </h1>
+        </div>
+      </section>
+
+      {/* The three competitions — each opens in the members' app. */}
+      <section className="mx-auto max-w-6xl px-6 py-20">
+        <p className="text-center text-[13px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
+          The competitions
+        </p>
+        <div className="mt-10 grid gap-5 md:grid-cols-3">
+          {sections.map((s) => (
+            <a
+              key={s.title}
+              href={s.href}
+              className="group flex flex-col rounded-3xl border border-border bg-card p-7 transition-colors hover:bg-secondary"
+            >
+              <div className="flex h-14 items-center gap-2">
+                {s.logos ? (
+                  s.logos.map((l) => <img key={l} src={l} alt="" aria-hidden className="h-14 w-14 object-contain" />)
+                ) : (
+                  <span className="text-[13px] font-medium uppercase tracking-[0.2em] text-muted-foreground">{s.kicker}</span>
+                )}
+              </div>
+              <h2 className="mt-5 text-2xl font-semibold tracking-tight text-foreground">{s.title}</h2>
+              <p className="mt-3 flex-1 text-[15px] leading-relaxed text-muted-foreground">{s.text}</p>
+              <span className="mt-6 text-[13px] font-medium text-foreground">
+                {s.cta} <span aria-hidden className="inline-block transition-transform group-hover:translate-x-0.5">→</span>
+              </span>
+            </a>
+          ))}
         </div>
       </section>
     </PageShell>

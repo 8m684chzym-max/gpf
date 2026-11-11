@@ -14,6 +14,12 @@ export const MAJOR = {
   image: "/courses/pinheirinho.jpeg", // square thumbnail; null → flag tile
 };
 
+// Rank is continuous: only approved qualifying rounds played on or after this date
+// count. Set to the day after the last Open — earlier rounds are already reflected in
+// the declared handicaps, which were reset to each player's Open playing handicap.
+export const RANK_SINCE = "2026-11-08";
+export const RANK_SINCE_LABEL = "8 November 2026";
+
 // Shared tiebreak labels (keys are stored in the DB — keep them stable).
 export const TIEBREAK = {
   "final-net": "net countback (last 9, 6, 3, 1)",

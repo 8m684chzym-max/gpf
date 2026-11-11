@@ -17,9 +17,9 @@ export default function Nav() {
 
   const isOn = (href) => href.startsWith("/") && (path === href || path.startsWith(href + "/"));
   const items = isAdmin ? [...MENU, ["/admin", "Admin"]] : MENU;
-  const link = ([href, label, ext]) => ext
+  const link = ([href, label, ext, cta]) => ext
     ? <a key={label} href={href} className="nav-a">{label}</a>
-    : <Link key={label} href={href} className={`nav-a ${isOn(href) ? "nav-on" : ""}`}>{label}</Link>;
+    : <Link key={label} href={href} className={`nav-a ${cta ? "nav-cta" : ""} ${isOn(href) ? "nav-on" : ""}`}>{label}</Link>;
   const auth = data?.user
     ? <button className="nav-a nav-btn" onClick={() => signOut({ redirect: false }).then(() => { window.location.href = HOME_URL; })}>Log out</button>
     : <Link href="/login" className="nav-a">Login</Link>;

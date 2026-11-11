@@ -1,16 +1,16 @@
 "use client";
-import TeamMatch from "@/components/open/TeamMatch";
+import TeamCup from "@/components/teamcup/TeamCup";
 
-// Team Cup — the team match play event (Warriors vs Patuas), an event of its own
-// alongside the Open. Was "Team league 2027" under Open.
-export default function TeamCup() {
+// Team Cup — Warriors vs Patuas: season-long 1v1 match play between the two teams.
+// (The Open-day live team match, components/open/TeamMatch.jsx + /api/open-match, is retired.)
+export default function TeamCupPage() {
   return (
     <div className="stack">
       <div className="page-top">
         <div className="eyebrow">Team Cup</div>
-        <h1 className="page-h">Two teams. One cup.</h1>
+        <h1 className="page-h">Warriors vs Patuas.</h1>
       </div>
-      <TeamMatch />
+      <TeamCup />
     </div>
   );
 }

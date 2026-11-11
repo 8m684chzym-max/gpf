@@ -5,15 +5,15 @@
 export const HOME_URL = process.env.NEXT_PUBLIC_HOME_URL || "https://gpf.golf";
 export const TRACER_URL = process.env.NEXT_PUBLIC_TRACER_URL || "https://tracer.gpf.golf";
 
-// [href, label, external?]
+// [href, label, external?, cta?] — cta renders as the action button (Submit score).
 export const MENU = [
   [HOME_URL, "Home", true],
   ["/play", "Play"],
   ["/open", "Open"],
   ["/team-cup", "Team Cup"],
   ["/rank", "Rank"],
-  ["/submit", "Submit score"],
   ["/shop", "Shop"],
   [TRACER_URL, "Tracer", true],
   ["/profile", "My profile"],
+  ["/submit", "Submit score", false, true],
 ];

@@ -1,4 +1,6 @@
 // Pure scoring engine — shared by server (API routes) and client.
+import { RANK_SINCE } from "./major";
+
 // Rounds passed in are already scoped to the active competition. Each
 // qualifying round must carry `parAtTee` (the par of the tee played) so
 // handicap differentials can be computed. Enum-like strings are UPPERCASE.
@@ -54,8 +56,10 @@ export function back9(holes) {
   return !holes || holes.length < 18 ? null : holes.slice(9, 18).reduce((s, x) => s + (Number(x) || 0), 0);
 }
 
+// Continuous Rank: only rounds on or after RANK_SINCE count (see lib/major.js).
+const sinceOk = (r) => !r.date || String(r.date instanceof Date ? r.date.toISOString() : r.date).slice(0, 10) >= RANK_SINCE;
 export function approvedQualifying(rounds, userId) {
-  return rounds.filter((r) => r.userId === userId && r.type === "QUALIFYING" && r.status === "APPROVED");
+  return rounds.filter((r) => r.userId === userId && r.type === "QUALIFYING" && r.status === "APPROVED" && sinceOk(r));
 }
 
 // Calculate WHS Score Differential: (113 / Slope) × (Gross - Course Rating)
