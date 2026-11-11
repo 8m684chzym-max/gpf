@@ -112,6 +112,7 @@ function Setup({ onStart }) {
             </select>
             <span className="hint">A qualifying round needs a member witness, same as Submit score.</span></label>
           <button className="btn btn-primary" disabled={!tee || !f.partnerId || !hcpOk || !f.date} onClick={start}><Flag size={15} /> Start round on hole 1</button>
+          <Link href={`/play/map?course=${cm.slug}`} className="btn btn-ghost"><MapIcon size={15} /> Just look at the map</Link>
         </div>
       </div>
     </div>
