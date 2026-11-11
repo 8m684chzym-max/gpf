@@ -4,7 +4,7 @@ import Link from "next/link";
 import {
   ChevronLeft, ChevronRight, Crosshair, LocateFixed, LocateOff, Pencil, X, Copy, RotateCcw, ArrowLeft, Check, ClipboardList,
 } from "lucide-react";
-import { HOLES, COURSE_MAP } from "@/lib/holes";
+import { courseBySlug, courseMapFor, DEFAULT_COURSE } from "@/lib/holes";
 import { api } from "@/lib/client";
 import { loadLive, saveLive, holePoints, totals, strokesOn, parOf } from "@/lib/liveRound";
 import {
@@ -15,15 +15,29 @@ const MAX_K = 2 ** 21;            // closest zoom (screen px per world unit)
 const MIN_K = 2 ** 13;
 const PAD_TOP = 165, PAD_BOTTOM = 70;   // keep the whole green clear of the distance card
 const ARCS = [[50, "#5b8fd9"], [100, "#c8553d"], [150, "#7d7468"], [200, "#3d6fc4"], [250, "#d39a1c"], [300, "#8a5bbf"]]; // readable on the paper yardage book
-const LS_KEY = "gpf-holemap-v1";
-const SKETCH_URL = "/holes/pinheirinho-sketch.json"; // traced hole sketches, local metres from the tee (y towards the green)
+// This phone's unsaved tee/green edits, per course (Pinheirinho keeps the original key).
+const lsKey = (cm) => (cm.slug === DEFAULT_COURSE.slug ? "gpf-holemap-v1" : `gpf-holemap-v1:${cm.slug}`);
 const PLAYER_RANGE = 700;         // within this of the green you are "on the hole" and distances start from you
 
-const loadOverrides = () => { try { return JSON.parse(localStorage.getItem(LS_KEY) || "{}"); } catch { return {}; } };
-const saveOverrides = (o) => { try { localStorage.setItem(LS_KEY, JSON.stringify(o)); } catch { /* private mode */ } };
+const loadOverrides = (cm) => { try { return JSON.parse(localStorage.getItem(lsKey(cm)) || "{}"); } catch { return {}; } };
+const saveOverrides = (cm, o) => { try { localStorage.setItem(lsKey(cm), JSON.stringify(o)); } catch { /* private mode */ } };
 const m = (v) => (v == null ? "—" : Math.round(v));
 
+// Which course: /play/map?course=<slug>, else the course of the round in progress,
+// else Pinheirinho (old links from the Open keep working).
 export default function HoleMap() {
+  const [cm, setCm] = useState(null);
+  useEffect(() => {
+    const slug = new URLSearchParams(window.location.search).get("course");
+    const live = loadLive();
+    setCm(courseBySlug(slug) || (live && courseMapFor(live.courseName)) || DEFAULT_COURSE);
+  }, []);
+  if (!cm) return null;
+  return <HoleMapInner key={cm.slug} cm={cm} />;
+}
+
+function HoleMapInner({ cm }) {
+  const HOLES = cm.holes;
   const boxRef = useRef(null);
   const [size, setSize] = useState(null);
   const [overrides, setOverrides] = useState({}); // this phone's edits not yet saved to the server
@@ -49,11 +63,14 @@ export default function HoleMap() {
   const userMoved = useRef(false);
   const fitOrigin = useRef(null);
 
-  const refreshShared = useCallback(() => api("/api/holes").then((r) => setShared(r.holes || {})).catch(() => {}), []);
+  const refreshShared = useCallback(() => api(`/api/holes?course=${cm.slug}`).then((r) => setShared(r.holes || {})).catch(() => {}), [cm.slug]);
   useEffect(() => {
-    setOverrides(loadOverrides());
-    const sk = fetch(SKETCH_URL).then((r) => (r.ok ? r.json() : {})).then(setSketches).catch(() => setSketches({}));
+    setOverrides(loadOverrides(cm));
+    const sk = cm.sketchUrl
+      ? fetch(cm.sketchUrl).then((r) => (r.ok ? r.json() : {})).then(setSketches).catch(() => setSketches({}))
+      : Promise.resolve(setSketches({}));
     Promise.allSettled([refreshShared(), sk]).then(() => setLoaded(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshShared]);
   useEffect(() => { if (loaded) refreshShared(); }, [idx, loaded, refreshShared]);
 
@@ -102,7 +119,7 @@ export default function HoleMap() {
     // so yardage-book distances work from the tee. GPS needs the real tee and green.
     let out = base;
     if (!(tee && green) && sketch) {
-      const vt = COURSE_MAP.centre;
+      const vt = cm.centre;
       out = { ...base, virtual: true, tee: vt, green: sketchFrame(vt, null, sketch.green)(sketch.green) };
     }
     // Traced green outline → front / back distances along the line of play.
@@ -111,7 +128,7 @@ export default function HoleMap() {
       out = { ...out, greenPoly: sketch.greenPoly.map(f) };
     }
     return out;
-  }, [idx, overrides, shared, sketches]);
+  }, [idx, overrides, shared, sketches, HOLES, cm.centre]);
   const mapped = !!(hole.tee && hole.green);
   const holeLen = mapped ? distance(hole.tee, hole.green) : null;
 
@@ -127,11 +144,11 @@ export default function HoleMap() {
       setView(fitLine(origin, hole.green, size.W, size.H, PAD_TOP, PAD_BOTTOM, MAX_K));
     } else {
       if (!force && view) return;
-      const c = toWorld(hole.tee || hole.green || gps?.pos || COURSE_MAP.centre);
+      const c = toWorld(hole.tee || hole.green || gps?.pos || cm.centre);
       setView({ cx: c[0], cy: c[1], k: 2 ** 17, r: 0, ax: size.W / 2, ay: size.H / 2 });
     }
     if (force) userMoved.current = false;
-  }, [size, origin, hole.green, hole.tee, gps, view]);
+  }, [size, origin, hole.green, hole.tee, gps, view, cm.centre]);
 
   // New hole: start fresh; open setup straight away if it isn't mapped yet.
   useEffect(() => {
@@ -152,12 +169,12 @@ export default function HoleMap() {
   useEffect(() => { fitOrigin.current = null; fit(true); /* refit on resize / new hole */ // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [size?.W, size?.H, idx, mapped]);
 
-  const editLocal = (n, fn) => setOverrides((prev) => { const next = fn({ ...prev }); saveOverrides(next); return next; });
+  const editLocal = (n, fn) => setOverrides((prev) => { const next = fn({ ...prev }); saveOverrides(cm, next); return next; });
   // Show the change at once, then share it. If the save fails it stays on this phone.
   const setPoint = (which, p) => {
     const n = hole.n;
     editLocal(n, (o) => ({ ...o, [n]: { ...(o[n] || {}), [which]: p } }));
-    api("/api/holes", { method: "POST", body: JSON.stringify({ n, [which]: p }) })
+    api("/api/holes", { method: "POST", body: JSON.stringify({ course: cm.slug, n, [which]: p }) })
       .then(() => refreshShared())
       .then(() => { setSaveErr(null); editLocal(n, (o) => { if (o[n]) { delete o[n][which]; if (!Object.keys(o[n]).length) delete o[n]; } return o; }); })
       .catch((e) => setSaveErr(`Saved on this phone only (${e.message})`));
@@ -165,7 +182,7 @@ export default function HoleMap() {
   const resetHole = () => {
     const n = hole.n;
     editLocal(n, (o) => { delete o[n]; return o; });
-    if (shared[n]) api("/api/holes", { method: "POST", body: JSON.stringify({ n, reset: true }) }).then(refreshShared).catch((e) => setSaveErr(e.message));
+    if (shared[n]) api("/api/holes", { method: "POST", body: JSON.stringify({ course: cm.slug, n, reset: true }) }).then(refreshShared).catch((e) => setSaveErr(e.message));
   };
   const copyLayout = async () => {
     const r6 = (p) => (p ? [+p[0].toFixed(6), +p[1].toFixed(6)] : null);
@@ -320,12 +337,12 @@ export default function HoleMap() {
         <button className="hm-nav" onClick={() => setIdx((idx + 17) % 18)} aria-label="Previous hole"><ChevronLeft size={24} /></button>
         <div className="hm-hole">
           <span className="hm-hole-n num">{String(hole.n).padStart(2, "0")}</span>
-          <span className="hm-hole-meta"><b>PAR {hole.par}</b><br />S.I. {hole.si}{holeLen ? <> · {Math.round(holeLen)} m</> : null}</span>
+          <span className="hm-hole-meta"><b>PAR {hole.par}</b><br />S.I. {hole.si}{holeLen && !hole.virtual ? <> · {Math.round(holeLen)} m</> : hole.len ? <> · {hole.len} m</> : holeLen ? <> · {Math.round(holeLen)} m</> : null}</span>
         </div>
-        {live ? (
+        {live && courseMapFor(live.courseName)?.slug === cm.slug ? (
           <LiveScore live={live} i={hole.n - 1} onChange={(r) => { saveLive(r); setLive(r); }} />
         ) : (
-          <Link href="/play/round" className="hm-score" aria-label="Start an individual round"><ClipboardList size={17} /><span>Score</span></Link>
+          <Link href={`/play/round?course=${cm.slug}`} className="hm-score" aria-label="Start an individual round"><ClipboardList size={17} /><span>Score</span></Link>
         )}
         <button className="hm-nav" onClick={() => setIdx((idx + 1) % 18)} aria-label="Next hole"><ChevronRight size={24} /></button>
       </div>

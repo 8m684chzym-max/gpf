@@ -234,7 +234,7 @@ function ScoreEntry({ m, group, myIdx, canScore, startHole, onBack, onWrite }) {
           <div className="muted small" style={{ letterSpacing: 1, textTransform: "uppercase" }}>Team match · Group {group + 1}</div>
           <h2 className="page-h tight">Hole {hole}{par ? <span className="muted" style={{ fontSize: 15 }}> · Par {par} · SI {si}</span> : null}</h2>
         </div>
-        <Link href={`/play/map?hole=${hole}`} className="btn btn-accent small-btn" aria-label={`Hole ${hole} map`}><MapIcon size={15} /> Map</Link>
+        <Link href={`/play/map?course=pinheirinho&hole=${hole}`} className="btn btn-accent small-btn" aria-label={`Hole ${hole} map`}><MapIcon size={15} /> Map</Link>
       </div>
 
       <div className="tm-holes" ref={holesRef}>

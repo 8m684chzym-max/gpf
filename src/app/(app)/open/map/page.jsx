@@ -4,5 +4,5 @@ import { redirect } from "next/navigation";
 export default async function Page({ searchParams }) {
   const sp = await searchParams;
   const hole = Number(sp?.hole);
-  redirect(hole >= 1 && hole <= 18 ? `/play/map?hole=${hole}` : "/play/map");
+  redirect(hole >= 1 && hole <= 18 ? `/play/map?course=pinheirinho&hole=${hole}` : "/play/map?course=pinheirinho");
 }

@@ -3,7 +3,7 @@
 // dead signal never loses a score; on Finish it is submitted as a qualifying round
 // (POST /api/rounds) and becomes a scorecard on Rank. Independent of the Team Cup.
 import { courseHandicapFor, strokesOnHole } from "@/lib/scoring";
-import { HOLES } from "@/lib/holes";
+import { courseMapFor, DEFAULT_COURSE } from "@/lib/holes";
 
 const KEY = "gpf-live-round-v1";
 
@@ -14,8 +14,9 @@ export function saveLive(r) { try { localStorage.setItem(KEY, JSON.stringify(r))
 export function clearLive() { try { localStorage.removeItem(KEY); } catch { /* ignore */ } }
 
 // Par / stroke index per hole: the tee's own data when the course has it, else the map's.
-export const parOf = (r, i) => r?.tee?.holePars?.[i] ?? HOLES[i]?.par ?? 4;
-export const siOf = (r, i) => r?.tee?.strokeIndex?.[i] ?? HOLES[i]?.si ?? i + 1;
+const mapHoles = (r) => (courseMapFor(r?.courseName) || DEFAULT_COURSE).holes;
+export const parOf = (r, i) => r?.tee?.holePars?.[i] ?? mapHoles(r)[i]?.par ?? 4;
+export const siOf = (r, i) => r?.tee?.strokeIndex?.[i] ?? mapHoles(r)[i]?.si ?? i + 1;
 
 export function newLive({ course, tee, hcp, partner, date }) {
   return {

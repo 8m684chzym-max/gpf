@@ -8,7 +8,7 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { ArrowLeft, Check, Flag, Loader2, Map as MapIcon, Trash2 } from "lucide-react";
 import { api, fmtHcp } from "@/lib/client";
-import { COURSE_MAP } from "@/lib/holes";
+import { courseBySlug, courseMapFor, DEFAULT_COURSE } from "@/lib/holes";
 import { clearLive, courseHcp, holePoints, loadLive, newLive, parOf, saveLive, siOf, strokesOn, totals } from "@/lib/liveRound";
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -26,21 +26,23 @@ function Setup({ onStart }) {
   const [d, setD] = useState(null);
   const [f, setF] = useState({ teeId: "", hcp: "", partnerId: "", date: today() });
   const [err, setErr] = useState("");
+  const [cm, setCm] = useState(null); // mapped course from ?course=<slug> (default Pinheirinho)
+  useEffect(() => { setCm(courseBySlug(new URLSearchParams(window.location.search).get("course")) || DEFAULT_COURSE); }, []);
 
   useEffect(() => {
-    if (!session?.user) return;
+    if (!session?.user || !cm) return;
     Promise.all([api("/api/courses"), api("/api/members"), api("/api/leaderboard")]).then(([cs, ms, lb]) => {
-      const course = (cs.courses || []).find((c) => c.name.toLowerCase().includes(COURSE_MAP.name.toLowerCase()));
+      const course = (cs.courses || []).find((c) => courseMapFor(c.name)?.slug === cm.slug);
       const me = (lb.road || []).find((r) => r.name === session.user.name);
       const tees = (course?.tees || []).slice().sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
       setD({ course, tees, rankHcp: me?.hcp ?? null, members: (ms.members || []).filter((m) => m.role !== "ADMIN" && m.name !== session.user.name) });
       setF((x) => ({ ...x, teeId: tees[0]?.id || "", hcp: me?.hcp != null ? String(me.hcp) : "" }));
     }).catch((e) => setErr(e.message));
-  }, [session?.user]);
+  }, [session?.user, cm]);
 
   if (err) return <div className="inline-err">{err}</div>;
   if (!d) return <div className="loading"><Loader2 className="spin" size={22} /> Loading…</div>;
-  if (!d.course) return <div className="card empty">{COURSE_MAP.name} isn&rsquo;t in the course list yet — ask the committee to add it.</div>;
+  if (!d.course) return <div className="card empty">{cm.name} isn&rsquo;t in the course list yet — ask the committee to add it.</div>;
   const set = (k, v) => setF((x) => ({ ...x, [k]: v }));
   const tee = d.tees.find((t) => t.id === f.teeId);
   const partner = d.members.find((m) => m.id === f.partnerId);
@@ -50,7 +52,7 @@ function Setup({ onStart }) {
   const start = () => {
     const r = newLive({ course: d.course, tee, hcp: f.hcp, partner, date: f.date });
     saveLive(r); onStart(r);
-    router.push("/play/map?hole=1");
+    router.push(`/play/map?course=${cm.slug}&hole=1`);
   };
 
   return (
@@ -138,7 +140,7 @@ function Card({ live, setLive }) {
         <p className="lede">{t.played}/18 holes · handicap {fmtHcp(live.hcp)}{courseHcp(live) != null ? ` (course ${courseHcp(live)})` : ""} · witness {live.partnerName} · {live.date}</p>
       </div>
       <div className="btn-row" style={{ justifyContent: "flex-start" }}>
-        <button className="btn btn-primary" onClick={() => router.push(`/play/map?hole=${Math.min(18, (live.holes.findIndex((s) => !s) + 1) || 18)}`)}><MapIcon size={15} /> Back to the map</button>
+        <button className="btn btn-primary" onClick={() => router.push(`/play/map?course=${courseMapFor(live.courseName)?.slug || DEFAULT_COURSE.slug}&hole=${Math.min(18, (live.holes.findIndex((s) => !s) + 1) || 18)}`)}><MapIcon size={15} /> Back to the map</button>
       </div>
       <div className="board">
         <div className="board-head" style={{ display: "grid", gridTemplateColumns: "44px 44px 44px minmax(0,1fr) 52px", gap: 6 }}><span>Hole</span><span>Par</span><span>SI</span><span style={{ textAlign: "center" }}>Strokes</span><span style={{ textAlign: "right" }}>Pts</span></div>

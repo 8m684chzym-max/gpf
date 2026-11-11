@@ -6,15 +6,17 @@ import GamesHub from "@/components/games/GamesHub";
 import MatchPlay from "@/components/play/MatchPlay";
 import IndividualLeague from "@/components/play/IndividualLeague";
 import { loadLive, totals } from "@/lib/liveRound";
-import { COURSE_MAP } from "@/lib/holes";
+import { COURSES, courseMapFor } from "@/lib/holes";
 import { api } from "@/lib/client";
 
-// Courses with a hole map (GPS distances, hole sketches). Add an entry here when
-// another course gets mapped (src/lib/holes.js + public/holes/*).
-const MAPPED = [
-  { match: COURSE_MAP.name.toLowerCase(), name: COURSE_MAP.name, place: "Comporta", href: "/play/round", mapHref: "/play/map", image: "/courses/pinheirinho.jpeg" },
-];
-const mappedFor = (name) => MAPPED.find((m) => name.toLowerCase().includes(m.match));
+// Courses with a hole map (GPS distances, hole sketches) come from src/lib/holes.js.
+const MAPPED = COURSES.map((c) => ({
+  slug: c.slug, name: c.name, place: c.place, image: c.image,
+  href: `/play/round?course=${c.slug}`, mapHref: `/play/map?course=${c.slug}`,
+  // Sketched or fully GPS-mapped → "18 holes mapped"; otherwise tee/green get set on the first round.
+  ready: !!c.sketchUrl || c.holes.every((h) => h.tee && h.green),
+}));
+const mappedFor = (name) => { const c = courseMapFor(name); return c ? MAPPED.find((m) => m.slug === c.slug) : null; };
 
 const TABS = [["start", "Start play", Flag], ["match", "Match play", Swords], ["games", "Games", Dices], ["league", "Individual league", Medal]];
 
@@ -67,7 +69,7 @@ function StartPlay() {
             <div className="course-img">{m.image ? <img src={m.image} alt={m.name} /> : <MapIcon size={28} />}</div>
             <div className="course-body">
               <span className="course-name">{m.name}</span>
-              <span className="muted small">{m.place}{m.course?.tees?.length ? ` · ${m.course.tees.length} tees` : ""} · 18 holes mapped</span>
+              <span className="muted small">{m.place}{m.course?.tees?.length ? ` · ${m.course.tees.length} tees` : ""} · {m.ready ? "18 holes mapped" : "GPS set on the course"}</span>
               <span style={{ marginTop: 8, fontSize: 14, display: "flex", alignItems: "center", gap: 4 }}>Start a round <ChevronRight size={15} /></span>
             </div>
           </Link>))}
