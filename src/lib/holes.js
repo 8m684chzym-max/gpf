@@ -53,7 +53,7 @@ const LISBON_SPORTS_CLUB = {
   slug: "lisbon-sports-club",
   name: "Lisbon Sports Club",
   place: "Belas",
-  image: null,
+  image: "/courses/lisbon-sports-club.jpeg",
   centre: [38.797719, -9.276001], // clubhouse area (where2golf), used before a hole is mapped
   sketchUrl: null,
   pars: [3, 4, 3, 4, 5, 4, 4, 3, 4, 4, 3, 5, 3, 4, 4, 5, 3, 4],
