@@ -74,7 +74,7 @@ const ESTORIL_BLUE = {
   slug: "estoril-blue",
   name: "Estoril Blue",
   place: "Estoril",
-  image: "/holes/estoril-blue/hole-3.webp", // engraved hole 3 as the card picture
+  image: "/courses/estoril-blue.jpeg",
   centre: [38.7187, -9.3949],
   sketchUrl: "/holes/estoril-blue-sketch.json",
   pars: [4, 4, 5, 4, 3, 4, 3, 3, 4],
