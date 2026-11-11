@@ -201,6 +201,8 @@ a{color:inherit;text-decoration:none}
 /* ── Hole map (GPF Open › Hole map) ── */
 .hm{position:fixed;left:0;right:0;top:57px;bottom:0;max-width:none;margin:0 auto;overflow:hidden;background:#1d2a22;touch-action:none;user-select:none;-webkit-user-select:none;z-index:5}
 .hm-tiles,.hm-labels{position:absolute;inset:0;pointer-events:none}
+.hm-layer{position:absolute;left:0;top:0;transform-origin:0 0}
+.hm-layer img{position:absolute;width:256.6px;height:256.6px;max-width:none;pointer-events:none}
 .hm-svg{position:absolute;left:0;top:0;pointer-events:none}
 .hm-arc-t{fill:#1e3b28;font-family:var(--disp);font-weight:700;font-size:15px;paint-order:stroke;stroke:#f7efdc;stroke-width:4px}
 .hm-tag{position:absolute;transform:translateY(-50%);background:#fff;color:var(--ink);border-radius:9px;padding:3px 8px;display:flex;align-items:baseline;gap:3px;box-shadow:0 2px 8px rgba(0,0,0,.35)}

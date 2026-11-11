@@ -11,6 +11,10 @@ import {
   distance, along, toWorld, fromWorld, toScreen, fromScreen, fitLine, worldPerMetre, frontBack,
 } from "@/lib/geo";
 
+// Esri World Imagery (free satellite tiles, attribution required): the base map for holes
+// with no traced sketch (e.g. Lisbon Sports Club).
+const TILE_URL = (z, x, y) => `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
+const MAX_TILE_Z = 19;
 const MAX_K = 2 ** 21;            // closest zoom (screen px per world unit)
 const MIN_K = 2 ** 13;
 const PAD_TOP = 165, PAD_BOTTOM = 70;   // keep the whole green clear of the distance card
@@ -286,6 +290,7 @@ function HoleMapInner({ cm }) {
     <div ref={boxRef} className={`hm ${showSketch ? "hm-sk" : ""}`}
          onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onWheel={onWheel}>
       {view && size && showSketch && <Sketch view={view} size={size} hole={hole} />}
+      {view && size && !showSketch && <Tiles view={view} size={size} />}
       {view && size && (
         <Overlay view={view} size={size} hole={hole} origin={origin} target={target} gps={gps}
                  playerOnHole={playerOnHole} toTarget={toTarget} targetToGreen={targetToGreen} edit={edit} />
@@ -354,7 +359,7 @@ function HoleMapInner({ cm }) {
         )}
         <button className="hm-nav" onClick={() => setIdx((idx + 1) % nav)} aria-label="Next hole"><ChevronRight size={24} /></button>
       </div>
-      <div className="hm-attr">{cm.name} · GPF yardage book · approximate</div>
+      <div className="hm-attr">{showSketch ? <>{cm.name} · GPF yardage book · approximate</> : <>{cm.name} · Imagery © Esri, Maxar, Earthstar Geographics</>}</div>
     </div>
   );
 }
@@ -376,6 +381,46 @@ function LiveScore({ live, i, onChange }) {
       <Link href="/play/round" className="hm-card" aria-label="Scorecard"><span className="num">{t.points}</span><small>card</small></Link>
     </div>
   );
+}
+
+// Satellite tiles for the current view, drawn in a rotated/scaled layer.
+// A coarser layer sits underneath so there is something to see while the sharp tiles load.
+function Tiles({ view, size }) {
+  const zFine = Math.max(3, Math.min(MAX_TILE_Z, Math.ceil(Math.log2(view.k))));
+  return (
+    <div className="hm-tiles" aria-hidden>
+      <TileLayer view={view} size={size} z={Math.max(3, zFine - 3)} />
+      <TileLayer view={view} size={size} z={zFine} />
+    </div>
+  );
+}
+
+function TileLayer({ view, size, z }) {
+  const n = 2 ** z, unit = 256 / n;       // world units per tile
+  const corners = [[0, 0], [size.W, 0], [0, size.H], [size.W, size.H]].map((p) => fromScreen(view, p));
+  const xs = corners.map((c) => c[0]), ys = corners.map((c) => c[1]);
+  const x0 = Math.floor(Math.min(...xs) / unit), x1 = Math.floor(Math.max(...xs) / unit);
+  const y0 = Math.max(0, Math.floor(Math.min(...ys) / unit)), y1 = Math.min(n - 1, Math.floor(Math.max(...ys) / unit));
+  if ((x1 - x0 + 1) * (y1 - y0 + 1) > 120) return null; // zoomed way out — skip rather than flood requests
+
+  // Tiles are laid out in px relative to a base tile near the centre (keeps CSS numbers small).
+  const bx = Math.floor(view.cx / unit), by = Math.floor(view.cy / unit);
+  const s = view.k / (2 ** z);    // screen px per tile px
+  const cs = Math.cos(view.r), sn = Math.sin(view.r);
+  const a = s * cs, b = s * sn, c = -s * sn, d = s * cs;
+  const Cx = (view.cx / unit - bx) * 256, Cy = (view.cy / unit - by) * 256; // centre in layer px
+  const e = view.ax - (a * Cx + c * Cy), f = view.ay - (b * Cx + d * Cy);
+
+  const imgs = [];
+  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
+    const wx = ((tx % n) + n) % n;
+    imgs.push(
+      <img key={`${z}/${tx}/${ty}`} src={TILE_URL(z, wx, ty)} alt="" draggable={false}
+           onError={(ev) => { ev.currentTarget.style.visibility = "hidden"; }}
+           style={{ left: (tx - bx) * 256, top: (ty - by) * 256 }} />,
+    );
+  }
+  return <div className="hm-layer" style={{ transform: `matrix(${a},${b},${c},${d},${e},${f})` }}>{imgs}</div>;
 }
 
 // Lines, distance arcs, markers and distance labels, in screen space.
