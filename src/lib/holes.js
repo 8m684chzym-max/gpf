@@ -21,7 +21,7 @@ const PINHEIRINHO = {
   sketchUrl: "/holes/pinheirinho-sketch.json", // traced hole sketches, local metres from the tee
   pars: [4, 4, 3, 5, 4, 4, 5, 3, 4, 4, 5, 4, 4, 4, 3, 5, 3, 4],
   si: [9, 7, 15, 1, 3, 13, 5, 17, 11, 14, 6, 8, 4, 16, 18, 12, 10, 2],
-  lengths: null,
+  lengths: null, // metres per tee name, e.g. { Yellow: [...18] }
   // [tee, green, greenPoly] per hole, 1–18.
   geo: [
     /*  1 */ [null, null, null],
@@ -45,10 +45,10 @@ const PINHEIRINHO = {
   ],
 };
 
-// ── Lisbon Sports Club (Belas). Par 69. Par / SI / yellow-tee metres from the
-// club's GPS-app screens (Nov 2026; newer SI than the old printed cards online).
-// Yellow lengths not legible on those screens are null. Par / SI also go on the
-// tees in the DB via scripts/add-lisbon-sports-club.mjs.
+// ── Lisbon Sports Club (Belas). Par 69. Par / SI / metres per tee from the
+// club's scorecard (Nov 2026; newer SI than the old printed cards online):
+// White 5,309 m (CR 69.2 / SR 127), Yellow 4,975 m (CR 67.8 / SR 124).
+// Par / SI also go on the tees in the DB via scripts/add-lisbon-sports-club.mjs.
 const LISBON_SPORTS_CLUB = {
   slug: "lisbon-sports-club",
   name: "Lisbon Sports Club",
@@ -58,7 +58,10 @@ const LISBON_SPORTS_CLUB = {
   sketchUrl: null,
   pars: [3, 4, 3, 4, 5, 4, 4, 3, 4, 4, 3, 5, 3, 4, 4, 5, 3, 4],
   si: [16, 4, 8, 6, 12, 10, 2, 14, 18, 11, 17, 13, 5, 9, 7, 1, 15, 3],
-  lengths: [151, 389, 165, 317, 432, null, null, null, 254, 250, 123, null, 184, null, 289, 458, 144, 357], // yellow, metres
+  lengths: { // metres per tee; the first one is shown when no round is in progress
+    Yellow: [151, 389, 165, 317, 432, 279, 351, 135, 254,  250, 123, 446, 184, 251, 289, 458, 144, 357],
+    White:  [168, 403, 174, 347, 440, 296, 358, 148, 272,  263, 126, 467, 198, 262, 326, 479, 163, 419],
+  },
   geo: Array.from({ length: 18 }, () => [null, null, null]),
 };
 
@@ -83,7 +86,9 @@ const ESTORIL_BLUE = {
 const build = (c) => ({
   ...c,
   holes: c.geo.map(([tee, green, greenPoly], i) => ({
-    n: i + 1, par: c.pars[i], si: c.si[i], len: c.lengths?.[i] ?? null, tee, green, greenPoly,
+    n: i + 1, par: c.pars[i], si: c.si[i], tee, green, greenPoly,
+    lens: c.lengths ? Object.fromEntries(Object.entries(c.lengths).map(([t, ls]) => [t, ls[i]])) : null,
+    len: c.lengths ? Object.values(c.lengths)[0][i] : null,
   })),
 });
 

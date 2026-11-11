@@ -11,7 +11,7 @@
  * NOTE: once a tee has hole data, rounds on it with 18 hole scores are scored
  * with exact Stableford instead of the gross-based estimate (src/lib/scoring.js).
  *
- * Source: the club's GPS-app hole screens (Nov 2026), matching src/lib/holes.js.
+ * Source: the club's scorecard (Nov 2026), matching src/lib/holes.js.
  * The SI there is newer than the old printed cards online. Ladies' SI may differ.
  */
 
@@ -22,8 +22,8 @@ const prisma = new PrismaClient();
 const HOLE_PARS = [3, 4, 3, 4, 5, 4, 4, 3, 4,  4, 3, 5, 3, 4, 4, 5, 3, 4];
 const STROKE_INDEX = [16, 4, 8, 6, 12, 10, 2, 14, 18,  11, 17, 13, 5, 9, 7, 1, 15, 3];
 
-// Only used if the course doesn't exist yet. Published ratings (GolfPass / club):
-// White 69.2 / 127 (5,309 m), Yellow 67.8 / 124 (5,029 m), Red (W) 70.5 / 127 (4,658 m).
+// Only used if the course doesn't exist yet. Club scorecard: White 69.2 / 127 (5,309 m),
+// Yellow 67.8 / 124 (4,975 m); Red (GolfPass) 68.2 / 117 men, 70.5 / 127 ladies.
 const COURSE = {
   name: "Lisbon Sports Club",
   par: 69,
