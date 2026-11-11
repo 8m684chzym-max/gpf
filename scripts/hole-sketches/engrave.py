@@ -9,7 +9,8 @@ Run from the repo root:  python3 scripts/hole-sketches/engrave.py
 """
 import json, math, random, sys
 random.seed(7)
-SK = json.load(open('public/holes/pinheirinho-sketch.json'))
+import os
+SK = json.load(open(os.environ.get('SKETCH', 'public/holes/pinheirinho-sketch.json')))
 INK, INK2, SEPIA, PAPER = '#1e3b28', '#2f5536', '#8c6d3f', '#efe4cf'
 PX = 1.9  # px per metre
 
@@ -102,6 +103,22 @@ class Hole:
                 f'<text x="{tx}" y="{ty+38}" class="lab sm" text-anchor="{anchor}">{length} M</text>')
 
 import math, random, json, base64, sys
+# Shared SVG defs (patterns, paper filters, label style). Filled in with the colours below.
+DEFS = (
+ '<pattern id="mow" width="26" height="9" patternUnits="userSpaceOnUse">'
+ '<path d="M0,5 q6.5,-3 13,0 t13,0" fill="none" stroke="{SEPIA}" stroke-width=".7" opacity=".28"/></pattern>'
+ '<pattern id="stip" width="11" height="11" patternUnits="userSpaceOnUse">'
+ '<circle cx="2" cy="3" r=".7" fill="{SEPIA}" opacity=".35"/><circle cx="8" cy="8.5" r=".6" fill="{SEPIA}" opacity=".3"/></pattern>'
+ '<pattern id="sand" width="6" height="6" patternUnits="userSpaceOnUse">'
+ '<circle cx="1.5" cy="1.5" r=".65" fill="{SEPIA}" opacity=".7"/><circle cx="4.5" cy="4.5" r=".5" fill="{SEPIA}" opacity=".55"/></pattern>'
+ '<pattern id="wave" width="18" height="7" patternUnits="userSpaceOnUse">'
+ '<path d="M0,4 q4.5,-3 9,0 t9,0" fill="none" stroke="{INK2}" stroke-width=".8" opacity=".6"/></pattern>'
+ '<filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="3"/>'
+ '<feDisplacementMap in="SourceGraphic" scale="1.6"/></filter>'
+ '<filter id="paper" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".75" numOctaves="3" seed="9"/>'
+ '<feColorMatrix values="0 0 0 0 .55  0 0 0 0 .43  0 0 0 0 .25  0 0 0 .09 0"/></filter>'
+ '<style>.lab{{font:600 15px Georgia,serif;fill:{INK};letter-spacing:1.5px}}.lab.sm{{font-size:12px}}</style>'
+)
 DEFS = eval('f' + repr(DEFS))   # fill in the colours
 LOGO = base64.b64encode(open('public/logo.png', 'rb').read()).decode()
 

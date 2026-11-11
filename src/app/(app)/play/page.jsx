@@ -15,6 +15,7 @@ const MAPPED = COURSES.map((c) => ({
   href: `/play/round?course=${c.slug}`, mapHref: `/play/map?course=${c.slug}`,
   // Sketched or fully GPS-mapped → "18 holes mapped"; otherwise tee/green get set on the first round.
   ready: !!c.sketchUrl || c.holes.every((h) => h.tee && h.green),
+  holes: c.holes.length, // a 9-hole course is played twice for an 18-hole card
 }));
 const mappedFor = (name) => { const c = courseMapFor(name); return c ? MAPPED.find((m) => m.slug === c.slug) : null; };
 
@@ -58,7 +59,7 @@ function StartPlay() {
       {live && (
         <Link href="/play/round" className="card course-card" style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: "18px 20px", borderColor: "var(--ink)" }}>
           <span><span className="eyebrow">Round in progress</span><br /><b>{live.courseName} · {live.teeName}</b>
-            <span className="muted small"> · {totals(live).played}/18 holes · {totals(live).points} pts</span></span>
+            <span className="muted small"> · {totals(live).played}/{live.holes.length} holes · {totals(live).points} pts</span></span>
           <ChevronRight size={18} />
         </Link>)}
       <p className="muted" style={{ margin: 0, fontSize: 15 }}>Pick the course you&rsquo;re playing. On a mapped course you get live GPS distances and enter your score hole by hole; at the end your card goes to Rank.</p>
@@ -69,7 +70,7 @@ function StartPlay() {
             <div className="course-img">{m.image ? <img src={m.image} alt={m.name} /> : <MapIcon size={28} />}</div>
             <div className="course-body">
               <span className="course-name">{m.name}</span>
-              <span className="muted small">{m.place}{m.course?.tees?.length ? ` · ${m.course.tees.length} tees` : ""} · {m.ready ? "18 holes mapped" : "GPS set on the course"}</span>
+              <span className="muted small">{m.place}{m.course?.tees?.length ? ` · ${m.course.tees.length} tees` : ""} · {m.ready ? `${m.holes} holes mapped${m.holes < 18 ? " (played twice)" : ""}` : "GPS set on the course"}</span>
               <span style={{ marginTop: 8, fontSize: 14, display: "flex", alignItems: "center", gap: 4 }}>Start a round <ChevronRight size={15} /></span>
             </div>
           </Link>))}

@@ -1,6 +1,7 @@
 import numpy as np, cv2, math
 from PIL import Image
-from holes_meta import META, U
+from holes_meta import META, U, COURSE
+EST = COURSE == 'estoril-blue'   # small, compressed screenshots: bluish-grey tree shade
 S = 1206/920
 SCRUB, GRASS, SAND, WATER, TREE, UNK = 0,1,2,3,4,5
 PAL = np.array([[233,223,196],[31,138,100],[255,244,214],[47,111,143],[12,58,44],[255,0,255]],np.uint8)
@@ -19,7 +20,8 @@ def ui_mask(im, n):
     m |= (B>G+22) & (B>R+22)                          # blue UI / blue arcs / lavender
     m |= (R>190)&(G>120)&(B<110)&(R-B>110)            # orange arc, yellow icons, yellow pill
     m |= (R>180)&(G<140)&(B<120)                      # red arc
-    m |= (B>G+6)&(B>R+12)&(lum<90)                    # navy panels/labels
+    if EST: m |= (B>G+18)&(B>R+28)&(lum<90)           # navy panels/labels (tree shade is bluish here)
+    else: m |= (B>G+6)&(B>R+12)&(lum<90)              # navy panels/labels
     m |= (G>190)&(G>R+10)&(G>B+20)                    # light green arcs (par 3)
     m = cv2.dilate(m.astype(np.uint8), np.ones((7,7),np.uint8))>0
     H,W = R.shape
@@ -52,7 +54,7 @@ def classify(im, n):
         if area >= 250 and t < 12 and (br >= -7 or (br >= -8.5 and t < 9)):
             water |= mk
     lab[water] = WATER
-    tree = (lum<72)&~water
+    tree = ((lum<96)&(G-R<=12) if EST else (lum<72))&~water
     lab[tree & (lab!=SAND)] = TREE
     return lab
 

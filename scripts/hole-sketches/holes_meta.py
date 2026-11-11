@@ -1,5 +1,6 @@
 # display coords (920x2000): file, tee, green, (labelA R, x,y), (labelB R, x,y)
 import os
+COURSE = os.environ.get('COURSE', 'pinheirinho')
 U = os.environ.get('SHOTS_DIR', 'screenshots') + '/'  # folder with the Hole19 screenshots (<id>-image.png)
 META = {
  1: ('f205005e', (443,1715), (459,288), (50,445,1523), (200,453,819)),
@@ -21,3 +22,6 @@ META = {
  17: ('1e23ec4e', (416,1715), (460,388), (25,424,1528), (125,455,580)),
  18: ('6b7a423d', (515,1715), (499,262), (50,488,1556), (200,406,948)),
 }
+
+if COURSE == 'estoril-blue':
+    from holes_meta_estoril_blue import META  # noqa: F811

@@ -44,7 +44,7 @@ export async function POST(req) {
   const course = pick(b.course);
   if (!course) return NextResponse.json({ error: "Unknown course" }, { status: 404 });
   const n = Number(b.n);
-  if (!Number.isInteger(n) || n < 1 || n > 18) return NextResponse.json({ error: "Bad hole number" }, { status: 400 });
+  if (!Number.isInteger(n) || n < 1 || n > course.holes.length) return NextResponse.json({ error: "Bad hole number" }, { status: 400 });
   let details;
   if (b.reset) details = { reset: true };
   else {

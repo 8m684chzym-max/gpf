@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { courseBySlug, courseMapFor, DEFAULT_COURSE } from "@/lib/holes";
 import { api } from "@/lib/client";
-import { loadLive, saveLive, holePoints, totals, strokesOn, parOf } from "@/lib/liveRound";
+import { loadLive, saveLive, holePoints, totals, strokesOn, parOf, siOf } from "@/lib/liveRound";
 import {
   distance, along, toWorld, fromWorld, toScreen, fromScreen, fitLine, worldPerMetre, frontBack,
 } from "@/lib/geo";
@@ -44,12 +44,7 @@ function HoleMapInner({ cm }) {
   const [shared, setShared] = useState({});       // tee/green positions everyone shares (from /api/holes)
   const [loaded, setLoaded] = useState(false);
   const [saveErr, setSaveErr] = useState(null);
-  const [idx, setIdx] = useState(0);
-  // Opened from score entry: /play/map?hole=N
-  useEffect(() => {
-    const n = Number(new URLSearchParams(window.location.search).get("hole"));
-    if (n >= 1 && n <= 18) setIdx(n - 1);
-  }, []);
+  const [idx, setIdx] = useState(0);              // card hole (0-based); a 9-hole map is played twice
   const [view, setView] = useState(null);
   const [target, setTarget] = useState(null);
   const [gps, setGps] = useState(null);           // { pos:[lat,lng], acc }
@@ -59,7 +54,16 @@ function HoleMapInner({ cm }) {
   const [copied, setCopied] = useState(false);
   const [sketches, setSketches] = useState(null);
   const [live, setLive] = useState(null);           // individual round in progress (lib/liveRound.js)
-  useEffect(() => setLive(loadLive()), []);
+  const liveHere = !!(live && courseMapFor(live.courseName)?.slug === cm.slug);
+  const nav = liveHere ? live.holes.length : HOLES.length; // holes you step through
+  // Opened from score entry: /play/map?hole=N
+  useEffect(() => {
+    const l = loadLive();
+    setLive(l);
+    const max = l && courseMapFor(l.courseName)?.slug === cm.slug ? l.holes.length : HOLES.length;
+    const n = Number(new URLSearchParams(window.location.search).get("hole"));
+    if (n >= 1 && n <= max) setIdx(n - 1);
+  }, [cm.slug, HOLES.length]);
   const userMoved = useRef(false);
   const fitOrigin = useRef(null);
 
@@ -110,11 +114,13 @@ function HoleMapInner({ cm }) {
   }, [gpsOn]);
 
   const hole = useMemo(() => {
-    const h = HOLES[idx], o = overrides[h.n] || {}, sv = shared[h.n] || {};
+    const h = HOLES[idx % HOLES.length], o = overrides[h.n] || {}, sv = shared[h.n] || {};
     const green = o.green ?? sv.green ?? h.green;
     const tee = o.tee ?? sv.tee ?? h.tee;
     const sketch = sketches?.[h.n] || null;
-    const base = { ...h, tee, green, greenPoly: green === h.green ? h.greenPoly : null, by: sv.by, sketch, virtual: false, realTee: !!tee, realGreen: !!green };
+    const cardN = idx + 1;   // number on the card (10–18 on the second loop of a 9-hole course)
+    const par = liveHere ? parOf(live, idx) : h.par, si = liveHere ? siOf(live, idx) : h.si;
+    const base = { ...h, cardN, par, si, tee, green, greenPoly: green === h.green ? h.greenPoly : null, by: sv.by, sketch, virtual: false, realTee: !!tee, realGreen: !!green };
     // Until both the real tee and green are set, lay the sketch out at a stand-in spot
     // so yardage-book distances work from the tee. GPS needs the real tee and green.
     let out = base;
@@ -128,7 +134,7 @@ function HoleMapInner({ cm }) {
       out = { ...out, greenPoly: sketch.greenPoly.map(f) };
     }
     return out;
-  }, [idx, overrides, shared, sketches, HOLES, cm.centre]);
+  }, [idx, overrides, shared, sketches, HOLES, cm.centre, liveHere, live]);
   const mapped = !!(hole.tee && hole.green);
   const holeLen = mapped ? distance(hole.tee, hole.green) : null;
 
@@ -334,19 +340,19 @@ function HoleMapInner({ cm }) {
 
       {/* Bottom: hole selector */}
       <div className="hm-bar" onPointerDown={(e) => e.stopPropagation()}>
-        <button className="hm-nav" onClick={() => setIdx((idx + 17) % 18)} aria-label="Previous hole"><ChevronLeft size={24} /></button>
+        <button className="hm-nav" onClick={() => setIdx((idx + nav - 1) % nav)} aria-label="Previous hole"><ChevronLeft size={24} /></button>
         <div className="hm-hole">
-          <span className="hm-hole-n num">{String(hole.n).padStart(2, "0")}</span>
+          <span className="hm-hole-n num">{String(hole.cardN).padStart(2, "0")}</span>
           <span className="hm-hole-meta"><b>PAR {hole.par}</b><br />S.I. {hole.si}{holeLen && !hole.virtual ? <> · {Math.round(holeLen)} m</> : hole.len ? <> · {hole.len} m</> : holeLen ? <> · {Math.round(holeLen)} m</> : null}</span>
         </div>
-        {live && courseMapFor(live.courseName)?.slug === cm.slug ? (
-          <LiveScore live={live} i={hole.n - 1} onChange={(r) => { saveLive(r); setLive(r); }} />
+        {liveHere ? (
+          <LiveScore live={live} i={idx} onChange={(r) => { saveLive(r); setLive(r); }} />
         ) : (
           <Link href={`/play/round?course=${cm.slug}`} className="hm-score" aria-label="Start an individual round"><ClipboardList size={17} /><span>Score</span></Link>
         )}
-        <button className="hm-nav" onClick={() => setIdx((idx + 1) % 18)} aria-label="Next hole"><ChevronRight size={24} /></button>
+        <button className="hm-nav" onClick={() => setIdx((idx + 1) % nav)} aria-label="Next hole"><ChevronRight size={24} /></button>
       </div>
-      <div className="hm-attr">GPF yardage book · approximate</div>
+      <div className="hm-attr">{cm.name} · GPF yardage book · approximate</div>
     </div>
   );
 }

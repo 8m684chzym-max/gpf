@@ -62,6 +62,24 @@ const LISBON_SPORTS_CLUB = {
   geo: Array.from({ length: 18 }, () => [null, null, null]),
 };
 
+// ── Estoril Blue (Clube de Golf do Estoril, 9-hole Blue Course). Par 34, played as two
+// loops for an 18-hole card: holes 10–18 are holes 1–9 again (the tees in the DB carry
+// the 18-hole par / SI / rating, scripts/add-estoril-blue.mjs). Par / SI / yellow metres
+// from the Hole19 card; sketches traced from Hole19 screenshots (scripts/hole-sketches),
+// holes 4 and 5 not traced yet (GPS setup on the course still works).
+const ESTORIL_BLUE = {
+  slug: "estoril-blue",
+  name: "Estoril Blue",
+  place: "Estoril",
+  image: "/holes/estoril-blue/hole-3.webp", // engraved hole 3 as the card picture
+  centre: [38.7187, -9.3949],
+  sketchUrl: "/holes/estoril-blue-sketch.json",
+  pars: [4, 4, 5, 4, 3, 4, 3, 3, 4],
+  si: [5, 2, 4, 7, 6, 3, 8, 9, 1],
+  lengths: [298, 351, 407, null, null, 304, 131, 97, 302], // yellow, metres
+  geo: Array.from({ length: 9 }, () => [null, null, null]),
+};
+
 const build = (c) => ({
   ...c,
   holes: c.geo.map(([tee, green, greenPoly], i) => ({
@@ -69,7 +87,7 @@ const build = (c) => ({
   })),
 });
 
-export const COURSES = [PINHEIRINHO, LISBON_SPORTS_CLUB].map(build);
+export const COURSES = [PINHEIRINHO, LISBON_SPORTS_CLUB, ESTORIL_BLUE].map(build);
 export const DEFAULT_COURSE = COURSES[0];
 
 export const courseBySlug = (slug) => COURSES.find((c) => c.slug === slug) || null;

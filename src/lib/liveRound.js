@@ -15,8 +15,10 @@ export function clearLive() { try { localStorage.removeItem(KEY); } catch { /* i
 
 // Par / stroke index per hole: the tee's own data when the course has it, else the map's.
 const mapHoles = (r) => (courseMapFor(r?.courseName) || DEFAULT_COURSE).holes;
-export const parOf = (r, i) => r?.tee?.holePars?.[i] ?? mapHoles(r)[i]?.par ?? 4;
-export const siOf = (r, i) => r?.tee?.strokeIndex?.[i] ?? mapHoles(r)[i]?.si ?? i + 1;
+// Map hole for card hole i (0-based): on a 9-hole course the second loop is holes 1–9 again.
+export const mapHoleOf = (r, i) => { const h = mapHoles(r); return h[i % h.length]; };
+export const parOf = (r, i) => r?.tee?.holePars?.[i] ?? mapHoleOf(r, i)?.par ?? 4;
+export const siOf = (r, i) => r?.tee?.strokeIndex?.[i] ?? mapHoleOf(r, i)?.si ?? i + 1;
 
 export function newLive({ course, tee, hcp, partner, date }) {
   return {

@@ -9,7 +9,7 @@ import Link from "next/link";
 import { ArrowLeft, Check, Flag, Loader2, Map as MapIcon, Trash2 } from "lucide-react";
 import { api, fmtHcp } from "@/lib/client";
 import { courseBySlug, courseMapFor, DEFAULT_COURSE } from "@/lib/holes";
-import { clearLive, courseHcp, holePoints, loadLive, newLive, parOf, saveLive, siOf, strokesOn, totals } from "@/lib/liveRound";
+import { clearLive, courseHcp, holePoints, loadLive, mapHoleOf, newLive, parOf, saveLive, siOf, strokesOn, totals } from "@/lib/liveRound";
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -62,6 +62,7 @@ function Setup({ onStart }) {
         <div className="eyebrow">Start play · {d.course.name}</div>
         <h1 className="page-h">Your round.</h1>
         <p className="lede">Enter your score on each hole as you play. At the end it becomes a scorecard on Rank, witnessed by the member playing with you.</p>
+        {cm.holes.length < 18 && <p className="hint" style={{ margin: 0 }}>{cm.name} has {cm.holes.length} holes: the card is 18 holes, two loops — holes 10–18 are holes 1–9 again.</p>}
       </div>
       <div className="card form">
         <div className="round-edit" style={{ marginTop: 0, paddingTop: 0, borderTop: "none" }}>
@@ -140,13 +141,13 @@ function Card({ live, setLive }) {
         <p className="lede">{t.played}/18 holes · handicap {fmtHcp(live.hcp)}{courseHcp(live) != null ? ` (course ${courseHcp(live)})` : ""} · witness {live.partnerName} · {live.date}</p>
       </div>
       <div className="btn-row" style={{ justifyContent: "flex-start" }}>
-        <button className="btn btn-primary" onClick={() => router.push(`/play/map?course=${courseMapFor(live.courseName)?.slug || DEFAULT_COURSE.slug}&hole=${Math.min(18, (live.holes.findIndex((s) => !s) + 1) || 18)}`)}><MapIcon size={15} /> Back to the map</button>
+        <button className="btn btn-primary" onClick={() => router.push(`/play/map?course=${courseMapFor(live.courseName)?.slug || DEFAULT_COURSE.slug}&hole=${(live.holes.findIndex((s) => !s) + 1) || live.holes.length}`)}><MapIcon size={15} /> Back to the map</button>
       </div>
       <div className="board">
-        <div className="board-head" style={{ display: "grid", gridTemplateColumns: "44px 44px 44px minmax(0,1fr) 52px", gap: 6 }}><span>Hole</span><span>Par</span><span>SI</span><span style={{ textAlign: "center" }}>Strokes</span><span style={{ textAlign: "right" }}>Pts</span></div>
+        <div className="board-head" style={{ display: "grid", gridTemplateColumns: "58px 40px 44px minmax(0,1fr) 52px", gap: 6 }}><span>Hole</span><span>Par</span><span>SI</span><span style={{ textAlign: "center" }}>Strokes</span><span style={{ textAlign: "right" }}>Pts</span></div>
         {live.holes.map((s, i) => (
-          <div key={i} className="board-row" style={{ display: "grid", gridTemplateColumns: "44px 44px 44px minmax(0,1fr) 52px", gap: 6, alignItems: "center", padding: "8px 16px" }}>
-            <span className="num"><b>{i + 1}</b></span><span className="num">{parOf(live, i)}</span>
+          <div key={i} className="board-row" style={{ display: "grid", gridTemplateColumns: "58px 40px 44px minmax(0,1fr) 52px", gap: 6, alignItems: "center", padding: "8px 16px" }}>
+            <span className="num"><b>{i + 1}</b>{mapHoleOf(live, i)?.n !== i + 1 ? <span className="muted small"> ({mapHoleOf(live, i).n})</span> : null}</span><span className="num">{parOf(live, i)}</span>
             <span className="num muted">{siOf(live, i)}{strokesOn(live, i) > 0 ? <span style={{ color: "var(--flag)" }}> {"•".repeat(strokesOn(live, i))}</span> : null}</span>
             <input className="hole-in" style={{ maxWidth: 72, justifySelf: "center" }} inputMode="numeric" value={s ?? ""} aria-label={`Hole ${i + 1} strokes`} onChange={(e) => update(i, e.target.value)} />
             <span className="num tot" style={{ textAlign: "right" }}>{holePoints(live, i) ?? "—"}</span>
