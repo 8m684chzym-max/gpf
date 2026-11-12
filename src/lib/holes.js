@@ -55,7 +55,7 @@ const LISBON_SPORTS_CLUB = {
   place: "Belas",
   image: "/courses/lisbon-sports-club.jpeg",
   centre: [38.797719, -9.276001], // clubhouse area (where2golf), used before a hole is mapped
-  sketchUrl: null,
+  sketchUrl: "/holes/lisbon-sports-club-sketch.json", // traced from Esri World Imagery (scripts/hole-sketches)
   pars: [3, 4, 3, 4, 5, 4, 4, 3, 4, 4, 3, 5, 3, 4, 4, 5, 3, 4],
   si: [16, 4, 8, 6, 12, 10, 2, 14, 18, 11, 17, 13, 5, 9, 7, 1, 15, 3],
   lengths: { // metres per tee; the first one is shown when no round is in progress

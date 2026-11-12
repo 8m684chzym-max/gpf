@@ -25,3 +25,5 @@ META = {
 
 if COURSE == 'estoril-blue':
     from holes_meta_estoril_blue import META  # noqa: F811
+elif COURSE == 'lisbon-sports-club':
+    from holes_meta_lisbon_sports_club import META  # noqa: F811

@@ -24,3 +24,15 @@ Set `COURSE` to pick the hole metadata (`holes_meta_<course>.py`). Estoril Blue 
 
 Estoril screenshots are small (281×612), upscaled to 1206 wide before tracing; seg.py
 uses a looser tree threshold for them. Holes 4 and 5 still need screenshots.
+
+## Lisbon Sports Club (from ArcGIS satellite, no screenshots)
+
+`gen-shots-arcgis.py` cuts each hole out of Esri World Imagery, rotated tee-bottom /
+green-top from the tee / green GPS in `src/lib/holes.js`, as 1206x2622 "screenshots",
+and writes `holes_meta_lisbon_sports_club.py` (synthetic arcs give the scale). seg.py
+uses `classify_arc` for these (trees by texture at 3 px/m, no UI mask).
+
+    python3 gen-shots-arcgis.py            # needs stitch.py-style tile fetch (server.arcgisonline.com)
+    COURSE=lisbon-sports-club SHOTS_DIR=/path/to/shots python3 vec.py
+    COURSE=lisbon-sports-club SHOTS_DIR=/path/to/shots SKETCH=sketch.json python3 greens_auto.py
+    SKETCH=public/holes/lisbon-sports-club-sketch.json python3 scripts/hole-sketches/engrave.py

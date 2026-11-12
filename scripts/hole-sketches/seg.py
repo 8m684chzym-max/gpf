@@ -2,6 +2,7 @@ import numpy as np, cv2, math
 from PIL import Image
 from holes_meta import META, U, COURSE
 EST = COURSE == 'estoril-blue'   # small, compressed screenshots: bluish-grey tree shade
+ARC = COURSE == 'lisbon-sports-club'   # rotated Esri imagery (gen-shots-arcgis.py): no app UI to remove
 S = 1206/920
 SCRUB, GRASS, SAND, WATER, TREE, UNK = 0,1,2,3,4,5
 PAL = np.array([[233,223,196],[31,138,100],[255,244,214],[47,111,143],[12,58,44],[255,0,255]],np.uint8)
@@ -13,6 +14,7 @@ def load(n):
     return im, (t[0]*S,t[1]*S), (g[0]*S,g[1]*S), ppm*S, ppm
 
 def ui_mask(im, n):
+    if ARC: return np.zeros(im.shape[:2], bool)
     I = im.astype(int); R,G,B = I[...,0],I[...,1],I[...,2]
     lum = (R+G+B)/3; mx = I.max(-1); mn = I.min(-1); chroma = mx-mn
     m = np.zeros(R.shape, bool)
@@ -58,6 +60,28 @@ def classify(im, n):
     lab[tree & (lab!=SAND)] = TREE
     return lab
 
+def classify_arc(im, ppm_full, T1=10.0):
+    """Esri imagery: grass is smooth, trees are textured; classify at a fixed 3 px/m."""
+    H, W = im.shape[:2]; r = 3.0/ppm_full
+    sm = cv2.resize(im, (max(1,int(W*r)), max(1,int(H*r))), interpolation=cv2.INTER_AREA)
+    I = cv2.GaussianBlur(sm, (0,0), 0.8).astype(np.float32); R,G,B = I[...,0],I[...,1],I[...,2]
+    lum = (R+G+B)/3; chroma = I.max(-1)-I.min(-1)
+    g = cv2.cvtColor(sm, cv2.COLOR_RGB2GRAY).astype(np.float32)
+    mu = cv2.blur(g,(5,5)); tex = np.sqrt(np.maximum(cv2.blur(g*g,(5,5))-mu*mu,0))
+    tex = cv2.blur(tex,(5,5))
+    greenish = (G>R+3)&(G>B+4)
+    lab = np.full(lum.shape, SCRUB, np.uint8)
+    lab[greenish & (tex<=T1) & (lum>=70)] = GRASS
+    lab[(greenish & ((tex>T1)|(lum<70))) | (lum<55)] = TREE
+    lab[(lum>165)&(chroma<60)&(R>=G-6)&(tex<22)] = SAND
+    # water: big, smooth, dark patches (trees are textured at this scale)
+    wat = ((lum<95)&(tex<4.5)&(B>=R-4)).astype(np.uint8)
+    wat = cv2.morphologyEx(wat, cv2.MORPH_OPEN, np.ones((5,5),np.uint8))
+    num, cc, st, _ = cv2.connectedComponentsWithStats(wat)
+    for i in range(1,num):
+        if st[i,4]/9.0 >= 150: lab[cc==i] = WATER
+    return cv2.resize(lab, (W,H), interpolation=cv2.INTER_NEAREST)
+
 def fill_unknown(lab, m):
     lab = lab.copy(); lab[m] = UNK
     known = (lab!=UNK).astype(np.uint8)
@@ -78,7 +102,7 @@ def mode_filter(lab, k):
 
 def segment(n):
     im, tee, green, ppm_full, ppm = load(n)
-    lab = classify(im, n)
+    lab = classify_arc(im, ppm_full) if ARC else classify(im, n)
     m = ui_mask(im, n)
     lab = fill_unknown(lab, m)
     k = max(5, int(ppm_full*2.2)|1)   # ~2 m smoothing
