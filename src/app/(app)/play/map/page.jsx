@@ -50,7 +50,7 @@ function HoleMapInner({ cm }) {
   const [saveErr, setSaveErr] = useState(null);
   const [idx, setIdx] = useState(0);              // card hole (0-based); a 9-hole map is played twice
   const [view, setView] = useState(null);
-  const [target, setTarget] = useState(null);
+  const [targets, setTargets] = useState([]);   // up to 2 aim points on the line of play
   const [gps, setGps] = useState(null);           // { pos:[lat,lng], acc }
   const [gpsOn, setGpsOn] = useState(true);
   const [gpsErr, setGpsErr] = useState(null);
@@ -171,9 +171,9 @@ function HoleMapInner({ cm }) {
   }, [idx, loaded]);
   // Suggest a target (driving / lay-up distance) on long holes.
   useEffect(() => {
-    if (!origin || !hole.green) { setTarget(null); return; }
+    if (!origin || !hole.green) { setTargets([]); return; }
     const len = distance(origin, hole.green);
-    setTarget(len >= 240 ? along(origin, hole.green, Math.min(230, len - 70)) : null);
+    setTargets(len >= 240 ? [along(origin, hole.green, Math.min(230, len - 70))] : []);
     // Only when the hole (or its mapping) changes — not every GPS tick.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idx, hole.tee?.[0], hole.green?.[0]]);
@@ -208,7 +208,8 @@ function HoleMapInner({ cm }) {
     catch { window.prompt("Copy the hole layout:", text); }
   };
 
-  // ── Gestures: drag = pan (or move the target if you grab it), pinch/wheel = zoom, tap = set target ──
+  // ── Gestures: drag = pan (or move a target if you grab it), pinch/wheel = zoom,
+  //    tap = add a target (max 2; with 2, the nearer one moves there), tap a target = remove it ──
   const ptrs = useRef(new Map());
   const gesture = useRef(null);
   const local = (e) => { const b = boxRef.current.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
@@ -219,9 +220,9 @@ function HoleMapInner({ cm }) {
     const p = local(e);
     ptrs.current.set(e.pointerId, p);
     if (ptrs.current.size === 1) {
-      const ts = target ? toScreen(view, toWorld(target)) : null;
-      const onTarget = ts && Math.hypot(ts[0] - p[0], ts[1] - p[1]) < 34;
-      gesture.current = { kind: onTarget ? "target" : "pan", start: p, t: Date.now(), view, moved: false };
+      let ti = -1, best = 34;
+      targets.forEach((t, i) => { const ts = toScreen(view, toWorld(t)); const d = Math.hypot(ts[0] - p[0], ts[1] - p[1]); if (d < best) { best = d; ti = i; } });
+      gesture.current = { kind: ti >= 0 ? "target" : "pan", ti, start: p, t: Date.now(), view, moved: false };
     } else if (ptrs.current.size === 2) {
       const [a, b] = [...ptrs.current.values()];
       const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
@@ -244,7 +245,7 @@ function HoleMapInner({ cm }) {
     const dx = p[0] - g.start[0], dy = p[1] - g.start[1];
     if (!g.moved && Math.hypot(dx, dy) < 7) return;
     g.moved = true;
-    if (g.kind === "target") setTarget(fromWorld(fromScreen(view, p)));
+    if (g.kind === "target") { const at = fromWorld(fromScreen(view, p)); setTargets((ts) => ts.map((t, i) => (i === g.ti ? at : t))); }
     else if (g.kind === "pan") { userMoved.current = true; setView({ ...g.view, ax: g.view.ax + dx, ay: g.view.ay + dy }); }
   };
   const onUp = (e) => {
@@ -255,7 +256,14 @@ function HoleMapInner({ cm }) {
     if (ptrs.current.size === 0) {
       if (!g.moved && g.kind !== "pinch" && Date.now() - g.t < 500 && view) {
         const at = fromWorld(fromScreen(view, p));
-        if (mapped) setTarget(at);
+        if (mapped) {
+          if (g.kind === "target") setTargets((ts) => ts.filter((_, i) => i !== g.ti));
+          else setTargets((ts) => {
+            if (ts.length < 2) return [...ts, at];
+            const near = distance(ts[0], at) <= distance(ts[1], at) ? 0 : 1;
+            return ts.map((t, i) => (i === near ? at : t));
+          });
+        }
       }
       gesture.current = null;
     } else if (g.kind === "pinch") {
@@ -283,8 +291,11 @@ function HoleMapInner({ cm }) {
   const toGreen = origin && hole.green ? distance(origin, hole.green) : null;
   const fb = origin ? frontBack(origin, hole.green, hole.greenPoly) : null;
   const showSketch = !!hole.sketch;
-  const toTarget = origin && target ? distance(origin, target) : null;
-  const targetToGreen = target && hole.green ? distance(target, hole.green) : null;
+  // Targets in playing order (nearest the ball first), then each leg: ball → t1 (→ t2) → green.
+  const aims = origin ? [...targets].sort((a, b) => distance(origin, a) - distance(origin, b)) : [];
+  const legs = origin && hole.green && aims.length
+    ? [origin, ...aims, hole.green].slice(1).map((q, i, arr) => distance(i === 0 ? origin : arr[i - 1], q))
+    : [];
 
   return (
     <div ref={boxRef} className={`hm ${showSketch ? "hm-sk" : ""}`}
@@ -292,8 +303,8 @@ function HoleMapInner({ cm }) {
       {view && size && showSketch && <Sketch view={view} size={size} hole={hole} />}
       {view && size && !showSketch && <Tiles view={view} size={size} />}
       {view && size && (
-        <Overlay view={view} size={size} hole={hole} origin={origin} target={target} gps={gps}
-                 playerOnHole={playerOnHole} toTarget={toTarget} targetToGreen={targetToGreen} edit={edit} />
+        <Overlay view={view} size={size} hole={hole} origin={origin} aims={aims} gps={gps}
+                 playerOnHole={playerOnHole} legs={legs} edit={edit} />
       )}
 
       {/* Top-left: distance to the green */}
@@ -320,7 +331,7 @@ function HoleMapInner({ cm }) {
         <button className="hm-btn" onClick={() => zoomBy(1.5)} title="Zoom in">+</button>
         <button className="hm-btn" onClick={() => zoomBy(1 / 1.5)} title="Zoom out">−</button>
         <button className={`hm-btn ${edit ? "on" : ""}`} onClick={() => setEdit(edit ? null : "tee")} title="GPS setup (tee & green)"><Pencil size={17} /></button>
-        {target && <button className="hm-btn" onClick={() => setTarget(null)} title="Clear target"><X size={18} /></button>}
+        {targets.length > 0 && <button className="hm-btn" onClick={() => setTargets([])} title={targets.length > 1 ? "Clear targets" : "Clear target"}><X size={18} /></button>}
       </div>
 
       {gpsOn && gpsErr && <div className="hm-toast" onPointerDown={(e) => e.stopPropagation()}>{gpsErr}</div>}
@@ -424,7 +435,7 @@ function TileLayer({ view, size, z }) {
 }
 
 // Lines, distance arcs, markers and distance labels, in screen space.
-function Overlay({ view, size, hole, origin, target, gps, playerOnHole, toTarget, targetToGreen, edit }) {
+function Overlay({ view, size, hole, origin, aims, gps, playerOnHole, legs, edit }) {
   const S = (p) => toScreen(view, toWorld(p));
   const pxPerM = (lat) => worldPerMetre(lat) * view.k;
   const els = [], labels = [];
@@ -444,19 +455,24 @@ function Overlay({ view, size, hole, origin, target, gps, playerOnHole, toTarget
       const lp = [o[0] + rp * Math.cos(ang), o[1] + rp * Math.sin(ang)];
       els.push(<text key={`t${r}`} x={lp[0]} y={lp[1] + 18} className="hm-arc-t" textAnchor="middle">{r}</text>);
     }
-    const pts = target ? [o, S(target), g] : [o, g];
+    const ts = aims.map(S);
+    const pts = [o, ...ts, g];
     const line = pts.map((p) => p.join(",")).join(" ");
     els.push(<polyline key="line-h" points={line} stroke="#f7efdc" strokeWidth={6} fill="none" strokeLinejoin="round" opacity={0.85} />);
     els.push(<polyline key="line" points={line} stroke="#1e3b28" strokeWidth={2.5} fill="none" strokeLinejoin="round" strokeDasharray="10 5" />);
 
-    if (target) {
-      const t = S(target);
-      els.push(<circle key="tch" cx={t[0]} cy={t[1]} r={30} stroke="#f7efdc" strokeWidth={7} fill="rgba(240,168,24,.12)" />);
-      els.push(<circle key="tc" cx={t[0]} cy={t[1]} r={30} stroke="#1e3b28" strokeWidth={3} fill="none" />);
-      els.push(<circle key="td" cx={t[0]} cy={t[1]} r={3} fill="#1e3b28" />);
+    ts.forEach((t, i) => {
+      els.push(<circle key={`tch${i}`} cx={t[0]} cy={t[1]} r={30} stroke="#f7efdc" strokeWidth={7} fill="rgba(240,168,24,.12)" />);
+      els.push(<circle key={`tc${i}`} cx={t[0]} cy={t[1]} r={30} stroke="#1e3b28" strokeWidth={3} fill="none" />);
+      els.push(<circle key={`td${i}`} cx={t[0]} cy={t[1]} r={3} fill="#1e3b28" />);
+      if (ts.length > 1) els.push(<text key={`tn${i}`} x={t[0]} y={t[1] - 36} className="hm-arc-t" textAnchor="middle">{i + 1}</text>);
+    });
+    if (ts.length) {
       const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
-      labels.push(<DistTag key="l1" at={mid(o, t)} value={toTarget} dir="down" />);
-      labels.push(<DistTag key="l2" at={mid(t, g)} value={targetToGreen} dir="up" />);
+      legs.forEach((v, i) => {
+        const dir = i === 0 ? "down" : i === legs.length - 1 ? "up" : "mid";
+        labels.push(<DistTag key={`l${i}`} at={mid(pts[i], pts[i + 1])} value={v} dir={dir} />);
+      });
     }
     if (playerOnHole && hole.tee) {
       const te = S(hole.tee);
@@ -491,7 +507,7 @@ function Overlay({ view, size, hole, origin, target, gps, playerOnHole, toTarget
 function DistTag({ at, value, dir }) {
   return (
     <div className="hm-tag" style={{ left: at[0] + 16, top: at[1] }}>
-      <span className="num">{m(value)}</span><small>m {dir === "up" ? "↑" : "↓"}</small>
+      <span className="num">{m(value)}</span><small>m {dir === "up" ? "↑" : dir === "down" ? "↓" : "→"}</small>
     </div>
   );
 }
