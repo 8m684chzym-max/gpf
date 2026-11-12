@@ -59,7 +59,7 @@ function StartPlay() {
       {live && (
         <Link href="/play/round" className="card course-card" style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", padding: "18px 20px", borderColor: "var(--ink)" }}>
           <span><span className="eyebrow">Round in progress</span><br /><b>{live.courseName} · {live.teeName}</b>
-            <span className="muted small"> · {totals(live).played}/{live.holes.length} holes · {totals(live).points} pts</span></span>
+            <span className="muted small"> · {totals(live).played}/18 holes · {totals(live).points} pts{live.players?.length > 1 ? ` · ${live.players.length} players` : ""}</span></span>
           <ChevronRight size={18} />
         </Link>)}
       <p className="muted" style={{ margin: 0, fontSize: 15 }}>Pick the course you&rsquo;re playing. On a mapped course you get live GPS distances and enter your score hole by hole; at the end your card goes to Rank.</p>

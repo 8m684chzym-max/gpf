@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { courseBySlug, courseMapFor, DEFAULT_COURSE } from "@/lib/holes";
 import { api } from "@/lib/client";
-import { loadLive, saveLive, holePoints, totals, strokesOn, parOf, siOf } from "@/lib/liveRound";
+import { CARD_HOLES, loadLive, saveLive, holePoints, holesOf, setStroke, totals, strokesOn, parOf, siOf } from "@/lib/liveRound";
 import {
   distance, along, toWorld, fromWorld, toScreen, fromScreen, fitLine, worldPerMetre, frontBack,
 } from "@/lib/geo";
@@ -59,12 +59,12 @@ function HoleMapInner({ cm }) {
   const [sketches, setSketches] = useState(null);
   const [live, setLive] = useState(null);           // individual round in progress (lib/liveRound.js)
   const liveHere = !!(live && courseMapFor(live.courseName)?.slug === cm.slug);
-  const nav = liveHere ? live.holes.length : HOLES.length; // holes you step through
+  const nav = liveHere ? CARD_HOLES : HOLES.length; // holes you step through
   // Opened from score entry: /play/map?hole=N
   useEffect(() => {
     const l = loadLive();
     setLive(l);
-    const max = l && courseMapFor(l.courseName)?.slug === cm.slug ? l.holes.length : HOLES.length;
+    const max = l && courseMapFor(l.courseName)?.slug === cm.slug ? CARD_HOLES : HOLES.length;
     const n = Number(new URLSearchParams(window.location.search).get("hole"));
     if (n >= 1 && n <= max) setIdx(n - 1);
   }, [cm.slug, HOLES.length]);
@@ -375,22 +375,55 @@ function HoleMapInner({ cm }) {
   );
 }
 
-// Individual round: strokes on this hole (− / +), Stableford points, link to the card.
+// Live round: strokes on this hole (− / +), Stableford points, link to the card.
+// One player: inline in the bar. A group: a "Scores" button opens a panel with a row per player.
 function LiveScore({ live, i, onChange }) {
-  const s = live.holes[i];
-  const setS = (v) => onChange({ ...live, holes: live.holes.map((x, j) => (j === i ? v : x)) });
-  const pts = holePoints(live, i);
-  const t = totals(live);
-  const base = parOf(live, i) + Math.max(0, strokesOn(live, i));
-  return (
+  const [open, setOpen] = useState(false);
+  const P = live.players;
+  const t = totals(live, 0);
+  if (P.length === 1) return (
     <div className="hm-live">
-      <button className="hm-step" aria-label="One stroke less" onClick={() => setS(s ? (s > 1 ? s - 1 : null) : base)}>−</button>
-      <button className="hm-strokes" aria-label={`Strokes on hole ${i + 1}`} onClick={() => !s && setS(base)}>
-        <span className="num">{s ?? "–"}</span><small>{pts != null ? `${pts} pt${pts === 1 ? "" : "s"}` : "tap"}</small>
-      </button>
-      <button className="hm-step" aria-label="One stroke more" onClick={() => setS(Math.min(20, (s ?? base - 1) + 1))}>+</button>
+      <StrokeStepper live={live} i={i} p={0} onChange={onChange} />
       <Link href="/play/round" className="hm-card" aria-label="Scorecard"><span className="num">{t.points}</span><small>card</small></Link>
     </div>
+  );
+  const entered = P.filter((_, p) => holesOf(live, p)[i]).length;
+  return (
+    <div className="hm-live">
+      {open && (
+        <div className="hm-sheet">
+          {P.map((pl, p) => {
+            const rx = Math.max(0, strokesOn(live, i, p));
+            return (
+              <div key={p} className="hm-sheet-row">
+                <span className="hm-sheet-name">{pl.name.split(" ")[0]}{rx > 0 && <span className="hm-dots"> {"•".repeat(rx)}</span>}
+                  <small>{totals(live, p).points} pts</small></span>
+                <StrokeStepper live={live} i={i} p={p} onChange={onChange} />
+              </div>);
+          })}
+        </div>)}
+      <button className={`hm-strokes ${open ? "on" : ""}`} aria-expanded={open} aria-label="Scores for the group on this hole" onClick={() => setOpen((v) => !v)}>
+        <span className="num">{entered}/{P.length}</span><small>scores</small>
+      </button>
+      <Link href="/play/round" className="hm-card" aria-label="Scorecard"><span className="num">{t.points}</span><small>card</small></Link>
+    </div>
+  );
+}
+
+function StrokeStepper({ live, i, p, onChange }) {
+  const s = holesOf(live, p)[i];
+  const setS = (v) => onChange(setStroke(live, p, i, v));
+  const pts = holePoints(live, i, p);
+  const base = parOf(live, i) + Math.max(0, strokesOn(live, i, p));
+  const who = live.players[p]?.name || "";
+  return (
+    <>
+      <button className="hm-step" aria-label={`${who}: one stroke less`} onClick={() => setS(s ? (s > 1 ? s - 1 : null) : base)}>−</button>
+      <button className="hm-strokes" aria-label={`${who}: strokes on hole ${i + 1}`} onClick={() => !s && setS(base)}>
+        <span className="num">{s ?? "–"}</span><small>{pts != null ? `${pts} pt${pts === 1 ? "" : "s"}` : "tap"}</small>
+      </button>
+      <button className="hm-step" aria-label={`${who}: one stroke more`} onClick={() => setS(Math.min(20, (s ?? base - 1) + 1))}>+</button>
+    </>
   );
 }
 

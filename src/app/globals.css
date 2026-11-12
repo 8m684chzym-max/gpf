@@ -492,3 +492,10 @@ a{color:inherit;text-decoration:none}
 .champ-name{font-family:var(--disp);font-weight:700;font-size:26px;letter-spacing:-.02em}
 .champ-meta{font-size:13.5px;color:rgba(255,255,255,.72)}
 @media (min-width:760px){.champ-hero{flex-direction:row;align-items:stretch}.champ-art{width:46%;max-height:none}.champ-copy{align-content:center;padding:28px}.champ-name{font-size:34px}}
+/* Play map: group score panel (up to 4 players) above the hole bar */
+.hm-sheet{position:absolute;left:0;right:0;bottom:calc(100% + 8px);background:#fff;border-radius:16px;box-shadow:0 3px 14px rgba(0,0,0,.35);padding:6px;display:flex;flex-direction:column;gap:4px}
+.hm-sheet-row{display:flex;align-items:center;gap:4px}
+.hm-sheet-name{flex:1;min-width:0;padding-left:8px;font-weight:600;font-size:14px;color:var(--ink);line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hm-sheet-name small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
+.hm-dots{color:var(--flag)}
+.hm-strokes.on{background:var(--flag)}
