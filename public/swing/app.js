@@ -4,7 +4,9 @@ import {phases,metrics,validatePhases} from './metrics.js';
 const $=id=>document.getElementById(id), video=$('video'), canvas=$('overlay'),ctx=canvas.getContext('2d');
 let marks={},samples={},points=null,pose=null,url=null,loaded=false,busy=false,generation=0,history=[];
 try{history=JSON.parse(localStorage.getItem('gpf-swings-v1')||'[]');if(!Array.isArray(history))history=[];history=history.filter(s=>s&&typeof s.id==='string'&&s.marks&&s.samples);}catch{}
-const status=t=>$('status').textContent=t;
+const status=t=>{$('status').textContent=t;if(!loaded&&url)$('empty-text').textContent=t;};
+// Before a video opens, show the stage message (title + text + optional tap button).
+function stageMsg(title,text,tap=false){$('empty').hidden=false;$('empty-title').textContent=title;$('empty-text').textContent=text;$('tap-load').hidden=!tap;}
 function controls(){for(const id of ['play','back','next','seek','save','export','detect','draw-line'])$(id).disabled=!loaded||busy;document.querySelectorAll('[data-mark]').forEach(b=>b.disabled=!loaded||busy);}
 function phaseUI(){const host=$('phases');host.replaceChildren();for(const phase of phases){const row=document.createElement('div');row.className='phase';const label=document.createElement('span');label.textContent=phase;const jump=document.createElement('button');jump.textContent=marks[phase]!=null?marks[phase].toFixed(3)+' s':'—';jump.disabled=marks[phase]==null||!loaded||busy;jump.onclick=()=>seek(marks[phase]);const mark=document.createElement('button');mark.textContent='Marcar';mark.dataset.mark=phase;mark.disabled=!loaded||busy;mark.onclick=()=>{const next={...marks,[phase]:video.currentTime};if(!validatePhases(next)){status('As fases devem seguir a ordem cronológica e ter tempos distintos.');return;}marks=next;phaseUI();status(phase+' marcado.');};row.append(label,jump,mark);host.append(row);}}
 function seek(t){video.pause();video.currentTime=Math.max(0,Math.min(video.duration,t));}
@@ -14,18 +16,23 @@ function resize(){if(!loaded)return;const scale=Math.min(video.clientWidth/video
 function displayMetrics(values){$('metrics').replaceChildren();for(const [name,value] of Object.entries(values)){const row=document.createElement('div');row.className='measure';const label=document.createElement('span');label.textContent=name;const n=document.createElement('b');n.textContent=value==null?'—':value.toFixed(1)+'°';row.append(label,n);$('metrics').append(row);}}
 const isVideo=f=>f.type.startsWith('video/')||/\.(mov|mp4|m4v|webm)$/i.test(f.name||'');
 let loadTimer=null;
-function load(file){if(!file)return;if(!isVideo(file)){status('Escolha um ficheiro de vídeo (MP4, MOV ou WebM).');return;}if(file.size>1024*1024*1024){status('O vídeo excede 1 GB. Encurte o clip antes de carregar.');return;}generation++;resetLines();video.pause();if(url)URL.revokeObjectURL(url);loaded=false;marks={};samples={};points=null;$('notes').value='';$('filename').textContent=file.name;url=URL.createObjectURL(file);
+function load(file){if(!file)return;if(!isVideo(file)){status('Escolha um ficheiro de vídeo (MP4, MOV ou WebM).');return;}if(file.size>1024*1024*1024){status('O vídeo excede 1 GB. Encurte o clip antes de carregar.');return;}generation++;const token=generation;resetLines();video.pause();if(url)URL.revokeObjectURL(url);loaded=false;marks={};samples={};points=null;$('notes').value='';$('filename').textContent=file.name;url=URL.createObjectURL(file);
 // iPhone/iPad Safari ignores preload="metadata" for a fresh blob: an explicit load() makes it read the file.
-video.preload='auto';video.src=url;video.load();controls();phaseUI();status('A carregar vídeo…');
-clearTimeout(loadTimer);const token=generation;loadTimer=setTimeout(()=>{if(!loaded&&token===generation)status('O vídeo está a demorar a abrir. Se não aparecer, este navegador pode não suportar o formato (ex.: HEVC/MOV no Chrome em Windows). Experimente o Safari ou exporte o clip em MP4 H.264.');},12000);}
+video.preload='auto';video.src=url;video.load();controls();phaseUI();stageMsg('A abrir o vídeo…',file.name);status('A carregar vídeo…');
+// iPhone (e.g. Low Power Mode) may refuse to read the file until the video is played.
+// Try a muted play now; if the video still hasn't opened, ask for one tap.
+video.play().catch(()=>{});
+setTimeout(()=>{if(!loaded&&token===generation)stageMsg('Vídeo carregado','O iPhone só mostra o vídeo depois de um toque.',true);},1500);
+clearTimeout(loadTimer);loadTimer=setTimeout(()=>{if(!loaded&&token===generation)status('O vídeo está a demorar a abrir. Se não aparecer, este navegador pode não suportar o formato (ex.: HEVC/MOV no Chrome em Windows). Experimente o Safari ou exporte o clip em MP4 H.264.');},12000);}
 $('file').onchange=e=>{load(e.target.files[0]);e.target.value='';};$('drop').ondragover=e=>e.preventDefault();$('drop').ondrop=e=>{e.preventDefault();if(!busy)load([...(e.dataTransfer?.files||[])].find(isVideo));};
 function ready(){if(loaded||!video.videoWidth)return;if(!Number.isFinite(video.duration)||video.duration<=0)return; // some files report the duration a moment later (durationchange)
-clearTimeout(loadTimer);loaded=true;$('empty').hidden=true;canvas.width=video.videoWidth;canvas.height=video.videoHeight;$('seek').max=video.duration;controls();phaseUI();resize();
+clearTimeout(loadTimer);loaded=true;video.pause();$('empty').hidden=true;$('tap-load').hidden=true;canvas.width=video.videoWidth;canvas.height=video.videoHeight;$('seek').max=video.duration;controls();phaseUI();resize();
 // Safari only paints the first frame after a seek.
 video.currentTime=Math.min(0.001,video.duration/2);update();status('Vídeo pronto. Marque as fases e analise os frames relevantes.');}
 video.onloadedmetadata=ready;video.ondurationchange=ready;video.onloadeddata=ready;
-video.onerror=()=>{if(!video.getAttribute('src'))return;clearTimeout(loadTimer);loaded=false;controls();phaseUI();status('Este navegador não consegue abrir este vídeo. Vídeos HEVC/MOV do iPhone abrem no Safari; noutros navegadores exporte o clip em MP4 H.264.');};
+video.onerror=()=>{if(!video.getAttribute('src'))return;clearTimeout(loadTimer);loaded=false;stageMsg('Não foi possível abrir o vídeo','');controls();phaseUI();status('Este navegador não consegue abrir este vídeo. Vídeos HEVC/MOV do iPhone abrem no Safari; noutros navegadores exporte o clip em MP4 H.264.');};
 video.ontimeupdate=update;video.onseeked=update;video.onplay=()=>$('play').textContent='Pausar';video.onpause=()=>$('play').textContent='Reproduzir';
+$('tap-load').onclick=()=>{$('empty-text').textContent='A abrir…';video.play().catch(e=>{if(loaded||(e&&e.name==='AbortError'))return;status('O vídeo não abriu ('+(e&&e.name||'erro')+'). Experimente outro vídeo ou exporte em MP4.');});};
 $('play').onclick=async()=>{if(video.paused){try{await video.play();}catch{status('Não foi possível reproduzir este vídeo.');}}else video.pause();};
 for(const [id,dir] of [['back',-1],['next',1]])$(id).onclick=()=>{const fps=Number($('fps').value);if(!Number.isFinite(fps)||fps<1||fps>240){status('Indique um FPS entre 1 e 240.');return;}seek(video.currentTime+dir/fps);};
 $('seek').oninput=e=>seek(Number(e.target.value));$('speed').onchange=e=>video.playbackRate=Number(e.target.value);$('show').onchange=draw;window.addEventListener('resize',resize);
