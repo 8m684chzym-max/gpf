@@ -62,6 +62,7 @@ model User {
   shopOrders       ShopOrder[]
   matchPlaysA      MatchPlay[]      @relation("MatchPlayA")
   matchPlaysB      MatchPlay[]      @relation("MatchPlayB")
+  fpgResults       FpgResult[]
 }
 
 model PasswordResetToken {
@@ -305,4 +306,29 @@ model MatchPlay {
   createdAt   DateTime  @default(now())
 
   @@index([status])
+}
+
+// Every round myFPG returns for a member (last 20, any date, 9 or 18 holes), shown
+// in My profile › FPG rounds. Refreshed by /api/fpg/results. Rank uses only the
+// ones that also became a Round (Round.fpgScoreId = FpgResult.id).
+model FpgResult {
+  id           String   @id // "fpg:<myFPG score id>"
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date         DateTime
+  course       String?
+  event        String?
+  holes        Int?
+  par          Int?
+  gross        Int?
+  points       Int?     // Stableford off the handicap of the day
+  hcpIndex     Float?
+  playingHcp   Int?
+  differential Float?
+  qualifying   Boolean  @default(false)
+  origin       String?  // "Indiv" / "Torn"
+  data         Json?
+  createdAt    DateTime @default(now())
+
+  @@index([userId, date])
 }

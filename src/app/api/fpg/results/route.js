@@ -1,4 +1,5 @@
 // Weekly import of members' official rounds from myFPG.
+// All of them (last 20) are stored for My profile › FPG rounds; only the ones below go to Rank.
 //
 // For each member with an FPG number, read their latest results from myFPG and
 // add the 18-hole, handicap-qualifying, status-OK rounds played on/after FPG_ROUNDS_SINCE as approved qualifying
@@ -19,6 +20,7 @@ import { logAudit, getActiveCompetition } from "@/lib/data";
 import { openMyFpgSession, normaliseRecord } from "@/lib/myfpg";
 import { notifyFpgSyncProblem } from "@/lib/mail";
 import { FPG_ROUNDS_SINCE } from "@/lib/major";
+import { saveFpgResults } from "@/lib/fpgResults";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -73,7 +75,9 @@ async function run(trigger, dry) {
       const raw = await session.results(m.fpgNumber, 20);
       if (dry) { sample[m.name] = { total: raw.length, keys: raw[0] ? Object.keys(raw[0]) : [], first: raw.slice(0, 3) }; results.push({ member: m.name, fedno: m.fpgNumber, ok: true, rounds: raw.length }); continue; }
 
-      const recs = raw.map((x) => normaliseRecord(x, m.fpgNumber))
+      const all = raw.map((x) => normaliseRecord(x, m.fpgNumber));
+      await saveFpgResults(m.id, all); // every round → My profile › FPG rounds
+      const recs = all
         .filter((x) => x.date && x.date >= FPG_ROUNDS_SINCE && x.holes === 18 && x.statusOk && x.hcpQualifying && x.gross != null && x.points != null);
       let added = 0, linked = 0;
       for (const rec of recs) {

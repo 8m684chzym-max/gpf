@@ -68,6 +68,8 @@ export default function Profile() {
         return <RoundRow key={r.id} r={r} locked={locked} onDelete={() => delRound(r)} onSaved={loadAll} />;
       })}
 
+      <FpgRounds />
+
       <div className="sec-h">Handicap</div>
       <div className="card form">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -258,5 +260,52 @@ function Account() {
       {msg.err && <div className="hint" style={{ color: "var(--bad)" }}>{msg.err}</div>}
       {msg.ok && <div className="hint" style={{ color: "var(--ok)" }}>{msg.ok}</div>}
     </div>
+  );
+}
+
+// My profile › FPG rounds — the rounds registered at the FPG (imported weekly from myFPG).
+function FpgRounds() {
+  const [f, setF] = useState(null);
+  const [all, setAll] = useState(false);
+  useEffect(() => { api("/api/profile/fpg-rounds").then(setF).catch(() => setF({ rounds: [] })); }, []);
+  if (!f || !f.fpgNumber) return null;
+  const list = all ? f.rounds : f.rounds.slice(0, 10);
+  const th = { padding: "6px 6px", textAlign: "right", fontWeight: 600, whiteSpace: "nowrap" };
+  const td = { padding: "6px 6px", textAlign: "right", whiteSpace: "nowrap" };
+  return (
+    <>
+      <div className="sec-h">FPG rounds ({f.rounds.length})</div>
+      <p className="hint" style={{ margin: 0 }}>
+        Your rounds as registered at the FPG (federation nº {f.fpgNumber}), imported every Monday{f.importedAt ? ` — last import ${new Date(f.importedAt).toLocaleDateString("pt-PT")}` : ""}.
+        Rank counts the 18-hole, handicap-qualifying ones from 9 November 2026 (<span className="badge badge-ok">Rank</span>).
+      </p>
+      {f.error && <div className="hint" style={{ color: "var(--bad)" }}>{f.error}</div>}
+      {f.rounds.length === 0 ? <div className="card empty">No FPG rounds imported yet.</div> : (
+        <div className="card" style={{ padding: 0, overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead><tr className="muted">
+              <th style={{ ...th, textAlign: "left" }}>Date</th><th style={{ ...th, textAlign: "left" }}>Course</th>
+              <th style={th}>Holes</th><th style={th}>Gross</th><th style={th}>Pts</th><th style={th}>Index</th><th style={th}>Hcp</th><th style={th}>Diff.</th>
+            </tr></thead>
+            <tbody>{list.map((r) => (
+              <tr key={r.id} style={{ borderTop: "1px solid var(--line, #e3e8e5)" }}>
+                <td style={{ ...td, textAlign: "left" }}>{r.date.slice(0, 10)}</td>
+                <td style={{ ...td, textAlign: "left", whiteSpace: "normal", minWidth: 140 }}>
+                  {r.course ?? "—"}{r.event ? <span className="muted small"> · {r.event}</span> : null}
+                  {r.inRank && <span className="badge badge-ok" style={{ marginLeft: 6 }}>Rank</span>}
+                  {!r.qualifying && <span className="badge" style={{ marginLeft: 6 }} title="Not handicap-qualifying at the FPG">non-qualifying</span>}
+                </td>
+                <td style={td} className="num">{r.holes ?? "—"}</td>
+                <td style={td} className="num">{r.gross ?? "—"}</td>
+                <td style={td} className="num"><b>{r.points ?? "—"}</b></td>
+                <td style={td} className="num">{r.hcpIndex != null ? fmtHcp(r.hcpIndex) : "—"}</td>
+                <td style={td} className="num">{r.playingHcp ?? "—"}</td>
+                <td style={td} className="num">{r.differential != null ? r.differential.toFixed(1) : "—"}</td>
+              </tr>))}</tbody>
+          </table>
+        </div>
+      )}
+      {f.rounds.length > 10 && <button className="link" type="button" onClick={() => setAll((v) => !v)}>{all ? "Show fewer" : `Show all ${f.rounds.length}`}</button>}
+    </>
   );
 }
