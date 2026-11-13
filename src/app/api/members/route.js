@@ -13,7 +13,7 @@ export async function GET() {
   const members = await prisma.user.findMany({
     where: user.role === "ADMIN" ? {} : { approved: true },
     orderBy: { name: "asc" },
-    select: { id: true, name: true, email: true, role: true, declaredHandicap: true, manualHandicap: true, approved: true, createdAt: true },
+    select: { id: true, name: true, email: true, role: true, declaredHandicap: true, manualHandicap: true, approved: true, createdAt: true, fpgNumber: true, fpgIndex: true, fpgStatus: true, fpgClub: true, fpgSyncedAt: true, fpgError: true },
   });
   return NextResponse.json({ members });
 }

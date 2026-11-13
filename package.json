@@ -18,7 +18,8 @@
     "import-courses:scraped": "node scripts/import-from-scrape.mjs",
     "add-pinheirinho": "node scripts/add-pinheirinho.mjs",
     "add-lisbon-sports-club": "node scripts/add-lisbon-sports-club.mjs",
-    "add-estoril-blue": "node scripts/add-estoril-blue.mjs"
+    "add-estoril-blue": "node scripts/add-estoril-blue.mjs",
+    "set-fpg-numbers": "node scripts/set-fpg-numbers.mjs"
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"
