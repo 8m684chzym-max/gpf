@@ -41,14 +41,14 @@
   <div class="layout">
     <section class="panel workspace">
       <div class="panel-head"><h2>01 · Estúdio de análise</h2></div>
-      <label class="upload" id="drop"><input type="file" id="file" accept="video/*"><b>＋ Carregar vídeo do swing</b><span>Escolha ou arraste um vídeo · máximo 250 MB</span></label>
+      <label class="upload" id="drop"><input type="file" id="file" accept="video/*,.mov,.mp4,.m4v,.webm"><b>＋ Carregar vídeo do swing</b><span>Escolha ou arraste um vídeo · máximo 1 GB</span></label>
       <div class="settings">
         <label>Perspetiva<select id="view"><option value="face-on">Face-on · de frente</option><option value="down-the-line">Down-the-line · por trás</option></select></label>
         <label>FPS do vídeo<input id="fps" type="number" min="1" max="240" value="30"></label>
         <label>Velocidade<select id="speed"><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option></select></label>
       </div>
       <div class="stage">
-        <video id="video" playsinline preload="metadata"></video>
+        <video id="video" playsinline muted preload="auto"></video>
         <canvas id="overlay"></canvas>
         <canvas id="lines" aria-label="Área para desenhar linhas sobre o vídeo"></canvas>
         <div id="empty"><h3>Arraste um vídeo de swing para aqui</h3><p>Corpo inteiro visível, câmara fixa e boa iluminação.</p></div>
