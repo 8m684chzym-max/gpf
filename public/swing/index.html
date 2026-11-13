@@ -40,18 +40,17 @@
 <main>
   <div class="layout">
     <section class="panel workspace">
-      <div class="panel-head"><h2>01 · Estúdio de análise</h2></div>
       <label class="upload" id="drop"><input type="file" id="file" accept="video/*,.mov,.mp4,.m4v,.webm"><b>＋ Carregar vídeo do swing</b><span>Escolha ou arraste um vídeo · máximo 1 GB</span></label>
       <div class="settings">
-        <label>Perspetiva<select id="view"><option value="face-on">Face-on · de frente</option><option value="down-the-line">Down-the-line · por trás</option></select></label>
-        <label>FPS do vídeo<input id="fps" type="number" min="1" max="240" value="30"></label>
+        <label class="wide">Perspetiva<select id="view"><option value="face-on">Face-on · de frente</option><option value="down-the-line">Down-the-line · por trás</option></select></label>
+        <label>FPS<input id="fps" type="number" inputmode="numeric" min="1" max="240" value="30"></label>
         <label>Velocidade<select id="speed"><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option></select></label>
       </div>
-      <div class="stage">
+      <div class="stage" id="stage">
         <video id="video" playsinline muted preload="auto"></video>
         <canvas id="overlay"></canvas>
         <canvas id="lines" aria-label="Área para desenhar linhas sobre o vídeo"></canvas>
-        <div id="empty"><h3 id="empty-title">Arraste um vídeo de swing para aqui</h3><p id="empty-text">Corpo inteiro visível, câmara fixa e boa iluminação.</p><button id="tap-load" class="primary" type="button" hidden>▶ Toque para abrir o vídeo</button></div>
+        <div id="empty"><h3 id="empty-title">Carregue um vídeo do swing</h3><p id="empty-text">Corpo inteiro visível, câmara fixa e boa iluminação.</p><button id="tap-load" class="primary" type="button" hidden>▶ Toque para abrir o vídeo</button></div>
       </div>
       <div class="transport">
         <button id="back" disabled aria-label="Frame anterior">◂ 1</button>
@@ -60,40 +59,46 @@
         <output id="time">0.000 / 0.000 s</output>
       </div>
       <input aria-label="Posição no vídeo" id="seek" type="range" min="0" max="1" step="0.001" value="0" disabled>
-      <div class="actions drawing-tools">
-        <button id="draw-line" aria-pressed="false" disabled>Desenhar linhas</button>
-        <label>Cor <input id="line-color" type="color" value="#ffdf45"></label>
-        <button id="undo-line" disabled>Desfazer linha</button>
-        <button id="clear-lines" disabled>Limpar linhas</button>
+      <div class="actions main-actions">
+        <button id="auto" class="primary" disabled>Detetar fases e analisar</button>
+        <button id="detect" disabled>Analisar este frame</button>
       </div>
-      <p class="hint">Ative a ferramenta e arraste sobre o vídeo. As linhas ficam fixas durante a reprodução; Shift alinha na horizontal ou vertical.</p>
-      <div class="actions">
-        <button id="detect" class="primary" disabled>Analisar pose neste frame</button>
-        <label class="check"><input id="show" type="checkbox" checked> Mostrar pontos e eixos</label>
-      </div>
+      <progress id="progress" max="1" value="0" hidden></progress>
       <p id="status" role="status">Carregue um vídeo para começar. A análise de pose requer internet para carregar o modelo.</p>
+      <div class="actions drawing-tools">
+        <button id="draw-line" aria-pressed="false" disabled>✎ Linhas</button>
+        <label class="color">Cor <input id="line-color" type="color" value="#ffdf45"></label>
+        <button id="undo-line" disabled>Desfazer</button>
+        <button id="clear-lines" disabled>Limpar</button>
+        <label class="check"><input id="show" type="checkbox" checked> Pontos e caminho das mãos</label>
+      </div>
+      <p class="hint">Com ✎ Linhas ativo: arraste para desenhar; arraste uma ponta para a ajustar. Shift alinha na horizontal/vertical.</p>
     </section>
 
     <aside>
       <section class="panel">
-        <div class="panel-head"><h2>02 · Fases do swing</h2></div>
-        <p class="hint">Posicione o vídeo e marque cada fase. Clique no tempo para regressar.</p>
+        <div class="panel-head"><h2>Fases do swing</h2></div>
+        <p class="hint">Detetadas automaticamente; pode corrigir: posicione o vídeo e toque em Marcar. Toque no tempo para lá ir.</p>
         <div id="phases"></div>
       </section>
       <section class="panel">
-        <div class="panel-head"><h2>03 · Medições 2D</h2></div>
+        <div class="panel-head"><h2>Plano do swing</h2></div>
+        <div id="report" class="report-body"><p class="hint">Use "Detetar fases e analisar" para obter o relatório.</p></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>Medições 2D</h2></div>
         <div id="metrics" class="measurements">Analise um frame para obter medições.</div>
         <p class="hint">Ângulos no plano da imagem. Pontos com pouca confiança são omitidos. Esquerda e direita referem-se ao corpo.</p>
       </section>
     </aside>
   </div>
 
-  <section class="panel report">
-    <div class="panel-head"><h2>04 · Relatório e histórico</h2><button id="save" disabled>Guardar sessão</button></div>
+  <section class="panel history-panel">
+    <div class="panel-head"><h2>Notas e histórico</h2><button id="save" disabled>Guardar sessão</button></div>
     <label>Notas da sessão<textarea id="notes" placeholder="Observações, objetivos e contexto do treino…"></textarea></label>
-    <p class="hint">Guardado neste navegador: fases, medições e notas. O ficheiro de vídeo não é guardado; para rever uma sessão, volte a carregá-lo.</p>
+    <p class="hint">Guardado neste navegador: fases, medições, relatório e notas. O vídeo não é guardado.</p>
     <div class="actions">
-      <button id="export" disabled>Exportar relatório JSON</button>
+      <button id="export" disabled>Exportar JSON</button>
       <select id="compare" aria-label="Comparar com sessão anterior"><option value="">Comparar com uma sessão…</option></select>
     </div>
     <div id="comparison"></div>
@@ -102,7 +107,7 @@
 
   <section class="limits">
     <h3>Uma perspetiva útil. Não uma medição 3D.</h3>
-    <p>Um único vídeo não mede com rigor rotação axial das ancas ou ombros, X-factor, velocidade do taco, trajetória 3D ou posição da face no impacto. Os pontos dos pulsos não medem a rotação das mãos. As fases são marcadas manualmente; o impacto exato pode ocorrer entre frames. Perspetiva, roupa, oclusão e movimento rápido afetam a deteção. Compare apenas vídeos com perspetiva e enquadramento semelhantes. Não é um diagnóstico nem substitui um treinador.</p>
+    <p>As fases e o plano são estimados a partir dos pontos do corpo (MediaPipe) num vídeo 2D; o taco e a bola não são detetados — o "plano" é o caminho das mãos. Perspetiva, roupa, oclusão e movimento rápido afetam a deteção; o impacto pode ocorrer entre frames. Para o plano filme por trás (down-the-line), à altura das mãos e alinhado com a linha do alvo. Não é um diagnóstico nem substitui um treinador.</p>
   </section>
 </main>
 
