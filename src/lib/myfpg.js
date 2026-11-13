@@ -95,7 +95,10 @@ export function fpgDate(rec) {
 export function normaliseRecord(rec, fedno) {
   const date = fpgDate(rec);
   const gross = num(rec.gross_total);
-  const points = num(rec.calc_stablnet_total);
+  // calculated_stablnet_total = Stableford off the handicap the round was PLAYED with
+  // (exact_hcp / play_hcp). calc_stablnet_total is a later WHS recalculation (can differ
+  // by a few points) — not used: GPF locks points at the handicap of the day.
+  const points = num(rec.calculated_stablnet_total ?? rec.calc_stablnet_total);
   const course = (rec.course_description ?? rec.course_name ?? "").toString().trim() || null;
   const id = rec.score_id ?? rec.id_score ?? rec.scorecard_id ?? rec.id ?? null;
   return {
@@ -104,11 +107,15 @@ export function normaliseRecord(rec, fedno) {
     holes: num(rec.hole_count),
     differential: num(rec.score_differential),
     qualifying: rec.hcp_qualifying_name ?? null,
-    index: num(rec.hcp_index ?? rec.exact_hcp ?? rec.hcp_exact ?? rec.player_hcp ?? rec.handicap),
-    playingHcp: num(rec.playing_hcp ?? rec.play_hcp ?? rec.course_hcp ?? rec.hcp_jogo),
-    tee: (rec.tee_description ?? rec.tee_name ?? rec.tee ?? "").toString().trim() || null,
-    rating: num(rec.course_rating ?? rec.cr),
-    slope: num(rec.slope_rating ?? rec.slope),
-    par: num(rec.par ?? rec.course_par),
+    hcpQualifying: Number(rec.hcp_qualifying_round) === 1, // 1 = "Sim", 9 = "Não"
+    statusOk: (rec.status_name ?? "OK") === "OK",
+    index: num(rec.exact_hcp ?? rec.calculated_exact_hcp), // index on the day
+    playingHcp: num(rec.play_hcp ?? rec.calculated_play_hcp), // playing handicap on the day
+    tee: (rec.tee_description ?? rec.tee_name ?? "").toString().trim() || null,
+    rating: num(rec.course_rating),
+    slope: num(rec.slope_rating),
+    par: num(rec.par_total ?? rec.par),
+    event: (rec.tournament_description ?? "").toString().trim() || null,
+    origin: rec.score_origin ?? null, // "Indiv" (individual card) / "Torn" (tournament)
   };
 }

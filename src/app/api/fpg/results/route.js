@@ -1,7 +1,7 @@
 // Weekly import of members' official rounds from myFPG.
 //
 // For each member with an FPG number, read their latest results from myFPG and
-// add the 18-hole rounds played on/after FPG_ROUNDS_SINCE as approved qualifying
+// add the 18-hole, handicap-qualifying, status-OK rounds played on/after FPG_ROUNDS_SINCE as approved qualifying
 // rounds, with the Stableford points the FPG calculated (handicap of the day) —
 // locked, like any GPF card. From the first successful import, Rank counts only
 // these official rounds for that member (best 3 Stableford).
@@ -74,7 +74,7 @@ async function run(trigger, dry) {
       if (dry) { sample[m.name] = { total: raw.length, keys: raw[0] ? Object.keys(raw[0]) : [], first: raw.slice(0, 3) }; results.push({ member: m.name, fedno: m.fpgNumber, ok: true, rounds: raw.length }); continue; }
 
       const recs = raw.map((x) => normaliseRecord(x, m.fpgNumber))
-        .filter((x) => x.date && x.date >= FPG_ROUNDS_SINCE && x.holes === 18 && x.gross != null && x.points != null);
+        .filter((x) => x.date && x.date >= FPG_ROUNDS_SINCE && x.holes === 18 && x.statusOk && x.hcpQualifying && x.gross != null && x.points != null);
       let added = 0, linked = 0;
       for (const rec of recs) {
         if (await prisma.round.findUnique({ where: { fpgScoreId: rec.id }, select: { id: true } })) continue;
