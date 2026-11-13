@@ -173,6 +173,14 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .site nav a:hover,.site nav a[aria-current]{color:var(--ink)}
 .site nav a.cta{background:#1c1e24;color:#fff;padding:5px 12px;border-radius:999px;font-weight:600}
 @media (max-width:860px){.site{gap:16px;padding:0 16px}.site nav{gap:18px;margin-left:0}}
+.site nav{align-items:center}
+.site details.tools summary{list-style:none;cursor:pointer;font-size:13px;color:var(--muted);white-space:nowrap;display:flex;align-items:center;gap:4px}
+.site details.tools summary::-webkit-details-marker{display:none}
+.site details.tools summary::after{content:"";width:5px;height:5px;border:solid currentColor;border-width:0 1.5px 1.5px 0;transform:translateY(-2px) rotate(45deg)}
+.site details.tools[open] summary,.site details.tools.on summary,.site details.tools summary:hover{color:var(--ink)}
+.site .tools-pop{position:fixed;z-index:60;min-width:150px;display:flex;flex-direction:column;padding:6px;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.14)}
+.site .tools-pop a{padding:8px 10px;border-radius:8px;color:var(--ink)}
+.site .tools-pop a:hover{background:var(--field)}
 </style>
 </head>
 <body>
@@ -186,7 +194,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
     <a href="https://app.gpf.golf/team-cup">Team Cup</a>
     <a href="https://app.gpf.golf/rank">Rank</a>
     <a href="https://app.gpf.golf/shop">Shop</a>
-    <a href="https://tracer.gpf.golf" aria-current="page">Tracer</a>
+    <details class="tools on"><summary>Tools</summary><div class="tools-pop"><a href="https://tracer.gpf.golf" aria-current="page">Tracer</a><a href="https://app.gpf.golf/swing">Swing</a></div></details>
     <a href="https://app.gpf.golf/profile">My profile</a>
     <a href="https://app.gpf.golf/submit" class="cta">Submit score</a>
     <a href="https://app.gpf.golf/logout">Log out</a>
@@ -904,6 +912,14 @@ $('exportBtn').onclick = () => { if (!exporting) runExport(); };
 
 updateMode();
 })();
+</script>
+<script>
+// GPF site menu: Tools drop-down. The nav scrolls sideways on phones, so the panel is
+// position:fixed and placed under its button when opened.
+document.querySelectorAll('.site details.tools').forEach(d=>{const pop=d.querySelector('.tools-pop'),sum=d.querySelector('summary');
+const place=()=>{const r=sum.getBoundingClientRect();pop.style.top=(r.bottom+10)+'px';pop.style.left=Math.max(8,Math.min(innerWidth-pop.offsetWidth-8,r.left-10))+'px';};
+d.addEventListener('toggle',()=>{if(d.open)place();});addEventListener('resize',()=>{if(d.open)place();});d.closest('nav').addEventListener('scroll',()=>{d.open=false;});
+document.addEventListener('pointerdown',e=>{if(d.open&&!d.contains(e.target))d.open=false;});document.addEventListener('keydown',e=>{if(e.key==='Escape')d.open=false;});});
 </script>
 </body>
 </html>

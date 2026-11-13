@@ -1,19 +1,27 @@
 import { Link } from "@tanstack/react-router";
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import logo from "@/assets/logo.svg";
 import { useCart } from "@/lib/cart";
 
-// One menu for every GPF surface — keep in sync with the app (src/lib/menu.js)
-// and the Shot Tracer (public/tracer/index.html) in the main repo.
+// One menu for every GPF surface — keep in sync with the app (src/lib/menu.js),
+// the Shot Tracer (public/tracer/index.html) and Swing Lab (public/swing/index.html)
+// in the main repo.
 const APP = "https://app.gpf.golf";
-const menu: [string, string][] = [
+type Item = [string, string] | { label: string; items: [string, string][] };
+const menu: Item[] = [
   ["/", "Home"],
   [`${APP}/play`, "Play"],
   [`${APP}/open`, "Open"],
   [`${APP}/team-cup`, "Team Cup"],
   [`${APP}/rank`, "Rank"],
   [`${APP}/shop`, "Shop"],
-  ["https://tracer.gpf.golf", "Tracer"],
+  {
+    label: "Tools",
+    items: [
+      ["https://tracer.gpf.golf", "Tracer"],
+      [`${APP}/swing`, "Swing"],
+    ],
+  },
   [`${APP}/profile`, "My profile"],
   [`${APP}/submit`, "Submit score"],
   [`${APP}/login`, "Login"],
@@ -45,6 +53,48 @@ function MenuLink({ href, label, big = false }: { href: string; label: string; b
   return <a href={href} className={cls}>{label}</a>;
 }
 
+// Desktop drop-down for a menu group (Tools → Tracer, Swing).
+function MenuGroup({ label, items }: { label: string; items: [string, string][] }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("pointerdown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        aria-haspopup="true"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        className="inline-flex items-center gap-1 text-[13px] text-muted-foreground transition-colors hover:text-foreground"
+      >
+        {label}
+        <span aria-hidden className={`text-[9px] transition-transform ${open ? "rotate-180" : ""}`}>▼</span>
+      </button>
+      {open && (
+        <div className="absolute left-[-12px] top-[calc(100%+12px)] z-50 flex min-w-[150px] flex-col rounded-xl border border-border bg-background p-1.5 shadow-lg">
+          {items.map(([href, l]) => (
+            <a key={l} href={href} className="rounded-lg px-2.5 py-2 text-[13px] text-foreground hover:bg-secondary">
+              {l}
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
   return (
@@ -54,7 +104,13 @@ export function SiteHeader() {
           <img src={logo} alt="GPF" width={24} height={24} className="h-6 w-6" />
         </Link>
         <nav className="hidden items-center gap-7 lg:flex" aria-label="Main">
-          {menu.map(([href, label]) => <MenuLink key={label} href={href} label={label} />)}
+          {menu.map((item) =>
+            Array.isArray(item) ? (
+              <MenuLink key={item[1]} href={item[0]} label={item[1]} />
+            ) : (
+              <MenuGroup key={item.label} label={item.label} items={item.items} />
+            ),
+          )}
         </nav>
         <button
           type="button"
@@ -68,7 +124,22 @@ export function SiteHeader() {
       </div>
       {open && (
         <nav className="flex flex-col border-t border-border/60 px-6 pb-4 pt-1 lg:hidden" aria-label="Main">
-          {menu.map(([href, label]) => <MenuLink key={label} href={href} label={label} big />)}
+          {menu.map((item) =>
+            Array.isArray(item) ? (
+              <MenuLink key={item[1]} href={item[0]} label={item[1]} big />
+            ) : (
+              <div key={item.label} className="flex flex-col">
+                <span className="pb-0.5 pt-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                  {item.label}
+                </span>
+                {item.items.map(([href, l]) => (
+                  <a key={l} href={href} className="py-2.5 pl-3.5 text-[17px] text-foreground">
+                    {l}
+                  </a>
+                ))}
+              </div>
+            ),
+          )}
         </nav>
       )}
     </header>

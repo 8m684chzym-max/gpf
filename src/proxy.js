@@ -6,6 +6,7 @@ import { getToken } from "next-auth/jwt";
 // Hosts served by this project:
 //   app.gpf.golf     the members' app; every page needs a login except the auth pages
 //   tracer.gpf.golf  the Shot Tracer; members only, logs in through app.gpf.golf
+//   app.gpf.golf/swing  Swing Lab (static page in public/swing); members only
 //   gpf.golf / www   legacy app addresses; redirected to app.gpf.golf (same path)
 // The session cookie is shared across *.gpf.golf (see COOKIE_DOMAIN in lib/auth.js),
 // so one login opens both the app and the tracer.
@@ -18,8 +19,8 @@ const LEGACY_HOSTS = (process.env.LEGACY_APP_HOSTS || "gpf.golf,www.gpf.golf").s
 const PUBLIC_PAGES = ["/logout", "/login", "/forgot-password", "/reset-password", "/privacy"];
 
 const isPublicPage = (p) => PUBLIC_PAGES.some((x) => p === x || p.startsWith(x + "/"));
-// Static files (logos, icons, course images, manifest) stay public, except the tracer.
-const isStaticFile = (p) => /\.[a-z0-9]+$/i.test(p) && !p.startsWith("/tracer/");
+// Static files (logos, icons, course images, manifest) stay public, except the members' tools.
+const isStaticFile = (p) => /\.[a-z0-9]+$/i.test(p) && !p.startsWith("/tracer/") && !p.startsWith("/swing/");
 
 export async function proxy(req) {
   const url = req.nextUrl;
@@ -55,6 +56,8 @@ export async function proxy(req) {
   }
 
   if (path === "/") return NextResponse.redirect(new URL("/profile", req.url));
+  // Swing Lab is a single static page: serve it at /swing.
+  if (path === "/swing") return NextResponse.rewrite(new URL("/swing/index.html", req.url));
   return NextResponse.next();
 }
 

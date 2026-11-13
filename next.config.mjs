@@ -51,6 +51,17 @@ const securityHeaders = [
   },
 ];
 
+// Swing Lab (public/swing) runs MediaPipe pose detection in the browser: the library and
+// its WebAssembly come from jsDelivr and the pose model from Google Storage. Only these
+// paths get the wider policy; everything else keeps the strict one above.
+const swingCsp = securityHeaders.map((h) => h.key !== "Content-Security-Policy" ? h : {
+  key: h.key,
+  value: h.value
+    .replace(scriptSrc, `${scriptSrc} 'wasm-unsafe-eval' https://cdn.jsdelivr.net`)
+    .replace("connect-src 'self' https://api.anthropic.com", "connect-src 'self' https://cdn.jsdelivr.net https://storage.googleapis.com")
+    + "; worker-src 'self' blob:",
+});
+
 const nextConfig = {
   reactStrictMode: true,
   // Dev-only: allow these LAN origins to load /_next/* dev resources (HMR) when
@@ -63,6 +74,9 @@ const nextConfig = {
         source: "/(.*)",
         headers: securityHeaders,
       },
+      // Later entries win for the same header key.
+      { source: "/swing", headers: swingCsp },
+      { source: "/swing/:path*", headers: swingCsp },
     ];
   },
 };

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="GPF Swing Lab: reveja as fases do swing e meça a postura em 2D, no seu navegador.">
+<link rel="icon" href="/brand/gpf-logo.svg">
+<title>GPF Swing Lab</title>
+<link rel="stylesheet" href="/swing/style.css">
+</head>
+<body>
+
+<!-- GPF site menu — same links as gpf.golf and app.gpf.golf (src/lib/menu.js) -->
+<header class="site">
+  <a class="logo" href="https://gpf.golf" aria-label="GPF home"><img src="/brand/gpf-logo.svg" alt="GPF"></a>
+  <nav aria-label="Main">
+    <a href="https://gpf.golf">Home</a>
+    <a href="/play">Play</a>
+    <a href="/open">Open</a>
+    <a href="/team-cup">Team Cup</a>
+    <a href="/rank">Rank</a>
+    <a href="/shop">Shop</a>
+    <details class="tools on"><summary>Tools</summary><div class="tools-pop"><a href="https://tracer.gpf.golf">Tracer</a><a href="/swing" aria-current="page">Swing</a></div></details>
+    <a href="/profile">My profile</a>
+    <a href="/submit" class="cta">Submit score</a>
+    <a href="/logout">Log out</a>
+  </nav>
+</header>
+
+<header class="bar">
+  <div class="brand">
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="4.5" r="2.2" fill="currentColor"/><path d="M12 7.5v7m0 0-4 6m4-6 4 6M7 10.5l5-1 6-5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 4.5 21 2" stroke="#d4442f" stroke-width="1.9" stroke-linecap="round"/></svg>
+    Swing Lab
+  </div>
+  <div class="fname" id="filename">Nenhum vídeo</div>
+  <div class="spacer"></div>
+  <span class="privacy">Processado no seu navegador · o vídeo não é enviado</span>
+</header>
+
+<main>
+  <div class="layout">
+    <section class="panel workspace">
+      <div class="panel-head"><h2>01 · Estúdio de análise</h2></div>
+      <label class="upload" id="drop"><input type="file" id="file" accept="video/*"><b>＋ Carregar vídeo do swing</b><span>Escolha ou arraste um vídeo · máximo 250 MB</span></label>
+      <div class="settings">
+        <label>Perspetiva<select id="view"><option value="face-on">Face-on · de frente</option><option value="down-the-line">Down-the-line · por trás</option></select></label>
+        <label>FPS do vídeo<input id="fps" type="number" min="1" max="240" value="30"></label>
+        <label>Velocidade<select id="speed"><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option></select></label>
+      </div>
+      <div class="stage">
+        <video id="video" playsinline preload="metadata"></video>
+        <canvas id="overlay"></canvas>
+        <canvas id="lines" aria-label="Área para desenhar linhas sobre o vídeo"></canvas>
+        <div id="empty"><h3>Arraste um vídeo de swing para aqui</h3><p>Corpo inteiro visível, câmara fixa e boa iluminação.</p></div>
+      </div>
+      <div class="transport">
+        <button id="back" disabled aria-label="Frame anterior">◂ 1</button>
+        <button id="play" disabled>Reproduzir</button>
+        <button id="next" disabled aria-label="Frame seguinte">1 ▸</button>
+        <output id="time">0.000 / 0.000 s</output>
+      </div>
+      <input aria-label="Posição no vídeo" id="seek" type="range" min="0" max="1" step="0.001" value="0" disabled>
+      <div class="actions drawing-tools">
+        <button id="draw-line" aria-pressed="false" disabled>Desenhar linhas</button>
+        <label>Cor <input id="line-color" type="color" value="#ffdf45"></label>
+        <button id="undo-line" disabled>Desfazer linha</button>
+        <button id="clear-lines" disabled>Limpar linhas</button>
+      </div>
+      <p class="hint">Ative a ferramenta e arraste sobre o vídeo. As linhas ficam fixas durante a reprodução; Shift alinha na horizontal ou vertical.</p>
+      <div class="actions">
+        <button id="detect" class="primary" disabled>Analisar pose neste frame</button>
+        <label class="check"><input id="show" type="checkbox" checked> Mostrar pontos e eixos</label>
+      </div>
+      <p id="status" role="status">Carregue um vídeo para começar. A análise de pose requer internet para carregar o modelo.</p>
+    </section>
+
+    <aside>
+      <section class="panel">
+        <div class="panel-head"><h2>02 · Fases do swing</h2></div>
+        <p class="hint">Posicione o vídeo e marque cada fase. Clique no tempo para regressar.</p>
+        <div id="phases"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h2>03 · Medições 2D</h2></div>
+        <div id="metrics" class="measurements">Analise um frame para obter medições.</div>
+        <p class="hint">Ângulos no plano da imagem. Pontos com pouca confiança são omitidos. Esquerda e direita referem-se ao corpo.</p>
+      </section>
+    </aside>
+  </div>
+
+  <section class="panel report">
+    <div class="panel-head"><h2>04 · Relatório e histórico</h2><button id="save" disabled>Guardar sessão</button></div>
+    <label>Notas da sessão<textarea id="notes" placeholder="Observações, objetivos e contexto do treino…"></textarea></label>
+    <p class="hint">Guardado neste navegador: fases, medições e notas. O ficheiro de vídeo não é guardado; para rever uma sessão, volte a carregá-lo.</p>
+    <div class="actions">
+      <button id="export" disabled>Exportar relatório JSON</button>
+      <select id="compare" aria-label="Comparar com sessão anterior"><option value="">Comparar com uma sessão…</option></select>
+    </div>
+    <div id="comparison"></div>
+    <div id="history"></div>
+  </section>
+
+  <section class="limits">
+    <h3>Uma perspetiva útil. Não uma medição 3D.</h3>
+    <p>Um único vídeo não mede com rigor rotação axial das ancas ou ombros, X-factor, velocidade do taco, trajetória 3D ou posição da face no impacto. Os pontos dos pulsos não medem a rotação das mãos. As fases são marcadas manualmente; o impacto exato pode ocorrer entre frames. Perspetiva, roupa, oclusão e movimento rápido afetam a deteção. Compare apenas vídeos com perspetiva e enquadramento semelhantes. Não é um diagnóstico nem substitui um treinador.</p>
+  </section>
+</main>
+
+<script>
+// GPF site menu: Tools drop-down. The nav scrolls sideways on phones, so the panel is
+// position:fixed and placed under its button when opened.
+document.querySelectorAll('.site details.tools').forEach(d=>{const pop=d.querySelector('.tools-pop'),sum=d.querySelector('summary');
+const place=()=>{const r=sum.getBoundingClientRect();pop.style.top=(r.bottom+10)+'px';pop.style.left=Math.max(8,Math.min(innerWidth-pop.offsetWidth-8,r.left-10))+'px';};
+d.addEventListener('toggle',()=>{if(d.open)place();});addEventListener('resize',()=>{if(d.open)place();});d.closest('nav').addEventListener('scroll',()=>{d.open=false;});addEventListener('scroll',()=>{d.open=false;},{passive:true});
+document.addEventListener('pointerdown',e=>{if(d.open&&!d.contains(e.target))d.open=false;});document.addEventListener('keydown',e=>{if(e.key==='Escape')d.open=false;});});
+</script>
+<script type="module" src="/swing/app.js"></script>
+</body>
+</html>

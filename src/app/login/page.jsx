@@ -45,9 +45,10 @@ export default function LoginPage() {
       else if (res?.error) setErr("Email or password is incorrect.");
       else {
         const next = nextUrl();
-        // App pages use the client router; files such as /tracer/index.html and
-        // other *.gpf.golf sites need a full page load.
-        const isAppPage = next.startsWith("/") && !/\.[a-z0-9]+(\?|$)/i.test(next);
+        // App pages use the client router; static tools (/swing, /tracer/index.html)
+        // and other *.gpf.golf sites need a full page load.
+        const isStaticTool = /^\/swing(\/|\?|$)/.test(next);
+        const isAppPage = next.startsWith("/") && !isStaticTool && !/\.[a-z0-9]+(\?|$)/i.test(next);
         if (isAppPage) router.push(next); else window.location.assign(next);
       }
     } catch (e) { setErr(e.message); }
