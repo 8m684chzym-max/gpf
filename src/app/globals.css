@@ -522,3 +522,5 @@ a{color:inherit;text-decoration:none}
 .hcp-delta.down{color:#7fd3a4}.hcp-delta.up{color:#ff8a7a}.hcp-delta.same{color:#9fc2b3;font-weight:500}
 .hcp-delta.inline{display:inline;margin:0}
 .hint .hcp-delta.down{color:var(--ok)}.hint .hcp-delta.up{color:var(--bad)}
+.fpg-setup summary{display:flex;align-items:center;gap:6px}
+.fpg-bm{cursor:grab}

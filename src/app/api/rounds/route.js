@@ -17,7 +17,7 @@ export async function GET(req) {
   if (!(scope === "all" && user.role === "ADMIN")) where.userId = user.id;
   const rounds = await prisma.round.findMany({
     where, orderBy: { createdAt: "desc" },
-    include: { course: true, tee: true, scorecard: true, partner: { select: { name: true } }, user: { select: { name: true } } },
+    include: { course: true, tee: true, scorecard: true, partner: { select: { name: true, fpgNumber: true } }, user: { select: { name: true } } },
   });
   if (scope === "all" && user.role === "ADMIN") {
     // Committee view: check each card against the player's appointed index.

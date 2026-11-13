@@ -77,7 +77,7 @@ export default function Submit() {
         id: res.id, date: f.date, gross: Number(f.gross), course: c ? { name: c.name } : null,
         tee: c?.tees?.find((t) => t.id === f.teeId) || null,
         scorecard: holes.length === 18 ? { holes } : null,
-        partner: members.find((m) => m.id === f.partnerId) ? { name: members.find((m) => m.id === f.partnerId).name } : null,
+        partner: (() => { const m = members.find((x) => x.id === f.partnerId); return m ? { name: m.name, fpgNumber: m.fpgNumber || null } : null; })(),
       } });
     } catch (e) { alert(e.message); }
   };

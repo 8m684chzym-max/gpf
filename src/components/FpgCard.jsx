@@ -5,8 +5,9 @@
 // round out exactly as the myFPG "Novo Cartão Jogo" form asks for it, with
 // copy buttons, and send the player to myFPG to submit it themselves.
 // The "registered" tick is a per-device reminder only (localStorage).
-import { useEffect, useState } from "react";
-import { Copy, Check, ExternalLink, ClipboardList, CircleCheck } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Copy, Check, ExternalLink, ClipboardList, CircleCheck, Wand2, Bookmark } from "lucide-react";
+import { FPG_BOOKMARKLET, fpgPayload } from "@/lib/fpgBookmarklet";
 
 export const FPG_NEW_CARD_URL = "https://my.fpg.pt/Home/SingleScoreRegister.aspx?PP=0";
 const KEY = (id) => `gpf.fpg.${id}`;
@@ -47,6 +48,7 @@ function CopyBtn({ text, label }) {
 export default function FpgCard({ round, onChange }) {
   const [done, setDone] = useState(false);
   const [copiedAll, setCopiedAll] = useState(false);
+  const [copiedFill, setCopiedFill] = useState(false);
   useEffect(() => { setDone(fpgRegistered(round.id)); }, [round.id]);
 
   const holes = round.scorecard?.holes?.length === 18 ? round.scorecard.holes.map(Number) : null;
@@ -56,7 +58,7 @@ export default function FpgCard({ round, onChange }) {
     ["Data", ptDate(round.date), "date"],
     ["Campo", round.course?.name || "—", "course"],
     ["Marcas", teeLine || "—", "tee"],
-    ["Marcador", round.partner?.name || "—", "marker"],
+    ["Marcador", round.partner?.name ? `${round.partner.name}${round.partner.fpgNumber ? ` · nº ${round.partner.fpgNumber}` : ""}` : "—", "marker"],
     ["Pancadas (gross)", String(round.gross), "gross"],
   ];
 
@@ -76,7 +78,7 @@ export default function FpgCard({ round, onChange }) {
         <ClipboardList size={16} />
         <div style={{ flex: 1 }}>
           <div className="row-title">Register on myFPG</div>
-          <div className="muted small">Everything the FPG game-card form asks for. Copy, open myFPG, paste.</div>
+          <div className="muted small">Copy for autofill, open myFPG, tap the GPF → FPG bookmark. You check and press Save.</div>
         </div>
       </div>
 
@@ -106,14 +108,20 @@ export default function FpgCard({ round, onChange }) {
       )}
 
       <div className="btn-row" style={{ justifyContent: "flex-start" }}>
+        <button type="button" className="btn btn-primary small-btn" disabled={!holes}
+          onClick={async () => { if (await copyText(fpgPayload(round))) { setCopiedFill(true); setTimeout(() => setCopiedFill(false), 2500); } }}>
+          {copiedFill ? <Check size={14} /> : <Wand2 size={14} />} {copiedFill ? "Copied — now use GPF → FPG" : "Copy for autofill"}
+        </button>
         <button type="button" className="btn btn-ghost small-btn"
           onClick={async () => { if (await copyText(allText)) { setCopiedAll(true); setTimeout(() => setCopiedAll(false), 1600); } }}>
           {copiedAll ? <Check size={14} /> : <Copy size={14} />} {copiedAll ? "Copied" : "Copy all"}
         </button>
-        <a className="btn btn-primary small-btn" href={FPG_NEW_CARD_URL} target="_blank" rel="noopener noreferrer">
+        <a className="btn btn-ghost small-btn" href={FPG_NEW_CARD_URL} target="_blank" rel="noopener noreferrer">
           <ExternalLink size={14} /> Open myFPG
         </a>
       </div>
+
+      <BookmarkletHelp />
 
       <label className="fpg-done">
         <input type="checkbox" checked={done} onChange={toggle} />
@@ -122,5 +130,25 @@ export default function FpgCard({ round, onChange }) {
       </label>
       <div className="hint" style={{ margin: 0 }}>You log in to myFPG with your own federation number — GPF never sees that password. Your marker validates the card on the FPG side as usual.</div>
     </div>
+  );
+}
+
+// One-time setup: the "GPF → FPG" bookmark. React refuses javascript: hrefs in
+// JSX, so the href is set on the DOM node after mount.
+function BookmarkletHelp() {
+  const ref = useRef(null);
+  const [copied, setCopied] = useState(false);
+  useEffect(() => { ref.current?.setAttribute("href", FPG_BOOKMARKLET); }, []);
+  return (
+    <details className="more fpg-setup">
+      <summary><Bookmark size={13} /> Set up the GPF → FPG bookmark (once)</summary>
+      <div className="stack" style={{ gap: 8, marginTop: 8 }}>
+        <div className="small"><b>Computer:</b> drag this button to your bookmarks bar →{" "}
+          <a ref={ref} className="btn btn-ghost small-btn fpg-bm" onClick={(e) => { e.preventDefault(); alert("Drag this to your bookmarks bar, then use it on the myFPG page."); }}>GPF → FPG</a></div>
+        <div className="small"><b>iPhone (Safari):</b> bookmark any page, then Edit bookmark → name it "GPF → FPG" and replace the address with the code copied here:{" "}
+          <button type="button" className="link" onClick={async () => { if (await copyText(FPG_BOOKMARKLET)) { setCopied(true); setTimeout(() => setCopied(false), 1600); } }}>{copied ? "copied" : "copy bookmark code"}</button></div>
+        <div className="hint" style={{ margin: 0 }}>How it works: on myFPG's new game card tap the bookmark — it fills date, course and tee, 18 holes and "HCP round". Press Save. On the next page tap it again — it fills the 18 scores and your marker's federation number. Validate the marker and press Save/Recalc. It never submits anything by itself, and runs only in your browser.</div>
+      </div>
+    </details>
   );
 }
