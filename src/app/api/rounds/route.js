@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/guard";
 import { getActiveCompetition, logAudit, getScopedRounds, configFrom } from "@/lib/data";
-import { calcHandicap, auditRound } from "@/lib/scoring";
+import { calcHandicap, auditRound, lockFor } from "@/lib/scoring";
 
 const USER_HCP = { id: true, name: true, declaredHandicap: true, manualHandicap: true };
 
@@ -27,7 +27,7 @@ export async function GET(req) {
     const idx = new Map(people.map((u) => [u.id, calcHandicap(u, scoped, config).value]));
     for (const r of rounds) {
       if (r.type !== "QUALIFYING") continue;
-      r.audit = auditRound({ gross: r.gross, tee: r.tee, holes: r.scorecard?.holes ?? null, points: r.scorecard?.points ?? null }, idx.get(r.userId));
+      r.audit = auditRound({ gross: r.gross, tee: r.tee, holes: r.scorecard?.holes ?? null, points: r.scorecard?.points ?? null }, r.lockedIndex ?? idx.get(r.userId));
     }
   }
   return NextResponse.json({ rounds });
@@ -52,14 +52,18 @@ export async function POST(req) {
     return NextResponse.json({ error: `Hole scores add up to ${holes.reduce((s, x) => s + x, 0)}, but the gross entered is ${b.gross}.` }, { status: 400 });
   if (b.type === "QUALIFYING" && !b.partnerId) return NextResponse.json({ error: "A qualifying round needs a member witness." }, { status: 400 });
 
-  // Qualifying cards: points are recomputed from strokes with the player's appointed index.
+  // Qualifying cards: points are recomputed from strokes with the player's registered
+  // index (the FPG index, refreshed weekly) — never the handicap or points on the card —
+  // and LOCKED: later handicap changes don't rescore this card.
   // A card claiming more than that goes to the committee instead of straight onto the road.
-  let audit = null;
+  let audit = null, lock = {};
+  const cardHandicap = b.cardHandicap === "" || b.cardHandicap == null || Number.isNaN(Number(b.cardHandicap)) ? null : Math.round(Number(b.cardHandicap));
   if (b.type === "QUALIFYING") {
     const tee = await prisma.tee.findUnique({ where: { id: b.teeId } });
     const me = await prisma.user.findUnique({ where: { id: user.id }, select: USER_HCP });
     const index = calcHandicap(me, await getScopedRounds(comp.id), configFrom(comp)).value;
     audit = auditRound({ gross: Number(b.gross), tee, holes, points: b.points ?? null }, index);
+    if (index != null) lock = lockFor({ gross: Number(b.gross), tee, holes }, index);
   }
   const held = audit?.flagged;
 
@@ -68,6 +72,7 @@ export async function POST(req) {
       userId: user.id, competitionId: comp.id, type: b.type, roundNo: b.type === "WEEKEND" ? 1 : null,
       date: new Date(b.date), courseId: b.courseId, teeId: b.teeId, gross: Number(b.gross),
       partnerId: b.type === "QUALIFYING" ? b.partnerId : null, source: b.source === "OCR" ? "OCR" : "MANUAL",
+      ...lock, cardHandicap,
       ...(held ? { status: "PENDING" } : { status: "APPROVED", reviewedBy: "Auto-approved", reviewedAt: new Date() }),
       scorecard: (b.holes?.length === 18 || b.points != null || b.putts != null) ? {
         create: {
@@ -80,8 +85,12 @@ export async function POST(req) {
     },
   });
   await logAudit(user.name, held ? "round.submit.held" : "round.submit", round.id,
-    `${b.type} gross ${b.gross}` + (audit ? ` · card ${audit.card ?? "—"} pts vs computed ${audit.computed ?? "—"} (CH ${audit.ch ?? "—"})` : ""));
+    `${b.type} gross ${b.gross}` + (audit ? ` · card ${audit.card ?? "—"} pts vs locked ${lock.lockedPoints ?? "—"} (index ${lock.lockedIndex ?? "—"}, CH ${lock.lockedCourseHcp ?? "—"}${cardHandicap != null ? `, card hcp ${cardHandicap}` : ""})` : ""));
+  // Tell the player when the card was marked off a different handicap than the registered one.
+  const hcpNote = cardHandicap != null && lock.lockedCourseHcp != null && cardHandicap !== lock.lockedCourseHcp
+    ? `Your card shows handicap ${cardHandicap}; your registered index ${lock.lockedIndex} gives course handicap ${lock.lockedCourseHcp} on this tee, so points were recalculated.`
+    : null;
   return NextResponse.json({ ok: true, id: round.id, held: !!held,
-    points: audit?.computed ?? null,
+    points: lock.lockedPoints ?? audit?.computed ?? null, index: lock.lockedIndex ?? null, courseHcp: lock.lockedCourseHcp ?? null, hcpNote,
     message: held ? `Card says ${audit.card} pts; your strokes are worth ${audit.computed} pts off course handicap ${audit.ch}. Sent to the committee for review.` : null });
 }

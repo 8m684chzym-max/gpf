@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { lockFor, calcHandicap } from "@/lib/scoring";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin, requireUser } from "@/lib/guard";
 import { logAudit } from "@/lib/data";
@@ -22,7 +23,13 @@ export async function PATCH(req, { params: paramsPromise }) {
     await prisma.round.update({ where: { id }, data: { status: "REJECTED", rejectReason: reason || "rejected", reviewedBy: admin.name, reviewedAt: new Date() } });
     await logAudit(admin.name, "round.reject", id, reason);
   } else if (action === "edit") {
-    await prisma.round.update({ where: { id }, data: { gross: Number(gross) } });
+    const r = await prisma.round.findUnique({ where: { id }, include: { tee: true, scorecard: true, user: { select: { declaredHandicap: true, manualHandicap: true } } } });
+    if (!r) return NextResponse.json({ error: "Round not found" }, { status: 404 });
+    // Strokes changed → rescore, but with the index locked at submission (not today's).
+    const index = r.lockedIndex ?? calcHandicap(r.user).value;
+    const holes = r.scorecard?.holes?.length === 18 && r.scorecard.holes.reduce((s, x) => s + x, 0) === Number(gross) ? r.scorecard.holes : null;
+    const lock = r.type === "QUALIFYING" && index != null ? lockFor({ gross: Number(gross), tee: r.tee, holes }, index) : {};
+    await prisma.round.update({ where: { id }, data: { gross: Number(gross), ...lock } });
     await logAudit(admin.name, "round.edit", id, `gross -> ${gross}`);
   } else return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   return NextResponse.json({ ok: true });
@@ -102,10 +109,16 @@ async function updateOwnRound(id, b) {
   if (!changes.length) return NextResponse.json({ ok: true, unchanged: true });
 
   const half = (a, z) => (holes ? holes.slice(a, z).reduce((s, x) => s + x, 0) : null);
+  // Rescore with the index locked when the card was first submitted (not today's index).
+  let lock = {};
+  if (round.type === "QUALIFYING") {
+    const index = round.lockedIndex ?? calcHandicap(await prisma.user.findUnique({ where: { id: user.id }, select: { declaredHandicap: true, manualHandicap: true } })).value;
+    if (index != null) lock = { ...lockFor({ gross, tee, holes }, index), lockedIndex: index };
+  }
   await prisma.round.update({
     where: { id },
     data: {
-      date, courseId, teeId, gross, partnerId,
+      date, courseId, teeId, gross, partnerId, ...lock,
       status: "PENDING", reviewedBy: null, reviewedAt: null, rejectReason: null,
       // Card-stated points no longer match edited strokes: drop them so they're recomputed.
       ...(round.scorecard

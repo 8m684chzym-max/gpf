@@ -71,8 +71,8 @@ export default function Profile() {
       <div className="sec-h">Handicap</div>
       <div className="card form">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span className="label">Self-declared handicap index</span>
-          {!editing && <button className="link" type="button" onClick={() => setEditing(true)}><Pencil size={13} /> Edit</button>}
+          <span className="label">{hcp.fpgManaged ? "Handicap index (FPG)" : "Self-declared handicap index"}</span>
+          {!editing && !hcp.fpgManaged && <button className="link" type="button" onClick={() => setEditing(true)}><Pencil size={13} /> Edit</button>}
         </div>
         {editing ? (
           <div className="btn-row" style={{ marginTop: 8, justifyContent: "flex-start" }}>
@@ -86,7 +86,9 @@ export default function Profile() {
         )}
         {err && <div className="hint" style={{ color: "var(--bad)" }}>{err}</div>}
         <div className="hint" style={{ marginTop: 8 }}>
-          {hcp.overridden
+          {hcp.fpgManaged && !hcp.overridden
+            ? `Your official FPG Handicap Index, updated automatically every Monday${hcp.fpgSyncedAt ? ` (last update ${new Date(hcp.fpgSyncedAt).toLocaleDateString("pt-PT")})` : ""}. Each card you submit is scored off the index you have at that moment, and those points stay locked.`
+            : hcp.overridden
             ? "The committee has set a manual handicap for you, so that value is used on the boards regardless of this one. Ask an admin to clear the override to let your declared index and results take over."
             : resultsDriven
               ? `You have ${me.count} qualifying rounds, so your handicap on the boards now comes from your results (best 3 score differentials). Your declared index is kept as a fallback.`

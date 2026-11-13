@@ -49,6 +49,8 @@ model User {
   fpgStatus        String?   // e.g. "Válido", "Sem HCP"
   fpgSyncedAt      DateTime?
   fpgError         String?   // last sync problem for this member, cleared on success
+  hcpPrevious      Float?    // handicap before the last FPG update (for the Rank arrows)
+  hcpChangedAt     DateTime? // when the FPG sync last changed declaredHandicap
   createdAt        DateTime @default(now())
   rounds           Round[]  @relation("PlayerRounds")
   witnessRounds    Round[]  @relation("PartnerRounds")
@@ -130,6 +132,14 @@ model Round {
   rejectReason  String?
   reviewedBy    String?
   reviewedAt    DateTime?
+  // Points are locked when the card is submitted, off the player's registered index
+  // at that moment (the FPG index, refreshed weekly). Later handicap changes never
+  // rescore an old card. Strokes edits rescore with the same locked index.
+  lockedIndex     Float?    // Handicap Index used
+  lockedCourseHcp Int?      // Course Handicap on the tee played (100%)
+  lockedPoints    Int?      // Stableford points that count on Rank
+  lockedAt        DateTime?
+  cardHandicap    Int?      // playing handicap printed on the card (OCR/manual), for the audit only
   createdAt     DateTime    @default(now())
   scorecard     Scorecard?
 }

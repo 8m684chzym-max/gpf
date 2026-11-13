@@ -4,7 +4,8 @@ const PROMPT =
   "group view with several players' scores side by side. Extract the data and return ONLY a JSON object, no " +
   "markdown fences and no commentary, with exactly these keys: date (string|null), course (string|null), and " +
   "players (a non-empty array). date and course describe the round as a whole and apply to every player. " +
-  "Each entry in players must have exactly these keys: player (string|null), totalGross (number|null), " +
+  "Each entry in players must have exactly these keys: player (string|null), handicap (number|null — the playing/course " +
+  "handicap (HCP) shown for that player on the card), totalGross (number|null), " +
   'points (number|null), holes (array of integers for holes 1-18 in order, or empty array), out (number|null), ' +
   '"in" (number|null), fairwaysPct (number|null), girPct (number|null), putts (number|null), bestHole (string|null), ' +
   "leaderboardPos (string|null). If the screenshot shows more than one player's scorecard or score row, include " +

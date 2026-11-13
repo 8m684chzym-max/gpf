@@ -1,9 +1,10 @@
 // Weekly FPG handicap sync.
 //
 // For every member with an FPG federation number, fetch the official Handicap
-// Index from the FPG and store it on the user (fpgIndex / fpgStatus / fpgClub /
-// fpgSyncedAt). This is reference data only: it never touches declaredHandicap,
-// manualHandicap or any GPF competition calculation.
+// Index from the FPG, store it (fpgIndex / fpgStatus / fpgClub / fpgSyncedAt) and
+// make it the member's GPF handicap: declaredHandicap := FPG index, keeping the old
+// value in hcpPrevious (Rank arrows). New cards are scored off it; cards already
+// submitted keep their locked points. A committee manualHandicap still wins.
 //
 // Triggers:
 //   • Vercel Cron (vercel.json, weekly) — authenticated with CRON_SECRET, which
@@ -36,7 +37,7 @@ async function run(trigger) {
   const startedAt = new Date();
   const members = await prisma.user.findMany({
     where: { fpgNumber: { not: null } },
-    select: { id: true, name: true, fpgNumber: true, fpgIndex: true },
+    select: { id: true, name: true, fpgNumber: true, fpgIndex: true, declaredHandicap: true },
     orderBy: { name: "asc" },
   });
   const results = [];
@@ -65,11 +66,17 @@ async function run(trigger) {
         results.push({ member: m.name, fedno: m.fpgNumber, ok: false, error });
         continue;
       }
+      // Only a valid FPG index replaces the GPF handicap ("Sem HCP" etc. leave it alone).
+      const changes = rec.index != null && m.declaredHandicap !== rec.index;
       await prisma.user.update({
         where: { id: m.id },
-        data: { fpgIndex: rec.index, fpgStatus: rec.status, fpgClub: rec.club, fpgName: rec.name, fpgSyncedAt: new Date(), fpgError: null },
+        data: {
+          fpgIndex: rec.index, fpgStatus: rec.status, fpgClub: rec.club, fpgName: rec.name, fpgSyncedAt: new Date(), fpgError: null,
+          ...(changes ? { declaredHandicap: rec.index, hcpPrevious: m.declaredHandicap, hcpChangedAt: new Date() } : {}),
+        },
       });
-      results.push({ member: m.name, fedno: m.fpgNumber, ok: true, index: rec.index, previous: m.fpgIndex, status: rec.status, club: rec.club });
+      if (changes) await logAudit("FPG sync", "hcp.fpg", m.id, `${m.name}: ${m.declaredHandicap ?? "—"} → ${rec.index}`);
+      results.push({ member: m.name, fedno: m.fpgNumber, ok: true, index: rec.index, previous: m.declaredHandicap, changed: changes, status: rec.status, club: rec.club });
     } catch (e) {
       const error = e.name === "TimeoutError" ? "FPG did not answer in time" : e.message;
       await prisma.user.update({ where: { id: m.id }, data: { fpgError: error } }).catch(() => {});

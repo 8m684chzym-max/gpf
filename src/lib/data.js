@@ -30,6 +30,7 @@ export async function getScopedRounds(competitionId) {
     id: r.id, userId: r.userId, type: r.type, roundNo: r.roundNo, status: r.status, date: r.date,
     gross: r.gross, parAtTee: r.tee?.par ?? 72, tee: r.tee, holes: r.scorecard?.holes ?? null,
     points: r.scorecard?.points ?? null,
+    lockedPoints: r.lockedPoints, lockedIndex: r.lockedIndex, lockedCourseHcp: r.lockedCourseHcp,
   }));
 }
 

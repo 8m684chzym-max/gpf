@@ -17,7 +17,7 @@ export default function RoadBoard({ road, need }) {
              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(r.name); } }}>
           <span className="bh-rank num">{i + 1}</span>
           <span className="bh-name" style={{ display: "flex", alignItems: "center", gap: 4 }}>{openName === r.name ? <ChevronDown size={14} /> : <ChevronRight size={14} />}{r.name}</span>
-          <span className="bh-c num tot">{r.points || 0}</span><span className="bh-c num hcp-cell">{fmtHcp(r.hcp)}<FpgDelta fpg={r.fpgIndex} declared={r.hcp} /></span>
+          <span className="bh-c num tot">{r.points || 0}</span><span className="bh-c num hcp-cell">{fmtHcp(r.hcp)}<HcpDelta now={r.hcp} before={r.hcpPrevious} /></span>
           <span className="bh-c">{r.qualified ? <span className="badge badge-ok">{r.bonus ? `In · −${r.bonus}` : "In"}</span> : <span className="badge badge-warn">{r.count}/{need}</span>}</span>
         </div>
         {openName === r.name && <RoundsDetail rounds={r.rounds} row={r} />}
@@ -36,35 +36,36 @@ function RoundsDetail({ rounds, row }) {
         <table className="small" style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead><tr>
             <th style={{ ...cell, textAlign: "left" }}>Date</th><th style={{ ...cell, textAlign: "left" }}>Course</th>
-            <th style={cell}>Gross</th><th style={cell}>Playing hcp</th><th style={cell}>Pts</th><th style={cell} aria-label="Counts"></th>
+            <th style={cell}>Gross</th><th style={cell}>Index</th><th style={cell}>Course hcp</th><th style={cell}>Pts</th><th style={cell} aria-label="Counts"></th>
           </tr></thead>
           <tbody>{rounds.map((x) => (
             <tr key={x.id} style={{ opacity: x.counted ? 1 : 0.55 }}>
               <td style={{ ...cell, textAlign: "left" }} className="num">{x.date ? String(x.date).slice(0, 10) : "—"}</td>
               <td style={{ ...cell, textAlign: "left", whiteSpace: "normal" }}>{x.course ?? "—"}{x.tee ? <span className="muted"> · {x.tee}</span> : null}</td>
               <td style={cell} className="num">{x.gross ?? "—"}</td>
+              <td style={cell} className="num">{x.hcpIndex != null ? fmtHcp(x.hcpIndex) : "—"}</td>
               <td style={cell} className="num">{x.ph ?? "—"}</td>
               <td style={cell} className="num"><b>{x.points ?? "—"}</b></td>
               <td style={cell}>{x.counted ? <Check size={14} aria-label="counts" /> : null}</td>
             </tr>))}</tbody>
         </table>)}
-      <div className="muted small" style={{ marginTop: 4 }}><Check size={12} /> = one of the 3 best rounds counted in the total</div>
+      <div className="muted small" style={{ marginTop: 4 }}><Check size={12} /> = one of the 3 best rounds counted in the total · points are locked at the index the player had when the card was submitted</div>
       {row?.perRound != null && (
         <div style={{ marginTop: 6 }}>
-          Declared {fmtHcp(row.hcp)} · best 3 = {row.points} pts ({row.perRound > 0 ? "+" : ""}{row.perRound} a round vs 36)
+          Hcp {fmtHcp(row.hcp)} · best 3 = {row.points} pts ({row.perRound > 0 ? "+" : ""}{row.perRound} a round vs 36)
           {" → "}<b>Open handicap {fmtHcp(row.openIndex)}</b> ({row.adjust > 0 ? "+" : ""}{row.adjust})
         </div>)}
     </div>
   );
 }
 
-// Change of the official FPG index vs the declared handicap: ↓ = FPG lower (playing better), ↑ = higher.
-function FpgDelta({ fpg, declared }) {
-  if (fpg == null || declared == null) return null;
-  const d = Math.round((fpg - declared) * 10) / 10;
-  const title = `FPG ${fmtHcp(fpg)} vs declared ${fmtHcp(declared)}`;
-  if (d === 0) return <span className="hcp-delta same" title={title}>= FPG</span>;
+// Change of the handicap at the last FPG update: ↓ = index went down (playing better), ↑ = up.
+function HcpDelta({ now, before }) {
+  if (now == null || before == null) return null;
+  const d = Math.round((now - before) * 10) / 10;
+  if (d === 0) return null;
   const up = d > 0;
+  const title = `Was ${fmtHcp(before)} before the last FPG update`;
   return (
     <span className={`hcp-delta ${up ? "up" : "down"}`} title={title} aria-label={`${title} (${up ? "+" : "−"}${Math.abs(d).toFixed(1)})`}>
       {up ? <ArrowUp size={11} /> : <ArrowDown size={11} />}{Math.abs(d).toFixed(1)}

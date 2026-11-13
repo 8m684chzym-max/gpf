@@ -10,9 +10,10 @@ export async function GET() {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const me = await prisma.user.findUnique({
     where: { id: user.id },
-    select: { declaredHandicap: true, manualHandicap: true },
+    select: { declaredHandicap: true, manualHandicap: true, fpgNumber: true, fpgSyncedAt: true },
   });
   return NextResponse.json({
+    fpgManaged: !!me?.fpgNumber, fpgSyncedAt: me?.fpgSyncedAt ?? null,
     declaredHandicap: me?.declaredHandicap ?? null,
     // true when the committee has set a manual override, which takes precedence
     overridden: me?.manualHandicap != null,
@@ -25,6 +26,9 @@ export async function PATCH(req) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json();
   if (!("declaredHandicap" in body)) return NextResponse.json({ error: "Nothing to update." }, { status: 400 });
+
+  const fpg = await prisma.user.findUnique({ where: { id: user.id }, select: { fpgNumber: true } });
+  if (fpg?.fpgNumber) return NextResponse.json({ error: "Your handicap comes from the FPG and is updated every week automatically." }, { status: 409 });
 
   // Rule 1: the declared handicap is what every road round is scored with, so it is
   // frozen once the player has a qualifying round in the active competition.

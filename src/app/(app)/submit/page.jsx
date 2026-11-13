@@ -24,7 +24,7 @@ export default function Submit() {
   const [newRating, setNewRating] = useState("");
   const [newSlope, setNewSlope] = useState("");
   const TEE_COLOURS = ["White", "Yellow", "Black", "Blue", "Red"];
-  const blank = { type: "QUALIFYING", roundNo: 1, date: new Date().toISOString().slice(0, 10), courseId: "", teeId: "", gross: "", partnerId: "", points: "", holes: Array(18).fill(""), fairwaysPct: "", girPct: "", putts: "", source: "MANUAL" };
+  const blank = { type: "QUALIFYING", roundNo: 1, date: new Date().toISOString().slice(0, 10), courseId: "", teeId: "", gross: "", partnerId: "", points: "", cardHandicap: "", holes: Array(18).fill(""), fairwaysPct: "", girPct: "", putts: "", source: "MANUAL" };
   const [f, setF] = useState(blank);
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }));
 
@@ -69,7 +69,7 @@ export default function Submit() {
       const res = await api("/api/rounds", { method: "POST", body: JSON.stringify({
         type: f.type, roundNo: f.roundNo, date: f.date, courseId: f.courseId, teeId: f.teeId, gross: Number(f.gross),
         partnerId: f.partnerId || null, source: f.source, holes, out: out || null, in: inn || null,
-        points: f.points === "" ? null : Number(f.points), fairwaysPct: f.fairwaysPct === "" ? null : Number(f.fairwaysPct),
+        points: f.points === "" ? null : Number(f.points), cardHandicap: f.cardHandicap === "" ? null : Number(f.cardHandicap), fairwaysPct: f.fairwaysPct === "" ? null : Number(f.fairwaysPct),
         girPct: f.girPct === "" ? null : Number(f.girPct), putts: f.putts === "" ? null : Number(f.putts),
       }) });
       const c = courses.find((x) => x.id === f.courseId);
@@ -86,7 +86,8 @@ export default function Submit() {
     <div className="stack"><div className="card success">{done.held ? <AlertCircle size={40} /> : <CircleCheck size={40} />}<h3>{done.held ? "Sent for review" : "Round added"}</h3>
       {done.held
         ? <p className="muted">{done.message} It will count once the committee approves it.</p>
-        : <p className="muted">It's on the boards now{done.points != null ? ` — worth ${done.points} Stableford points off your appointed handicap` : ""}. The committee can still edit or remove it from Admin if anything looks off.</p>}
+        : <p className="muted">It's on the boards now{done.points != null ? ` — worth ${done.points} Stableford points off your registered index ${done.index ?? ""} (course handicap ${done.courseHcp ?? "—"}). These points are locked: later handicap changes won't rescore this card` : ""}. The committee can still edit or remove it from Admin if anything looks off.</p>}
+      {done.hcpNote && <p className="ocr-note">{done.hcpNote}</p>}
       <button className="btn btn-primary" onClick={() => { setF(blank); setDone(false); }}>Submit another</button></div>
       {done.round && !done.held && <div className="card"><FpgCard round={done.round} /></div>}</div>
   );
@@ -165,6 +166,7 @@ export default function Submit() {
             <button className="link" type="button" onClick={() => set("gross", String(out + inn))} disabled={!(out + inn)}>Use as gross</button></div>
           <div className="grid3">
             <label className="field"><span className="label">Points on card</span><input className="input" inputMode="numeric" value={f.points} onChange={(e) => set("points", e.target.value)} /></label>
+            <label className="field"><span className="label">Hcp on card</span><input className="input" inputMode="numeric" value={f.cardHandicap} onChange={(e) => set("cardHandicap", e.target.value)} /></label>
             <label className="field"><span className="label">Fairways %</span><input className="input" inputMode="numeric" value={f.fairwaysPct} onChange={(e) => set("fairwaysPct", e.target.value)} /></label>
             <label className="field"><span className="label">GIR %</span><input className="input" inputMode="numeric" value={f.girPct} onChange={(e) => set("girPct", e.target.value)} /></label>
             <label className="field"><span className="label">Putts</span><input className="input" inputMode="numeric" value={f.putts} onChange={(e) => set("putts", e.target.value)} /></label>
@@ -193,7 +195,7 @@ function parseDetectedDate(d) {
 function buildReviewData(shared, pl) {
   return {
     player: pl?.player ?? "", course: shared?.course ?? "", date: shared?.date ?? "",
-    totalGross: pl?.totalGross ?? "", points: pl?.points ?? "", putts: pl?.putts ?? "",
+    totalGross: pl?.totalGross ?? "", points: pl?.points ?? "", cardHandicap: pl?.handicap ?? "", putts: pl?.putts ?? "",
     fairwaysPct: pl?.fairwaysPct ?? "", girPct: pl?.girPct ?? "",
     holes: Array.isArray(pl?.holes) ? pl.holes : [], out: pl?.out ?? "", inn: pl?.["in"] ?? "",
   };
@@ -265,7 +267,7 @@ function imageToJpegB64(file, maxDim = 2000, quality = 0.9) {
   const matched = fuzzyMatchCourse(data?.course, courses || []);
   const apply = async () => {
     const holes = Array.isArray(data.holes) && data.holes.length === 18 ? data.holes.map((x) => String(x)) : Array(18).fill("");
-    const out = { gross: data.totalGross === "" ? "" : String(data.totalGross), points: data.points === "" ? "" : String(data.points), holes,
+    const out = { gross: data.totalGross === "" ? "" : String(data.totalGross), points: data.points === "" ? "" : String(data.points), cardHandicap: data.cardHandicap === "" || data.cardHandicap == null ? "" : String(data.cardHandicap), holes,
       fairwaysPct: data.fairwaysPct === "" ? "" : String(data.fairwaysPct), girPct: data.girPct === "" ? "" : String(data.girPct), putts: data.putts === "" ? "" : String(data.putts) };
 
     let courseId = matched?.id, teeId = matched?.tees?.[0]?.id;
@@ -332,6 +334,7 @@ function imageToJpegB64(file, maxDim = 2000, quality = 0.9) {
             <label className="field" style={{ gridColumn: "1 / -1" }}><span className="label">Course</span><input className="input" value={data.course} onChange={(e) => edit("course", e.target.value)} /></label>
             <label className="field"><span className="label">Total gross</span><input className="input" value={data.totalGross} onChange={(e) => edit("totalGross", e.target.value)} /></label>
             <label className="field"><span className="label">Points</span><input className="input" value={data.points} onChange={(e) => edit("points", e.target.value)} /></label>
+            <label className="field"><span className="label">Hcp on card</span><input className="input" value={data.cardHandicap ?? ""} onChange={(e) => edit("cardHandicap", e.target.value)} /></label>
             <label className="field"><span className="label">Putts</span><input className="input" value={data.putts} onChange={(e) => edit("putts", e.target.value)} /></label>
             <label className="field"><span className="label">Fairways %</span><input className="input" value={data.fairwaysPct} onChange={(e) => edit("fairwaysPct", e.target.value)} /></label>
             <label className="field"><span className="label">GIR %</span><input className="input" value={data.girPct} onChange={(e) => edit("girPct", e.target.value)} /></label>

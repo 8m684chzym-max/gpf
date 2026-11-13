@@ -88,10 +88,14 @@ export function whsIndex(qs) {
 // 1. Every player starts from their self-declared handicap (the committee may
 //    correct it with manualHandicap). This is the index every road round is
 //    scored with — it does NOT move with results, so points stay comparable.
+//    Since Nov 2026 it is the player's official FPG Handicap Index, refreshed weekly
+//    by /api/fpg/sync (players without an FPG number keep their declared value).
 // 2. Each qualifying round = gross on a course/tee.
 // 3. Points = WHS Stableford for that gross, on that tee, off the declared index
 //    (Course Handicap = Index × Slope/113 + (CR − Par), full allowance).
-// 4. Road total = best 3 rounds.
+//    Each card's points are LOCKED at submission with the index registered then
+//    (Round.lockedPoints); a later handicap change never rescores old cards.
+// 4. Road total = best 3 rounds (by locked points, whatever the index was).
 // 5. Open index = declared index adjusted by how the best 3 compare with 108
 //    (36 a round = playing exactly to handicap). See openIndexFor().
 export function calcHandicap(user /*, rounds, config — unused, kept for call sites */) {
@@ -173,6 +177,19 @@ export function roundPoints(round, index) {
   return exact != null ? exact : estimateStableford(round, index);
 }
 
+// Points that count for a round: the locked value when the card has one, otherwise
+// (legacy rounds from before locking) computed with the given index.
+export function countedPoints(round, index) {
+  if (round.lockedPoints != null) return Number(round.lockedPoints);
+  return roundPoints(round, index);
+}
+
+// What to store when a card is submitted or its strokes are edited.
+export function lockFor(round, index) {
+  const ch = courseHandicapFor(index, round.tee);
+  return { lockedIndex: index, lockedCourseHcp: ch, lockedPoints: roundPoints(round, index), lockedAt: new Date() };
+}
+
 // Integrity check of a submitted card against the player's appointed index.
 //   holesMismatch — the 18 hole scores don't add up to the gross entered
 //   pointsGap     — points written on the card minus points the strokes are worth
@@ -195,7 +212,7 @@ export function auditRound(round, index) {
 // Total Stableford points across a player's best `n` qualifying rounds.
 export function bestPointsTotal(userId, rounds, index, n = 3) {
   const pts = approvedQualifying(rounds, userId)
-    .map((r) => roundPoints(r, index))
+    .map((r) => countedPoints(r, index))
     .filter((p) => p != null)
     .sort((a, b) => b - a)
     .slice(0, n);
@@ -208,7 +225,9 @@ export function bestPointsTotal(userId, rounds, index, n = 3) {
 export function roadRoundsFor(userId, rounds, index, n = 3) {
   const list = approvedQualifying(rounds, userId).map((r) => ({
     id: r.id, date: r.date ?? null, course: r.tee?.course?.name ?? null, tee: r.tee?.name ?? null,
-    gross: r.gross, slope: r.tee?.slope ?? 113, ph: courseHandicapFor(index, r.tee), points: roundPoints(r, index),
+    gross: r.gross, slope: r.tee?.slope ?? 113,
+    ph: r.lockedCourseHcp ?? courseHandicapFor(index, r.tee), hcpIndex: r.lockedIndex ?? index, locked: r.lockedPoints != null,
+    points: countedPoints(r, index),
   }));
   const best = new Set(list.filter((x) => x.points != null).sort((a, b) => b.points - a.points).slice(0, n).map((x) => x.id));
   return list
