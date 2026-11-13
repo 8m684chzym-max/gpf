@@ -1,5 +1,5 @@
 // Pure scoring engine — shared by server (API routes) and client.
-import { RANK_SINCE } from "./major";
+import { RANK_SINCE, FPG_ROUNDS_SINCE } from "./major";
 
 // Rounds passed in are already scoped to the active competition. Each
 // qualifying round must carry `parAtTee` (the par of the tee played) so
@@ -58,8 +58,12 @@ export function back9(holes) {
 
 // Continuous Rank: only rounds on or after RANK_SINCE count (see lib/major.js).
 const sinceOk = (r) => !r.date || String(r.date instanceof Date ? r.date.toISOString() : r.date).slice(0, 10) >= RANK_SINCE;
+// Members whose FPG results are imported (r.fpgOnly) count only official myFPG
+// rounds (r.fpgScoreId) from FPG_ROUNDS_SINCE; everyone else counts their cards.
+const dayOf = (r) => String(r.date instanceof Date ? r.date.toISOString() : r.date ?? "").slice(0, 10);
+const fpgOk = (r) => !r.fpgOnly || (r.fpgScoreId && dayOf(r) >= FPG_ROUNDS_SINCE);
 export function approvedQualifying(rounds, userId) {
-  return rounds.filter((r) => r.userId === userId && r.type === "QUALIFYING" && r.status === "APPROVED" && sinceOk(r));
+  return rounds.filter((r) => r.userId === userId && r.type === "QUALIFYING" && r.status === "APPROVED" && sinceOk(r) && fpgOk(r));
 }
 
 // Calculate WHS Score Differential: (113 / Slope) × (Gross - Course Rating)
@@ -226,7 +230,7 @@ export function roadRoundsFor(userId, rounds, index, n = 3) {
   const list = approvedQualifying(rounds, userId).map((r) => ({
     id: r.id, date: r.date ?? null, course: r.tee?.course?.name ?? null, tee: r.tee?.name ?? null,
     gross: r.gross, slope: r.tee?.slope ?? 113,
-    ph: r.lockedCourseHcp ?? courseHandicapFor(index, r.tee), hcpIndex: r.lockedIndex ?? index, locked: r.lockedPoints != null,
+    ph: r.lockedCourseHcp ?? courseHandicapFor(index, r.tee), hcpIndex: r.lockedIndex ?? index, locked: r.lockedPoints != null, fpg: !!r.fpgScoreId,
     points: countedPoints(r, index),
   }));
   const best = new Set(list.filter((x) => x.points != null).sort((a, b) => b.points - a.points).slice(0, n).map((x) => x.id));

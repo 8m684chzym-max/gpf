@@ -103,15 +103,30 @@ function Members({ members, reload }) {
     } catch (e) { setSyncMsg(e.message); }
     setSyncing(false);
   };
+  const [importing, setImporting] = useState(false);
+  const importFpg = async () => {
+    setImporting(true); setSyncMsg("");
+    try {
+      const r = await fetch("/api/fpg/results", { method: "POST" });
+      const b = await r.json().catch(() => ({}));
+      const add = (b.results || []).reduce((s, x) => s + (x.added || 0), 0), link = (b.results || []).reduce((s, x) => s + (x.linked || 0), 0);
+      setSyncMsg(r.status === 401 ? "Admins only." : `Rounds import: ${add} added, ${link} linked${b.problems?.length ? ` · ${b.problems.length} problem(s)${b.alerted ? " — alert emailed" : ""}` : ""}`);
+      reload();
+    } catch (e) { setSyncMsg(e.message); }
+    setImporting(false);
+  };
   const fpgCount = approved.filter((u) => u.fpgNumber).length;
   const lastSync = approved.map((u) => u.fpgSyncedAt).filter(Boolean).sort().pop();
   return (
     <div className="stack">
       <div className="card row-card">
         <div><div className="row-title">FPG handicaps</div>
-          <div className="muted small">{fpgCount} member{fpgCount === 1 ? "" : "s"} with an FPG number · synced weekly (Mondays){lastSync ? ` · last ${lastSync.slice(0, 10)}` : ""}</div>
+          <div className="muted small">{fpgCount} member{fpgCount === 1 ? "" : "s"} with an FPG number · handicaps and rounds synced weekly (Mondays){lastSync ? ` · last ${lastSync.slice(0, 10)}` : ""}</div>
           {syncMsg && <div className="small">{syncMsg}</div>}</div>
-        <button className="btn btn-ghost" disabled={syncing} onClick={syncFpg}>{syncing ? <Loader2 size={15} className="spin" /> : <RefreshCw size={15} />} Sync FPG now</button>
+        <div className="btn-row">
+          <button className="btn btn-ghost" disabled={syncing} onClick={syncFpg}>{syncing ? <Loader2 size={15} className="spin" /> : <RefreshCw size={15} />} Sync FPG now</button>
+          <button className="btn btn-ghost" disabled={importing} onClick={importFpg}>{importing ? <Loader2 size={15} className="spin" /> : <RefreshCw size={15} />} Import FPG rounds</button>
+        </div>
       </div>
       {pending.length > 0 && (<>
         <div className="sec-h">Waiting for approval</div>

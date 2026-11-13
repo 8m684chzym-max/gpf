@@ -19,6 +19,10 @@ export const MAJOR = {
 // the declared handicaps, which were reset to each player's Open playing handicap.
 export const RANK_SINCE = "2026-11-08";
 export const RANK_SINCE_LABEL = "8 November 2026";
+// Members with an FPG handicap: Rank counts only their official myFPG rounds
+// (imported weekly) played on or after this date — best 3 Stableford.
+export const FPG_ROUNDS_SINCE = "2026-11-09";
+export const FPG_ROUNDS_SINCE_LABEL = "9 November 2026";
 
 // Shared tiebreak labels (keys are stored in the DB — keep them stable).
 export const TIEBREAK = {

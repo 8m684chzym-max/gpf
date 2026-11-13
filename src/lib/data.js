@@ -24,13 +24,14 @@ export function configFrom(comp) {
 export async function getScopedRounds(competitionId) {
   const rounds = await prisma.round.findMany({
     where: { competitionId },
-    include: { tee: { include: { course: { select: { name: true } } } }, scorecard: true },
+    include: { tee: { include: { course: { select: { name: true } } } }, scorecard: true, user: { select: { fpgNumber: true, fpgResultsAt: true } } },
   });
   return rounds.map((r) => ({
     id: r.id, userId: r.userId, type: r.type, roundNo: r.roundNo, status: r.status, date: r.date,
     gross: r.gross, parAtTee: r.tee?.par ?? 72, tee: r.tee, holes: r.scorecard?.holes ?? null,
     points: r.scorecard?.points ?? null,
     lockedPoints: r.lockedPoints, lockedIndex: r.lockedIndex, lockedCourseHcp: r.lockedCourseHcp,
+    fpgScoreId: r.fpgScoreId, fpgOnly: !!(r.user?.fpgNumber && r.user?.fpgResultsAt),
   }));
 }
 
