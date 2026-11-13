@@ -152,12 +152,26 @@ export const CAUSES = {
 };
 const causes = k => ({ title: CAUSES[k].title, items: CAUSES[k].items.map(([t, ks]) => ({ text: t, sources: ks.map(src) })) });
 
+// Signed distance (in torso lengths) of the club head from the two plane lines, measured
+// perpendicular to each line; positive = outside/above (away from the golfer).
+function vZone(club, tA, tB, L) {
+  if (tA == null || tB == null || !club.head0 || !club.hands0 || !club.sh0 || !club.track) return null;
+  const { head0: o, hands0: hd, sh0 } = club, S = Math.hypot(hd.x - o.x, hd.y - o.y);
+  const up = { x: o.x, y: o.y - S }; // a point straight above the ball is on the outside of both lines
+  const sd = (q, p) => { const vx = q.x - o.x, vy = q.y - o.y, n = Math.hypot(vx, vy) || 1; return ((p.x - o.x) * vy - (p.y - o.y) * vx) / n; };
+  const sgnLow = Math.sign(sd(hd, up)) || 1, sgnUp = Math.sign(sd(sh0, up)) || 1;
+  const pts = club.track.filter(p => p.ok && p.t >= tA - 1e-6 && p.t < tB - 1e-6 && Math.hypot(p.x - o.x, p.y - o.y) > 0.3 * S);
+  if (pts.length < 2) return null;
+  const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+  return { up: mean(pts.map(p => sgnUp * sd(sh0, p) / L)), low: mean(pts.map(p => sgnLow * sd(hd, p) / L)), n: pts.length };
+}
 const angleV = (hip, sh) => Math.atan2(Math.abs(sh.x - hip.x), hip.y - sh.y) * 180 / Math.PI; // spine vs vertical
 const r2 = x => Math.round(x * 100) / 100;
 const pct = x => `${Math.round(x * 100)}% do tronco`;
 
 // marks: {phase: time}; view: 'face-on' | 'down-the-line'
-export function buildReport(frames, w, h, marks, view) {
+// club (optional, video px): { head0, hands0, sh0, track: [{t, x, y, ok}] }
+export function buildReport(frames, w, h, marks, view, club = null) {
   const { f, L } = track(frames, w, h);
   if (!Number.isFinite(L)) return null;
   const near = t => { if (t == null) return -1; let b = -1, d = Infinity; f.forEach((x, i) => { const e = Math.abs(x.t - t); if (e < d) { d = e; b = i; } }); return d < 0.1 ? b : -1; };
@@ -179,10 +193,27 @@ export function buildReport(frames, w, h, marks, view) {
     const offs = [];
     for (let i = I.Topo + 1; i <= I.Downswing; i++) { const x = f[i].hand && xAt(f[i].hand.y); if (x != null) offs.push((f[i].hand.x - x) * d / L); }
     const off = offs.length ? offs.reduce((s, v) => s + v, 0) / offs.length : null;
-    if (off == null) plane = { verdict: 'indeterminado', text: 'Não foi possível comparar os caminhos das mãos (mãos pouco visíveis no topo).' };
-    else if (off > 0.08) { plane = { verdict: 'over the top', offset: r2(off), text: 'No início da descida as mãos passam por fora (mais perto da bola) do caminho que fizeram no backswing: padrão de over the top, com tendência para caminho de fora para dentro (slice ou pull).' }; groups.add('ott'); }
-    else if (off < -0.15) { plane = { verdict: 'inside-out acentuado', offset: r2(off), text: 'Na descida as mãos vêm bem por dentro (mais perto do corpo) do caminho do backswing: tendência para inside-out acentuado / ficar preso (push, block ou hook).' }; groups.add('inside'); }
-    else plane = { verdict: 'no plano', offset: r2(off), text: 'As mãos descem no mesmo caminho ou ligeiramente por dentro do backswing — é o padrão desejado.' };
+    // Hands: downswing vs backswing path. Club head: distance from the shaft line (ball → hands)
+    // and the shoulder line (ball → shoulders) between the downswing checkpoint and impact.
+    const handV = off == null ? null : off > 0.08 ? 'over the top' : off < -0.15 ? 'inside-out acentuado' : 'no plano';
+    const vz = club ? vZone(club, marks.Downswing, marks.Impacto, L) : null;
+    const clubV = !vz ? null : vz.up > 0.1 ? 'over the top' : vz.low < -0.1 ? 'inside-out acentuado' : 'no plano';
+    const TXT = {
+      'over the top': 'padrão de over the top — na descida o taco/mãos saem por fora do plano do backswing, com caminho de fora para dentro (slice ou pull).',
+      'inside-out acentuado': 'tendência para inside-out acentuado — na descida o taco/mãos vêm bem por dentro/por baixo do plano (push, block ou hook).',
+      'no plano': 'as mãos e o taco descem no plano ou ligeiramente por dentro — é o padrão desejado.',
+    };
+    const handTxt = handV && `Mãos: ${handV === 'over the top' ? 'descem por fora do caminho do backswing' : handV === 'no plano' ? 'descem no mesmo caminho ou ligeiramente por dentro' : 'descem bem por dentro do caminho do backswing'}.`;
+    const clubTxt = clubV && `Cabeça do taco: ${clubV === 'over the top' ? 'passa acima da linha dos ombros' : clubV === 'no plano' ? 'fica entre a linha do taco e a dos ombros' : 'passa abaixo da linha do taco'}.`;
+    const final = handV && clubV ? (handV === clubV ? handV : 'indícios mistos') : (handV || clubV);
+    if (!final) plane = { verdict: 'indeterminado', text: 'Não foi possível comparar os caminhos (mãos pouco visíveis no topo e taco não seguido).' };
+    else if (final === 'indícios mistos') { plane = { verdict: 'indícios mistos', text: `${handTxt} ${clubTxt} Os dois sinais não concordam — confirme vendo o vídeo frame a frame ou peça o relatório AI.` }; for (const v of [handV, clubV]) if (v === 'over the top') groups.add('ott'); else if (v !== 'no plano') groups.add('inside'); }
+    else { plane = { verdict: final, offset: off != null ? r2(off) : null, text: [TXT[final][0].toUpperCase() + TXT[final].slice(1), handTxt, clubTxt].filter(Boolean).join(' ') }; if (final === 'over the top') groups.add('ott'); else if (final !== 'no plano') groups.add('inside'); }
+    if (vz) {
+      add('Cabeça do taco vs linha dos ombros (+ = acima)', pct(vz.up), vz.up > 0.1, vz.up > 0.1 ? 'Acima da linha dos ombros na descida.' : 'Não passa acima da linha dos ombros.', null);
+      add('Cabeça do taco vs linha do taco (− = abaixo)', pct(vz.low), vz.low < -0.1, (vz.low < -0.1 ? 'Abaixo da linha do taco na descida.' : 'Não passa abaixo da linha do taco.') + ` (${vz.n} posições medidas)`, null);
+    }
+    if (off != null) add('Mãos na descida vs backswing (+ = por fora)', pct(off), off > 0.08 || off < -0.15, off > 0.08 ? 'Mãos por fora do caminho do backswing.' : off < -0.15 ? 'Mãos bem por dentro do caminho do backswing.' : 'Mãos no caminho certo.', null);
 
     const ee = (imp.hip.x - a.hip.x) * d / L;
     add('Anca em direção à bola (address → impacto)', pct(ee), ee > 0.08, ee > 0.08 ? 'Early extension: a pélvis avança para a bola na descida.' : 'Anca mantém a distância à bola.', ['ee', 'inside']);

@@ -141,3 +141,7 @@ progress{width:100%;height:6px;margin-top:10px;accent-color:var(--fairway)}
   .bar{padding:8px 12px}
   .limits{padding:4px 6px 24px}
 }
+.ai-btn{width:100%;min-height:46px;font-size:14px;margin-top:4px}
+.ai-out h4{font-size:13.5px;margin:12px 0 4px}
+.ai-out p,.ai-out li{font-size:13px;line-height:1.55;margin:0 0 6px}
+.ai-out ul{padding-left:18px;margin:0 0 6px}

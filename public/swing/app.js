@@ -2,12 +2,14 @@
 // MediaPipe is allowed by the /swing CSP in next.config.mjs.
 import { phases, metrics, validatePhases } from './metrics.js';
 import { detectPhases, findTop, buildReport } from './analysis.js';
+import { findShaft, trackHead, average } from './club.js';
 
 const $ = id => document.getElementById(id);
 const video = $('video'), canvas = $('overlay'), ctx = canvas.getContext('2d');
 const lineCanvas = $('lines'), lctx = lineCanvas.getContext('2d');
 let marks = {}, samples = {}, points = null, pose = null, url = null, loaded = false, busy = false, generation = 0, history = [];
-let clip = null;      // { w, h, step, frames: [{t, lm}] } from the automatic analysis (memory only)
+let clip = null;      // { w, h, step, frames: [{t, lm, g}], gw, gh } from the automatic analysis (memory only)
+let club = null;      // { head0, hands0, sh0, track } club head (video px)
 let report = null;    // last swing report
 try { history = JSON.parse(localStorage.getItem('gpf-swings-v1') || '[]'); if (!Array.isArray(history)) history = []; history = history.filter(s => s && typeof s.id === 'string' && s.marks && s.samples); } catch {}
 
@@ -61,19 +63,7 @@ function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (!$('show').checked || !loaded) return;
   const s = cssScale(canvas), W = canvas.width, H = canvas.height;
-  // Hand path: backswing (green) and downswing (orange), from the automatic analysis.
-  if (clip && marks.Address != null && marks.Topo != null) {
-    const hand = lm => { const a = lm[15], b = lm[16]; const va = (a?.visibility ?? 0) >= .3, vb = (b?.visibility ?? 0) >= .3; if (va && vb) return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; return va ? a : vb ? b : null; };
-    const seg = (t0, t1, color) => {
-      const pts = clip.frames.filter(f => f.t >= t0 - 1e-6 && f.t <= t1 + 1e-6).map(f => hand(f.lm)).filter(Boolean);
-      if (pts.length < 2) return;
-      ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      ctx.strokeStyle = 'rgba(0,0,0,.45)'; ctx.lineWidth = 6 * s; ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p.x * W, p.y * H) : ctx.moveTo(p.x * W, p.y * H)); ctx.stroke();
-      ctx.strokeStyle = color; ctx.lineWidth = 3.5 * s; ctx.stroke();
-    };
-    seg(marks.Address, marks.Topo, '#38c97f');
-    seg(marks.Topo, marks.Impacto ?? marks.Topo, '#ff7a45');
-  }
+  drawClub(s, W, H);
   if (!points) return;
   const ok = i => points[i] && (points[i].visibility ?? 1) >= .5;
   ctx.lineWidth = 3 * s; ctx.lineCap = 'round';
@@ -85,6 +75,45 @@ function draw() {
   ctx.fillStyle = '#fff';
   for (let i = 11; i <= 28; i++) { if (!ok(i)) continue; ctx.beginPath(); ctx.arc(points[i].x * W, points[i].y * H, 4 * s, 0, Math.PI * 2); ctx.fill(); }
 }
+// Club overlay: address shaft line (club head → hands → belly), shoulder line (DTL),
+// circle on the address hands, club head trail (green backswing, red downswing).
+function strokeLine(pts, color, width, s, dash) {
+  if (pts.length < 2) return;
+  ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round'; if (dash) ctx.setLineDash(dash.map(d => d * s));
+  ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+  ctx.strokeStyle = 'rgba(0,0,0,.45)'; ctx.lineWidth = (width + 2.5) * s; ctx.stroke();
+  ctx.strokeStyle = color; ctx.lineWidth = width * s; ctx.stroke(); ctx.restore();
+}
+function shaftLine() {
+  const { head0: o, hands0: hd } = club, hipY = club.hip0 ? club.hip0.y : hd.y - (o.y - hd.y) * 0.35;
+  const dy = hd.y - o.y; if (Math.abs(dy) < 1) return [o, hd];
+  const k = Math.max(1, (hipY - o.y) / dy); // extend past the hands up to belt height
+  return [o, { x: o.x + (hd.x - o.x) * k, y: o.y + dy * k }];
+}
+function drawClub(s, W, H) {
+  if (!club) return;
+  const { head0, hands0, sh0, track } = club;
+  if ($('view').value === 'down-the-line' && sh0) {
+    const k = 1.25; strokeLine([head0, { x: head0.x + (sh0.x - head0.x) * k, y: head0.y + (sh0.y - head0.y) * k }], 'rgba(255,255,255,.9)', 2.5, s, [8, 7]);
+  }
+  strokeLine(shaftLine(), '#ffdf45', 4, s);
+  if (track && marks.Topo != null) {
+    const seg = (t0, t1) => track.filter(p => p.t >= t0 - 1e-6 && p.t <= t1 + 1e-6);
+    ctx.globalAlpha = .92;
+    strokeLine(seg(marks.Address ?? 0, marks.Topo), '#2fd16f', 5, s);
+    strokeLine(seg(marks.Topo, marks.Impacto ?? marks.Topo), '#ff3b30', 5, s);
+    ctx.globalAlpha = 1;
+  }
+  // address hands circle
+  ctx.beginPath(); ctx.arc(hands0.x, hands0.y, Math.max(14 * s, club.L * 0.12), 0, Math.PI * 2);
+  ctx.lineWidth = 5 * s; ctx.strokeStyle = 'rgba(0,0,0,.45)'; ctx.stroke(); ctx.lineWidth = 3 * s; ctx.strokeStyle = '#fff'; ctx.stroke();
+  // club head at address (drag it in ✎ mode to correct) and the current estimate
+  ctx.beginPath(); ctx.arc(head0.x, head0.y, (drawing ? 11 : 7) * s, 0, Math.PI * 2); ctx.fillStyle = '#ffdf45'; ctx.fill(); ctx.lineWidth = 2.5 * s; ctx.strokeStyle = '#1c1e24'; ctx.stroke();
+  const cur = track && nearestTrack(video.currentTime);
+  if (cur && Math.abs(cur.t - marks.Address) > 1e-3) { ctx.beginPath(); ctx.arc(cur.x, cur.y, 6 * s, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = '#1c1e24'; ctx.stroke(); }
+}
+function nearestTrack(t) { if (!club?.track || !clip) return null; let b = null, d = Infinity; for (const p of club.track) { const e = Math.abs(p.t - t); if (e < d) { d = e; b = p; } } return d <= clip.step * 0.6 ? b : null; }
+
 function resize() {
   if (!loaded) return;
   const scale = Math.min(video.clientWidth / video.videoWidth, video.clientHeight / video.videoHeight);
@@ -112,7 +141,7 @@ function load(file) {
   if (file.size > 1024 * 1024 * 1024) { status('O vídeo excede 1 GB. Encurte o clip antes de carregar.'); return; }
   generation++; const token = generation;
   resetLines(); video.pause(); if (url) URL.revokeObjectURL(url);
-  loaded = false; marks = {}; samples = {}; points = null; clip = null; report = null; renderReport();
+  loaded = false; marks = {}; samples = {}; points = null; clip = null; club = null; report = null; renderReport();
   $('notes').value = ''; $('filename').textContent = file.name; url = URL.createObjectURL(file);
   // iPhone/iPad Safari ignores preload="metadata" for a fresh blob: an explicit load() makes it read the file.
   video.preload = 'auto'; video.src = url; video.load();
@@ -176,15 +205,27 @@ function grabFrame(maxSide) {
 }
 function seekTo(t) {
   return new Promise(res => {
-    let done = false; const fin = () => { if (done) return; done = true; video.removeEventListener('seeked', fin); res(); };
-    video.addEventListener('seeked', fin); setTimeout(fin, 2500);
+    let done = false; const fin = () => { if (done) return; done = true; video.removeEventListener('seeked', onSeeked); res(); };
+    // After 'seeked', wait for the new frame to be presented (Safari can still show the old one).
+    const onSeeked = () => { if (video.requestVideoFrameCallback) { video.requestVideoFrameCallback(() => fin()); setTimeout(fin, 300); } else requestAnimationFrame(() => fin()); };
+    video.addEventListener('seeked', onSeeked); setTimeout(fin, 3000);
     video.currentTime = Math.max(0, Math.min(video.duration - 0.001, t));
   });
 }
-async function detectAt(t, maxSide) {
+const small = document.createElement('canvas'), sctx = small.getContext('2d', { willReadFrequently: true });
+function grayFrame(maxSide) {
+  const k = Math.min(1, maxSide / Math.max(video.videoWidth, video.videoHeight));
+  small.width = Math.round(video.videoWidth * k); small.height = Math.round(video.videoHeight * k);
+  sctx.drawImage(video, 0, 0, small.width, small.height);
+  const d = sctx.getImageData(0, 0, small.width, small.height).data, g = new Uint8Array(small.width * small.height);
+  for (let i = 0, j = 0; j < g.length; i += 4, j++) g[j] = (d[i] * 77 + d[i + 1] * 150 + d[i + 2] * 29) >> 8;
+  return { g, gw: small.width, gh: small.height };
+}
+async function detectAt(t, maxSide, withGray = false) {
   await seekTo(t);
   const r = pose.detect(grabFrame(maxSide));
-  return r.landmarks[0] ? r.landmarks[0].map(p => ({ x: p.x, y: p.y, visibility: p.visibility ?? 1 })) : null;
+  const lm = r.landmarks[0] ? r.landmarks[0].map(p => ({ x: p.x, y: p.y, visibility: p.visibility ?? 1 })) : null;
+  return withGray ? { lm, ...grayFrame(400) } : { lm };
 }
 
 $('detect').onclick = async () => {
@@ -224,39 +265,67 @@ $('auto').onclick = async () => {
     const nC = Math.floor(dur / coarseStep) + 1;
     for (let i = 0; i < nC; i++) {
       if (token !== generation) return;
-      const t = i * coarseStep, lm = await detectAt(t, 320);
+      const t = i * coarseStep, { lm } = await detectAt(t, 640);
       if (lm) coarse.push({ t, lm });
       prog.value = 0.35 * (i + 1) / nC; status(`A procurar o swing no vídeo… ${Math.round(prog.value * 100)}%`);
     }
+    if (coarse.length < 3) { status(`O corpo só foi detetado em ${coarse.length} de ${nC} frames. Filme com o corpo inteiro visível, boa luz e o jogador maior no enquadramento.`); return; }
     const top = findTop(coarse, w, h);
-    if (top == null) { status('Não encontrei um swing (o corpo inteiro tem de estar visível e as mãos subir acima do peito).'); return; }
+    if (top == null) { status(`Corpo detetado em ${coarse.length} de ${nC} frames, mas não encontrei o topo do swing (as mãos têm de subir acima do peito e estar visíveis).`); return; }
     const fps = Math.min(30, Math.max(10, Number($('fps').value) || 30)), step = 1 / fps;
-    const t0 = Math.max(0, top - 2.2), t1 = Math.min(dur, top + 1.6);
-    const frames = [], nF = Math.floor((t1 - t0) / step) + 1;
+    // Sample at frame centres so consecutive samples are consecutive, distinct video frames.
+    const f0 = Math.max(0, Math.round((top - 2.2) * fps)), f1 = Math.min(Math.floor(dur * fps) - 1, Math.round((top + 1.6) * fps));
+    const t0 = (f0 + 0.5) / fps, t1 = (f1 + 0.5) / fps;
+    const frames = [], nF = Math.max(1, f1 - f0 + 1);
+    let gw = 0, gh = 0;
     for (let i = 0; i < nF; i++) {
       if (token !== generation) return;
-      const t = t0 + i * step, lm = await detectAt(t, 480);
-      if (lm) frames.push({ t, lm });
+      const t = t0 + i * step, r = await detectAt(t, 720, true);
+      gw = r.gw; gh = r.gh;
+      if (r.lm) frames.push({ t, lm: r.lm, g: r.g });
       prog.value = 0.35 + 0.65 * (i + 1) / nF; status(`A analisar o swing frame a frame… ${Math.round(prog.value * 100)}%`);
     }
     const res = detectPhases(frames, w, h);
-    if (res.error) { status(res.error); return; }
-    clip = { w, h, step, frames };
+    if (res.error) { status(`${res.error} (corpo detetado em ${frames.length} de ${nF} frames)`); return; }
+    clip = { w, h, step, frames, gw, gh };
     marks = { ...res.times };
     let viewNote = '';
     if (res.view && res.view !== $('view').value) { $('view').value = res.view; viewNote = ` Perspetiva detetada: ${res.view === 'face-on' ? 'face-on' : 'down-the-line'}.`; }
     for (const p of phases) { const f = frames[res.index[p]]; samples[f.t.toFixed(3)] = { time: f.t, values: metrics(f.lm, w, h) }; }
+    findClub(res.index.Address, res.index.Impacto, res.index['Follow-through']);
     phaseUI(); refreshReport();
     await seekTo(marks.Address);
-    status('Fases detetadas e relatório pronto. Pode corrigir qualquer fase com "Marcar".' + viewNote);
+    status('Fases detetadas e relatório pronto. Pode corrigir qualquer fase com "Marcar"' + (club ? '; se a cabeça do taco (ponto amarelo) estiver mal colocada, ative ✎ Linhas e arraste-a.' : '.') + viewNote);
   } catch (error) {
     console.error(error); status('A análise não ficou disponível. Verifique a internet e tente novamente.');
     if (token === generation) await seekTo(keep);
   } finally { prog.hidden = true; busy = false; controls(); phaseUI(); update(); }
 };
 
+// ---------- club ----------
+function findClub(iA, iI, iF) {
+  club = null;
+  const { frames, gw, gh, w, h } = clip, sx = w / gw, sy = h / gh;
+  const still = frames.slice(Math.max(0, iA - 4), iA + 1).filter(f => f.g);
+  if (!still.length) return;
+  const img = average(still.map(f => f.g));
+  const shaft = findShaft(img, gw, gh, frames[iA].lm, $('view').value);
+  if (!shaft) return;
+  const lm = frames[iA].lm, m = (a, b) => ({ x: (lm[a].x + lm[b].x) / 2 * w, y: (lm[a].y + lm[b].y) / 2 * h });
+  const sh0 = m(11, 12), hip0 = m(23, 24);
+  club = { head0: { x: shaft.head.x * sx, y: shaft.head.y * sy }, hands0: { x: shaft.hands.x * sx, y: shaft.hands.y * sy }, sh0, hip0, L: Math.hypot(sh0.x - hip0.x, sh0.y - hip0.y), iA, iI, iF };
+  retrack();
+}
+function retrack() {
+  if (!club || !clip) return;
+  const { frames, gw, gh, w, h } = clip, sx = w / gw, sy = h / gh;
+  const end = Math.min(frames.length - 2, club.iF ?? club.iI);
+  const tr = trackHead(frames, gw, gh, club.iA, end, { x: club.head0.x / sx, y: club.head0.y / sy }, { x: club.hands0.x / sx, y: club.hands0.y / sy });
+  club.track = tr.map(p => ({ t: p.t, x: p.x * sx, y: p.y * sy, ok: p.ok }));
+}
+
 // ---------- report ----------
-function refreshReport() { report = clip ? buildReport(clip.frames, clip.w, clip.h, marks, $('view').value) : null; renderReport(); draw(); }
+function refreshReport() { report = clip ? buildReport(clip.frames, clip.w, clip.h, marks, $('view').value, club) : null; renderReport(); draw(); }
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 function renderReport() {
   const host = $('report'); host.replaceChildren();
@@ -266,7 +335,7 @@ function renderReport() {
   v.append(el('b', null, report.plane.verdict === 'só em down-the-line' ? 'Face-on' : 'Plano: ' + report.plane.verdict));
   v.append(el('p', null, report.plane.text));
   host.append(v);
-  if (report.view === 'down-the-line') host.append(el('p', 'legend', 'No vídeo: verde = mãos no backswing, laranja = mãos na descida.'));
+  host.append(el('p', 'legend', club ? 'No vídeo: linha amarela = taco no address (cabeça → mãos → ventre), círculo = mãos no address, verde = cabeça do taco no backswing, vermelho = downswing' + ($('view').value === 'down-the-line' ? ', tracejado = linha dos ombros.' : '.') : 'A cabeça do taco não foi encontrada no address; o veredito usa o caminho das mãos.'));
   for (const f of report.findings) {
     const row = el('div', 'finding' + (f.flag ? ' flag' : ''));
     const top = el('div', 'finding-top'); top.append(el('span', null, f.label), el('b', null, f.value));
@@ -284,6 +353,42 @@ function renderReport() {
   }
   if (!report.causes.length && report.plane.verdict === 'no plano') host.append(el('p', 'hint', 'Nenhum indicador fora do normal neste swing.'));
   host.append(el('p', 'hint', report.note));
+  const ai = el('button', 'primary ai-btn', '✦ Relatório AI'); ai.type = 'button'; ai.onclick = aiReport; host.append(ai);
+  const out = el('div', 'ai-out'); out.id = 'ai-out'; host.append(out);
+}
+// AI report: key frames with the overlays + measurements → /api/swing/report (Claude, server-side).
+async function frameJpeg(t) {
+  await seekTo(t); update();
+  const k = Math.min(1, 768 / Math.max(video.videoWidth, video.videoHeight)), c = document.createElement('canvas');
+  c.width = Math.round(video.videoWidth * k); c.height = Math.round(video.videoHeight * k);
+  const g = c.getContext('2d'); g.drawImage(video, 0, 0, c.width, c.height); g.drawImage(canvas, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.8).split(',')[1];
+}
+function renderText(host, text) {
+  host.replaceChildren();
+  let ul = null;
+  for (const line of text.split('\n')) {
+    const l = line.trim(); if (!l) { ul = null; continue; }
+    if (l.startsWith('## ')) { ul = null; host.append(el('h4', null, l.slice(3).replace(/\*\*/g, ''))); }
+    else if (/^[-•*] /.test(l)) { if (!ul) { ul = el('ul'); host.append(ul); } ul.append(el('li', null, l.slice(2).replace(/\*\*/g, ''))); }
+    else { ul = null; host.append(el('p', null, l.replace(/\*\*/g, ''))); }
+  }
+}
+async function aiReport() {
+  const out = $('ai-out'); if (!out || busy) return;
+  busy = true; controls(); out.replaceChildren(el('p', 'hint', 'A preparar os frames-chave…'));
+  const keep = video.currentTime;
+  try {
+    const images = [];
+    for (const p of ['Address', 'Topo', 'Downswing', 'Impacto', 'Follow-through']) if (marks[p] != null) images.push({ label: p, base64: await frameJpeg(marks[p]) });
+    out.replaceChildren(el('p', 'hint', 'A pedir a análise ao Claude… (10–30 s)'));
+    const data = { perspetiva: $('view').value, fases: marks, relatorio_app: report, medicoes: Object.fromEntries(phases.filter(p => marks[p] != null).map(p => [p, Object.values(samples).find(s => Math.abs(s.time - marks[p]) < .001)?.values])), taco: club ? { detetado: true, pontos_medidos: club.track?.filter(p => p.ok).length } : { detetado: false } };
+    const res = await fetch('/api/swing/report', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ data, images }) });
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(j.error || 'Erro ' + res.status);
+    renderText(out, j.text); report.ai = j.text;
+  } catch (e) { out.replaceChildren(el('p', 'hint', 'Relatório AI indisponível: ' + e.message)); }
+  finally { await seekTo(keep); busy = false; controls(); phaseUI(); update(); }
 }
 $('view').onchange = () => { $('compare').value = ''; $('comparison').textContent = ''; if (clip) refreshReport(); };
 
@@ -291,7 +396,7 @@ $('view').onchange = () => { $('compare').value = ''; $('comparison').textConten
 function session() {
   const path = clip ? clip.frames.map(f => { const a = f.lm[15], b = f.lm[16]; return [+f.t.toFixed(3), +((a.x + b.x) / 2).toFixed(3), +((a.y + b.y) / 2).toFixed(3)]; }) : null;
   return { id: globalThis.crypto.randomUUID(), date: new Date().toISOString(), filename: $('filename').textContent, view: $('view').value, fps: Number($('fps').value),
-    marks: { ...marks }, lines: structuredClone(lines), samples: structuredClone(samples), report: report ? structuredClone(report) : null, handPath: path, notes: $('notes').value,
+    marks: { ...marks }, lines: structuredClone(lines), samples: structuredClone(samples), report: report ? structuredClone(report) : null, handPath: path, club: club ? { head0: club.head0, hands0: club.hands0, track: club.track?.map(p => [+p.t.toFixed(3), Math.round(p.x), Math.round(p.y), p.ok ? 1 : 0]) } : null, notes: $('notes').value,
     limitations: 'Projeções 2D; sem deteção do taco ou da bola; plano = caminho das mãos. Fases detetadas automaticamente e/ou corrigidas à mão. Vídeo não incluído.' };
 }
 function persist() { try { localStorage.setItem('gpf-swings-v1', JSON.stringify(history)); return true; } catch { status('Sem espaço ou acesso ao armazenamento local. Exporte o relatório para não perder os dados.'); return false; } }
@@ -327,7 +432,7 @@ $('compare').onchange = () => {
 };
 
 // ---------- reference lines (normalised to the video; endpoints can be dragged) ----------
-let lines = [], draft = null, drawing = false, pointer = null, dragEnd = null;
+let lines = [], draft = null, drawing = false, pointer = null, dragEnd = null, dragHead = false;
 function lineControls() { $('undo-line').disabled = !lines.length; $('clear-lines').disabled = !lines.length; }
 function drawLines() {
   const W = lineCanvas.width, H = lineCanvas.height, s = cssScale(lineCanvas);
@@ -356,29 +461,34 @@ function hitEnd(e) {
 $('draw-line').onclick = () => {
   drawing = !drawing; cancelLine(); lineCanvas.classList.toggle('drawing', drawing);
   $('draw-line').setAttribute('aria-pressed', String(drawing));
-  if (drawing) { video.pause(); status('Arraste sobre o vídeo para desenhar uma linha; arraste uma ponta para a ajustar.'); }
+  draw();
+  if (drawing) { video.pause(); status('Arraste para desenhar uma linha; arraste uma ponta para a ajustar' + (club ? ' ou o ponto amarelo para corrigir a cabeça do taco.' : '.')); }
 };
 lineCanvas.onpointerdown = e => {
   if (!loaded || !drawing || pointer !== null || e.button !== 0) return;
   e.preventDefault(); video.pause(); pointer = e.pointerId; lineCanvas.setPointerCapture(pointer);
+  if (club) { const r = lineCanvas.getBoundingClientRect(), k = r.width / clip.w; if (Math.hypot(club.head0.x * k - (e.clientX - r.left), club.head0.y * k - (e.clientY - r.top)) < (e.pointerType === 'touch' ? 30 : 16)) { dragHead = true; drawLines(); return; } }
   dragEnd = hitEnd(e);
   if (!dragEnd) { const a = locationOnVideo(e); draft = { a, b: { ...a }, color: $('line-color').value }; }
   drawLines();
 };
 lineCanvas.onpointermove = e => {
   if (e.pointerId !== pointer) return;
+  if (dragHead) { const p = locationOnVideo(e); club.head0 = { x: p.x * clip.w, y: p.y * clip.h }; draw(); return; }
   if (dragEnd) { const l = lines[dragEnd.i], other = l[dragEnd.k === 'a' ? 'b' : 'a']; l[dragEnd.k] = constrain(locationOnVideo(e), other, e); drawLines(); return; }
   if (draft) { draft.b = constrain(locationOnVideo(e), draft.a, e); drawLines(); }
 };
 lineCanvas.onpointerup = e => {
   if (e.pointerId !== pointer) return;
+  if (dragHead) { dragHead = false; retrack(); refreshReport(); status('Cabeça do taco corrigida; traçado e relatório atualizados.'); cancelLine(); return; }
   if (draft) { draft.b = constrain(locationOnVideo(e), draft.a, e); if (Math.hypot((draft.b.x - draft.a.x) * lineCanvas.width, (draft.b.y - draft.a.y) * lineCanvas.height) >= 3 * cssScale(lineCanvas)) lines.push(draft); }
   cancelLine();
 };
 lineCanvas.onpointercancel = cancelLine;
-lineCanvas.onlostpointercapture = () => { draft = null; dragEnd = null; pointer = null; drawLines(); };
+lineCanvas.onlostpointercapture = () => { draft = null; dragEnd = null; dragHead = false; pointer = null; drawLines(); };
 $('undo-line').onclick = () => { cancelLine(); lines.pop(); drawLines(); };
 $('clear-lines').onclick = () => { lines = []; cancelLine(); };
 window.addEventListener('keydown', e => { if (e.key === 'Escape') cancelLine(); });
 
 phaseUI(); historyUI();
+window.__swing = { get club() { return club; }, get marks() { return marks; } }; // debugging aid (console)
