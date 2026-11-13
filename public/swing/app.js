@@ -215,9 +215,19 @@ function grayFrame(maxSide) {
   for (let i = 0, j = 0; j < g.length; i += 4, j++) g[j] = (d[i] * 77 + d[i + 1] * 150 + d[i + 2] * 29) >> 8;
   return { g, gw: small.width, gh: small.height };
 }
+let diag = { frames: 0, dark: 0, bodies: 0 };
+// Mean brightness of a grabbed frame (Safari can hand back black frames after a seek).
+function brightness(c) {
+  const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let sum = 0, n = 0;
+  for (let i = 0; i < d.length; i += 4 * 97) { sum += d[i] + d[i + 1] + d[i + 2]; n++; }
+  return n ? sum / n / 3 : 0;
+}
 async function detectAt(t, maxSide, withGray = false) {
   await seekTo(t);
-  const r = pose.detect(grabFrame(maxSide));
+  const img = grabFrame(maxSide);
+  diag.frames++; if (brightness(img) < 6) diag.dark++;
+  const r = pose.detect(img);
+  if (r.landmarks[0]) diag.bodies++;
   const lm = r.landmarks[0] ? r.landmarks[0].map(p => ({ x: p.x, y: p.y, visibility: p.visibility ?? 1 })) : null;
   return withGray ? { lm, ...grayFrame(400) } : { lm };
 }
@@ -240,7 +250,7 @@ $('detect').onclick = async () => {
     points = lm; displayMetrics(values); draw();
     status('Frame analisado. Medições 2D guardadas na sessão.');
   } catch (error) {
-    console.error(error); status('A análise de pose não ficou disponível. Verifique a internet e tente novamente.');
+    console.error(error); status(`A análise falhou${pose ? '' : ' ao carregar o modelo de pose (é preciso internet)'}: ${error?.name || 'Erro'} — ${String(error?.message || error).slice(0, 160)}`);
   } finally { busy = false; controls(); phaseUI(); }
 };
 
@@ -253,6 +263,7 @@ $('auto').onclick = async () => {
   const w = video.videoWidth, h = video.videoHeight, dur = video.duration;
   prog.hidden = false; prog.value = 0;
   try {
+    diag = { frames: 0, dark: 0, bodies: 0 };
     status('A preparar o modelo de pose…'); await model();
     const coarseStep = dur > 30 ? 0.33 : dur > 12 ? 0.2 : 0.125;
     const coarse = [];
@@ -263,6 +274,7 @@ $('auto').onclick = async () => {
       if (lm) coarse.push({ t, lm });
       prog.value = 0.35 * (i + 1) / nC; status(`A procurar o swing no vídeo… ${Math.round(prog.value * 100)}%`);
     }
+    if (diag.dark > diag.frames * 0.8) { status(`O navegador devolveu imagens pretas do vídeo (${diag.dark} de ${diag.frames} frames), por isso não há nada para analisar. Toque em Reproduzir uma vez, pause e tente de novo; se continuar, grave sem HDR (Definições › Câmara › Gravar vídeo › HDR desligado) ou exporte o clip.`); return; }
     if (coarse.length < 3) { status(`O corpo só foi detetado em ${coarse.length} de ${nC} frames. Filme com o corpo inteiro visível, boa luz e o jogador maior no enquadramento.`); return; }
     const top = findTop(coarse, w, h);
     if (top == null) { status(`Corpo detetado em ${coarse.length} de ${nC} frames, mas não encontrei o topo do swing (as mãos têm de subir acima do peito e estar visíveis).`); return; }
@@ -291,7 +303,7 @@ $('auto').onclick = async () => {
     await seekTo(marks.Address);
     status((club?.guess ? 'Fases detetadas. Não encontrei o taco: ative ✎ Linhas e arraste o ponto amarelo para a cabeça do taco.' : 'Fases detetadas e relatório pronto. Para ajustar a cabeça do taco, as mãos ou os ombros, ative ✎ Linhas e arraste os pontos.') + ' Pode corrigir qualquer fase com "Marcar".' + viewNote);
   } catch (error) {
-    console.error(error); status('A análise não ficou disponível. Verifique a internet e tente novamente.');
+    console.error(error); status(`A análise falhou${pose ? '' : ' ao carregar o modelo de pose (é preciso internet)'}: ${error?.name || 'Erro'} — ${String(error?.message || error).slice(0, 160)} [frames ${diag.frames}, corpos ${diag.bodies}, pretos ${diag.dark}]`);
     if (token === generation) await seekTo(keep);
   } finally { prog.hidden = true; busy = false; controls(); phaseUI(); update(); }
 };
