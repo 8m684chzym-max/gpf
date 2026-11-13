@@ -10,13 +10,16 @@ export async function GET() {
   const comp = await getActiveCompetition();
   if (!comp) return NextResponse.json({ final: [], road: [], config: null });
   const config = configFrom(comp);
-  const users = await prisma.user.findMany({ where: { role: "MEMBER", approved: true }, select: { id: true, name: true, declaredHandicap: true, manualHandicap: true, tiebreakOverride: true } });
+  const users = await prisma.user.findMany({ where: { role: "MEMBER", approved: true }, select: { id: true, name: true, declaredHandicap: true, manualHandicap: true, tiebreakOverride: true, fpgIndex: true, fpgSyncedAt: true } });
   const rounds = await getScopedRounds(comp.id);
   const final = buildFinalBoard(users, rounds, config).map((r) => ({ name: r.user.name, hcp: r.hcp, ph: r.ph, tee: r.tee, bonus: r.bonus, gross: r.gross, net1: r.net1, net2: r.net2, total: r.total }));
   const bonus = roadBonusMap(users, rounds, config);
   const signedIn = !!(await requireUser());
   const road = buildRoadBoard(users, rounds, config).map((r) => ({ name: r.user.name, count: r.count, hcp: r.hcp, points: r.points, pointsUsed: r.pointsUsed, qualified: r.qualified, bonus: bonus.get(r.user.id) ?? 0,
     openIndex: r.open.value, adjust: r.open.adjust, perRound: r.open.perRound,
+    fpgIndex: r.user.fpgIndex ?? null, // official FPG index (weekly sync) — shown as a change vs the declared hcp
     ...(signedIn ? { rounds: roadRoundsFor(r.user.id, rounds, r.hcp) } : {}) }));
-  return NextResponse.json({ final, road, config });
+  // Most recent FPG sync among members (for the "FPG updated on" note on Rank).
+  const fpgUpdatedAt = users.reduce((m, u) => (u.fpgSyncedAt && (!m || u.fpgSyncedAt > m) ? u.fpgSyncedAt : m), null);
+  return NextResponse.json({ final, road, config, fpgUpdatedAt });
 }
