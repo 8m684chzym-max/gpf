@@ -66,11 +66,12 @@ const SWING_PROMPT = `És um treinador de golfe PGA a analisar um swing a partir
 Escreve em português de Portugal, direto e prático.
 
 As imagens são frames-chave do swing (o nome de cada fase vem antes da imagem). Sobreposições desenhadas pela app:
-- linha amarela: linha do taco no address (cabeça do taco → mãos → ventre), estimada automaticamente;
-- linha branca tracejada: linha da bola/cabeça do taco aos ombros (em down-the-line, a zona entre as duas linhas é o plano desejado na descida);
+- linha amarela: linha do taco no address (cabeça do taco → mãos → ventre);
+- linha branca tracejada: cabeça do taco no address → ombros (em down-the-line, a zona entre as duas linhas é o plano desejado na descida);
 - círculo branco: posição das mãos no address;
-- traço verde: cabeça do taco no backswing; traço vermelho: cabeça do taco no downswing (deteção automática por movimento, pode ter erros);
+(estas linhas ficam fixas, referentes ao address; foram detetadas automaticamente e podem ter sido ajustadas pelo jogador)
 - esqueleto: pontos do corpo (MediaPipe).
+Usa as linhas para julgar onde estão o taco e as mãos em cada frame (acima da linha tracejada na descida = over the top; abaixo da linha amarela = muito por dentro).
 Os dados JSON trazem as medições 2D e o veredito heurístico da app. Confirma ou corrige-os pelo que vês nas imagens; se a deteção do taco estiver claramente errada, diz isso.
 
 Responde só com texto simples (sem tabelas), máximo 280 palavras, com estas secções a começar por "## ":

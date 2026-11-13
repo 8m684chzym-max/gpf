@@ -2,14 +2,14 @@
 // MediaPipe is allowed by the /swing CSP in next.config.mjs.
 import { phases, metrics, validatePhases } from './metrics.js';
 import { detectPhases, findTop, buildReport } from './analysis.js';
-import { findShaft, trackHead, average } from './club.js';
+import { findShaft, average } from './club.js';
 
 const $ = id => document.getElementById(id);
 const video = $('video'), canvas = $('overlay'), ctx = canvas.getContext('2d');
 const lineCanvas = $('lines'), lctx = lineCanvas.getContext('2d');
 let marks = {}, samples = {}, points = null, pose = null, url = null, loaded = false, busy = false, generation = 0, history = [];
 let clip = null;      // { w, h, step, frames: [{t, lm, g}], gw, gh } from the automatic analysis (memory only)
-let club = null;      // { head0, hands0, sh0, track } club head (video px)
+let club = null;      // { head0, hands0, sh0, hip0, L } address club/plane points (video px), adjustable
 let report = null;    // last swing report
 try { history = JSON.parse(localStorage.getItem('gpf-swings-v1') || '[]'); if (!Array.isArray(history)) history = []; history = history.filter(s => s && typeof s.id === 'string' && s.marks && s.samples); } catch {}
 
@@ -63,7 +63,7 @@ function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (!$('show').checked || !loaded) return;
   const s = cssScale(canvas), W = canvas.width, H = canvas.height;
-  drawClub(s, W, H);
+  drawClub(s);
   if (!points) return;
   const ok = i => points[i] && (points[i].visibility ?? 1) >= .5;
   ctx.lineWidth = 3 * s; ctx.lineCap = 'round';
@@ -87,32 +87,26 @@ function strokeLine(pts, color, width, s, dash) {
 function shaftLine() {
   const { head0: o, hands0: hd } = club, hipY = club.hip0 ? club.hip0.y : hd.y - (o.y - hd.y) * 0.35;
   const dy = hd.y - o.y; if (Math.abs(dy) < 1) return [o, hd];
-  const k = Math.max(1, (hipY - o.y) / dy); // extend past the hands up to belt height
+  const k = Math.max(1.3, (hipY - o.y) / dy); // always extend past the hands, at least to belt height
   return [o, { x: o.x + (hd.x - o.x) * k, y: o.y + dy * k }];
 }
-function drawClub(s, W, H) {
+const HANDLES = { head0: 'cabeça do taco', hands0: 'mãos', sh0: 'ombros' };
+function drawClub(s) {
   if (!club) return;
-  const { head0, hands0, sh0, track } = club;
-  if ($('view').value === 'down-the-line' && sh0) {
-    const k = 1.25; strokeLine([head0, { x: head0.x + (sh0.x - head0.x) * k, y: head0.y + (sh0.y - head0.y) * k }], 'rgba(255,255,255,.9)', 2.5, s, [8, 7]);
-  }
+  const { head0, hands0, sh0 } = club;
+  // club head → shoulders (plane top) and club head → hands → belly (shaft line)
+  if (sh0) { const k = 1.25; strokeLine([head0, { x: head0.x + (sh0.x - head0.x) * k, y: head0.y + (sh0.y - head0.y) * k }], '#fff', 3, s, [9, 7]); }
   strokeLine(shaftLine(), '#ffdf45', 4, s);
-  if (track && marks.Topo != null) {
-    const seg = (t0, t1) => track.filter(p => p.t >= t0 - 1e-6 && p.t <= t1 + 1e-6);
-    ctx.globalAlpha = .92;
-    strokeLine(seg(marks.Address ?? 0, marks.Topo), '#2fd16f', 5, s);
-    strokeLine(seg(marks.Topo, marks.Impacto ?? marks.Topo), '#ff3b30', 5, s);
-    ctx.globalAlpha = 1;
-  }
-  // address hands circle
   ctx.beginPath(); ctx.arc(hands0.x, hands0.y, Math.max(14 * s, club.L * 0.12), 0, Math.PI * 2);
   ctx.lineWidth = 5 * s; ctx.strokeStyle = 'rgba(0,0,0,.45)'; ctx.stroke(); ctx.lineWidth = 3 * s; ctx.strokeStyle = '#fff'; ctx.stroke();
-  // club head at address (drag it in ✎ mode to correct) and the current estimate
-  ctx.beginPath(); ctx.arc(head0.x, head0.y, (drawing ? 11 : 7) * s, 0, Math.PI * 2); ctx.fillStyle = '#ffdf45'; ctx.fill(); ctx.lineWidth = 2.5 * s; ctx.strokeStyle = '#1c1e24'; ctx.stroke();
-  const cur = track && nearestTrack(video.currentTime);
-  if (cur && Math.abs(cur.t - marks.Address) > 1e-3) { ctx.beginPath(); ctx.arc(cur.x, cur.y, 6 * s, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = '#1c1e24'; ctx.stroke(); }
+  ctx.beginPath(); ctx.arc(head0.x, head0.y, 7 * s, 0, Math.PI * 2); ctx.fillStyle = '#ffdf45'; ctx.fill(); ctx.lineWidth = 2.5 * s; ctx.strokeStyle = '#1c1e24'; ctx.stroke();
+  // In edit mode: draggable handles on the three points.
+  if (drawing) for (const k of Object.keys(HANDLES)) {
+    const p = club[k]; if (!p) continue;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 12 * s, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,255,255,.95)'; ctx.fill();
+    ctx.lineWidth = 3.5 * s; ctx.strokeStyle = k === 'sh0' ? '#1c1e24' : '#e0a800'; ctx.stroke();
+  }
 }
-function nearestTrack(t) { if (!club?.track || !clip) return null; let b = null, d = Infinity; for (const p of club.track) { const e = Math.abs(p.t - t); if (e < d) { d = e; b = p; } } return d <= clip.step * 0.6 ? b : null; }
 
 function resize() {
   if (!loaded) return;
@@ -292,10 +286,10 @@ $('auto').onclick = async () => {
     let viewNote = '';
     if (res.view && res.view !== $('view').value) { $('view').value = res.view; viewNote = ` Perspetiva detetada: ${res.view === 'face-on' ? 'face-on' : 'down-the-line'}.`; }
     for (const p of phases) { const f = frames[res.index[p]]; samples[f.t.toFixed(3)] = { time: f.t, values: metrics(f.lm, w, h) }; }
-    findClub(res.index.Address, res.index.Impacto, res.index['Follow-through']);
+    findClub(res.index.Address);
     phaseUI(); refreshReport();
     await seekTo(marks.Address);
-    status('Fases detetadas e relatório pronto. Pode corrigir qualquer fase com "Marcar"' + (club ? '; se a cabeça do taco (ponto amarelo) estiver mal colocada, ative ✎ Linhas e arraste-a.' : '.') + viewNote);
+    status((club?.guess ? 'Fases detetadas. Não encontrei o taco: ative ✎ Linhas e arraste o ponto amarelo para a cabeça do taco.' : 'Fases detetadas e relatório pronto. Para ajustar a cabeça do taco, as mãos ou os ombros, ative ✎ Linhas e arraste os pontos.') + ' Pode corrigir qualquer fase com "Marcar".' + viewNote);
   } catch (error) {
     console.error(error); status('A análise não ficou disponível. Verifique a internet e tente novamente.');
     if (token === generation) await seekTo(keep);
@@ -303,29 +297,23 @@ $('auto').onclick = async () => {
 };
 
 // ---------- club ----------
-function findClub(iA, iI, iF) {
+function findClub(iA) {
   club = null;
   const { frames, gw, gh, w, h } = clip, sx = w / gw, sy = h / gh;
   const still = frames.slice(Math.max(0, iA - 4), iA + 1).filter(f => f.g);
-  if (!still.length) return;
-  const img = average(still.map(f => f.g));
-  const shaft = findShaft(img, gw, gh, frames[iA].lm, $('view').value);
-  if (!shaft) return;
   const lm = frames[iA].lm, m = (a, b) => ({ x: (lm[a].x + lm[b].x) / 2 * w, y: (lm[a].y + lm[b].y) / 2 * h });
-  const sh0 = m(11, 12), hip0 = m(23, 24);
-  club = { head0: { x: shaft.head.x * sx, y: shaft.head.y * sy }, hands0: { x: shaft.hands.x * sx, y: shaft.hands.y * sy }, sh0, hip0, L: Math.hypot(sh0.x - hip0.x, sh0.y - hip0.y), iA, iI, iF };
-  retrack();
-}
-function retrack() {
-  if (!club || !clip) return;
-  const { frames, gw, gh, w, h } = clip, sx = w / gw, sy = h / gh;
-  const end = Math.min(frames.length - 2, club.iF ?? club.iI);
-  const tr = trackHead(frames, gw, gh, club.iA, end, { x: club.head0.x / sx, y: club.head0.y / sy }, { x: club.hands0.x / sx, y: club.hands0.y / sy });
-  club.track = tr.map(p => ({ t: p.t, x: p.x * sx, y: p.y * sy, ok: p.ok }));
+  const sh0 = m(11, 12), hip0 = m(23, 24), L = Math.hypot(sh0.x - hip0.x, sh0.y - hip0.y);
+  const shaft = still.length ? findShaft(average(still.map(f => f.g)), gw, gh, lm, $('view').value) : null;
+  for (const f of frames) delete f.g; // grayscale frames only serve the address shaft search
+  if (shaft) club = { head0: { x: shaft.head.x * sx, y: shaft.head.y * sy }, hands0: { x: shaft.hands.x * sx, y: shaft.hands.y * sy }, sh0, hip0, L };
+  else { // no shaft found: start from the body points so the user can place the club head
+    const hd = m(15, 16), foot = Math.max(lm[27]?.y ?? 0, lm[28]?.y ?? 0) * h;
+    club = { head0: { x: hd.x + (hd.x - hip0.x) * 0.8, y: foot || hip0.y + 1.9 * L }, hands0: hd, sh0, hip0, L, guess: true };
+  }
 }
 
 // ---------- report ----------
-function refreshReport() { report = clip ? buildReport(clip.frames, clip.w, clip.h, marks, $('view').value, club) : null; renderReport(); draw(); }
+function refreshReport() { report = clip ? buildReport(clip.frames, clip.w, clip.h, marks, $('view').value) : null; renderReport(); draw(); }
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
 function renderReport() {
   const host = $('report'); host.replaceChildren();
@@ -335,7 +323,7 @@ function renderReport() {
   v.append(el('b', null, report.plane.verdict === 'só em down-the-line' ? 'Face-on' : 'Plano: ' + report.plane.verdict));
   v.append(el('p', null, report.plane.text));
   host.append(v);
-  host.append(el('p', 'legend', club ? 'No vídeo: linha amarela = taco no address (cabeça → mãos → ventre), círculo = mãos no address, verde = cabeça do taco no backswing, vermelho = downswing' + ($('view').value === 'down-the-line' ? ', tracejado = linha dos ombros.' : '.') : 'A cabeça do taco não foi encontrada no address; o veredito usa o caminho das mãos.'));
+  host.append(el('p', 'legend', 'No vídeo (address): linha amarela = cabeça do taco → mãos → ventre; tracejado branco = cabeça do taco → ombros; círculo = mãos. Ajuste com ✎ Linhas.'));
   for (const f of report.findings) {
     const row = el('div', 'finding' + (f.flag ? ' flag' : ''));
     const top = el('div', 'finding-top'); top.append(el('span', null, f.label), el('b', null, f.value));
@@ -382,7 +370,7 @@ async function aiReport() {
     const images = [];
     for (const p of ['Address', 'Topo', 'Downswing', 'Impacto', 'Follow-through']) if (marks[p] != null) images.push({ label: p, base64: await frameJpeg(marks[p]) });
     out.replaceChildren(el('p', 'hint', 'A pedir a análise ao Claude… (10–30 s)'));
-    const data = { perspetiva: $('view').value, fases: marks, relatorio_app: report, medicoes: Object.fromEntries(phases.filter(p => marks[p] != null).map(p => [p, Object.values(samples).find(s => Math.abs(s.time - marks[p]) < .001)?.values])), taco: club ? { detetado: true, pontos_medidos: club.track?.filter(p => p.ok).length } : { detetado: false } };
+    const data = { perspetiva: $('view').value, fases: marks, relatorio_app: report, medicoes: Object.fromEntries(phases.filter(p => marks[p] != null).map(p => [p, Object.values(samples).find(s => Math.abs(s.time - marks[p]) < .001)?.values])), taco: club ? { cabeca_address: club.head0, maos_address: club.hands0, ombros_address: club.sh0, estimado: !club.guess } : null };
     const res = await fetch('/api/swing/report', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ data, images }) });
     const j = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(j.error || 'Erro ' + res.status);
@@ -396,7 +384,7 @@ $('view').onchange = () => { $('compare').value = ''; $('comparison').textConten
 function session() {
   const path = clip ? clip.frames.map(f => { const a = f.lm[15], b = f.lm[16]; return [+f.t.toFixed(3), +((a.x + b.x) / 2).toFixed(3), +((a.y + b.y) / 2).toFixed(3)]; }) : null;
   return { id: globalThis.crypto.randomUUID(), date: new Date().toISOString(), filename: $('filename').textContent, view: $('view').value, fps: Number($('fps').value),
-    marks: { ...marks }, lines: structuredClone(lines), samples: structuredClone(samples), report: report ? structuredClone(report) : null, handPath: path, club: club ? { head0: club.head0, hands0: club.hands0, track: club.track?.map(p => [+p.t.toFixed(3), Math.round(p.x), Math.round(p.y), p.ok ? 1 : 0]) } : null, notes: $('notes').value,
+    marks: { ...marks }, lines: structuredClone(lines), samples: structuredClone(samples), report: report ? structuredClone(report) : null, handPath: path, club: club ? { head0: club.head0, hands0: club.hands0, sh0: club.sh0 } : null, notes: $('notes').value,
     limitations: 'Projeções 2D; sem deteção do taco ou da bola; plano = caminho das mãos. Fases detetadas automaticamente e/ou corrigidas à mão. Vídeo não incluído.' };
 }
 function persist() { try { localStorage.setItem('gpf-swings-v1', JSON.stringify(history)); return true; } catch { status('Sem espaço ou acesso ao armazenamento local. Exporte o relatório para não perder os dados.'); return false; } }
@@ -462,25 +450,30 @@ $('draw-line').onclick = () => {
   drawing = !drawing; cancelLine(); lineCanvas.classList.toggle('drawing', drawing);
   $('draw-line').setAttribute('aria-pressed', String(drawing));
   draw();
-  if (drawing) { video.pause(); status('Arraste para desenhar uma linha; arraste uma ponta para a ajustar' + (club ? ' ou o ponto amarelo para corrigir a cabeça do taco.' : '.')); }
+  if (drawing) { video.pause(); if (club && marks.Address != null) seek(marks.Address); status(club ? 'Arraste os pontos brancos para ajustar a cabeça do taco, as mãos e os ombros; arraste noutro sítio para desenhar uma linha.' : 'Arraste para desenhar uma linha; arraste uma ponta para a ajustar.'); }
 };
 lineCanvas.onpointerdown = e => {
   if (!loaded || !drawing || pointer !== null || e.button !== 0) return;
   e.preventDefault(); video.pause(); pointer = e.pointerId; lineCanvas.setPointerCapture(pointer);
-  if (club) { const r = lineCanvas.getBoundingClientRect(), k = r.width / clip.w; if (Math.hypot(club.head0.x * k - (e.clientX - r.left), club.head0.y * k - (e.clientY - r.top)) < (e.pointerType === 'touch' ? 30 : 16)) { dragHead = true; drawLines(); return; } }
+  if (club) {
+    const r = lineCanvas.getBoundingClientRect(), k = r.width / clip.w, px = e.clientX - r.left, py = e.clientY - r.top;
+    let best = null, d = e.pointerType === 'touch' ? 32 : 18;
+    for (const key of Object.keys(HANDLES)) { const q = club[key]; if (!q) continue; const e2 = Math.hypot(q.x * k - px, q.y * k - py); if (e2 < d) { d = e2; best = key; } }
+    if (best) { dragHead = best; return; }
+  }
   dragEnd = hitEnd(e);
   if (!dragEnd) { const a = locationOnVideo(e); draft = { a, b: { ...a }, color: $('line-color').value }; }
   drawLines();
 };
 lineCanvas.onpointermove = e => {
   if (e.pointerId !== pointer) return;
-  if (dragHead) { const p = locationOnVideo(e); club.head0 = { x: p.x * clip.w, y: p.y * clip.h }; draw(); return; }
+  if (dragHead) { const p = locationOnVideo(e); club[dragHead] = { x: p.x * clip.w, y: p.y * clip.h }; draw(); return; }
   if (dragEnd) { const l = lines[dragEnd.i], other = l[dragEnd.k === 'a' ? 'b' : 'a']; l[dragEnd.k] = constrain(locationOnVideo(e), other, e); drawLines(); return; }
   if (draft) { draft.b = constrain(locationOnVideo(e), draft.a, e); drawLines(); }
 };
 lineCanvas.onpointerup = e => {
   if (e.pointerId !== pointer) return;
-  if (dragHead) { dragHead = false; retrack(); refreshReport(); status('Cabeça do taco corrigida; traçado e relatório atualizados.'); cancelLine(); return; }
+  if (dragHead) { const what = dragHead; dragHead = false; club.guess = false; draw(); status({ head0: 'Cabeça do taco ajustada.', hands0: 'Posição das mãos ajustada.', sh0: 'Ponto dos ombros ajustado.' }[what]); cancelLine(); return; }
   if (draft) { draft.b = constrain(locationOnVideo(e), draft.a, e); if (Math.hypot((draft.b.x - draft.a.x) * lineCanvas.width, (draft.b.y - draft.a.y) * lineCanvas.height) >= 3 * cssScale(lineCanvas)) lines.push(draft); }
   cancelLine();
 };
