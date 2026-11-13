@@ -4,6 +4,7 @@ import { Camera, Upload, Loader2, AlertCircle, Sparkles, CircleCheck, Plus, User
 import { MAJOR } from "@/lib/major";
 import { api } from "@/lib/client";
 import { prepareScorecardImage } from "@/lib/scorecardImage";
+import FpgCard from "@/components/FpgCard";
 
 function fileToB64(file) {
   return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result.split(",")[1]); r.onerror = rej; r.readAsDataURL(file); });
@@ -71,7 +72,13 @@ export default function Submit() {
         points: f.points === "" ? null : Number(f.points), fairwaysPct: f.fairwaysPct === "" ? null : Number(f.fairwaysPct),
         girPct: f.girPct === "" ? null : Number(f.girPct), putts: f.putts === "" ? null : Number(f.putts),
       }) });
-      setDone(res || true);
+      const c = courses.find((x) => x.id === f.courseId);
+      setDone({ ...res, round: {
+        id: res.id, date: f.date, gross: Number(f.gross), course: c ? { name: c.name } : null,
+        tee: c?.tees?.find((t) => t.id === f.teeId) || null,
+        scorecard: holes.length === 18 ? { holes } : null,
+        partner: members.find((m) => m.id === f.partnerId) ? { name: members.find((m) => m.id === f.partnerId).name } : null,
+      } });
     } catch (e) { alert(e.message); }
   };
 
@@ -80,7 +87,8 @@ export default function Submit() {
       {done.held
         ? <p className="muted">{done.message} It will count once the committee approves it.</p>
         : <p className="muted">It's on the boards now{done.points != null ? ` — worth ${done.points} Stableford points off your appointed handicap` : ""}. The committee can still edit or remove it from Admin if anything looks off.</p>}
-      <button className="btn btn-primary" onClick={() => { setF(blank); setDone(false); }}>Submit another</button></div></div>
+      <button className="btn btn-primary" onClick={() => { setF(blank); setDone(false); }}>Submit another</button></div>
+      {done.round && !done.held && <div className="card"><FpgCard round={done.round} /></div>}</div>
   );
 
   const memberOptions = members.filter((m) => m.role !== "ADMIN");

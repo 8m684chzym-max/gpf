@@ -2,7 +2,8 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import { Loader2, Pencil, Check, Download, Trash2, KeyRound, Shield, X } from "lucide-react";
+import { Loader2, Pencil, Check, Download, Trash2, KeyRound, Shield, X, ClipboardList } from "lucide-react";
+import FpgCard, { fpgRegistered } from "@/components/FpgCard";
 import { api, fmtHcp } from "@/lib/client";
 
 export default function Profile() {
@@ -116,6 +117,9 @@ function RoundRow({ r, locked, onDelete, onSaved }) {
   const [f, setF] = useState(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const [fpg, setFpg] = useState(false);
+  const [fpgDone, setFpgDone] = useState(false);
+  useEffect(() => { setFpgDone(fpgRegistered(r.id)); }, [r.id]);
   const hasCard = r.scorecard?.holes?.length === 18;
 
   const start = async () => {
@@ -154,11 +158,14 @@ function RoundRow({ r, locked, onDelete, onSaved }) {
         <div><div className="row-title">{r.course?.name} · {r.tee?.name}</div>
           <div className="muted small">{r.date?.slice(0, 10)} · {r.type === "WEEKEND" ? "GPF Open" : "Qualifying"}{r.partner?.name ? ` · witness ${r.partner.name}` : ""}{r.status === "REJECTED" && r.rejectReason ? ` · ${r.rejectReason}` : ""}</div></div>
         <div className="row-right"><div className="gross">{r.gross}</div>{statusBadge(r.status)}
+          {fpgDone && <span className="badge badge-ok" title="Registered on myFPG">FPG</span>}
+          {r.status !== "REJECTED" && !open && <button className={`icon-btn${fpg ? " on" : ""}`} title="Register on myFPG" aria-label="Register on myFPG" onClick={() => setFpg((v) => !v)}><ClipboardList size={15} /></button>}
           {!locked && !open && <button className="icon-btn" title="Edit this round" aria-label="Edit this round" onClick={start}><Pencil size={15} /></button>}
           {!locked && !open && <button className="icon-btn" title="Delete this round" aria-label="Delete this round" onClick={onDelete}><Trash2 size={15} /></button>}
           {open && <button className="icon-btn" title="Close" aria-label="Close editor" onClick={() => setOpen(false)}><X size={15} /></button>}
         </div>
       </div>
+      {fpg && !open && <FpgCard round={r} onChange={setFpgDone} />}
       {open && (!opts || !f ? <div className="muted small" style={{ paddingTop: 12 }}><Loader2 className="spin" size={14} /> Loading…</div> : (
         <div className="round-edit">
           <div className="row2">

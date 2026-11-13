@@ -499,3 +499,19 @@ a{color:inherit;text-decoration:none}
 .hm-sheet-name small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
 .hm-dots{color:var(--flag)}
 .hm-strokes.on{background:var(--flag)}
+
+/* myFPG register helper */
+.fpg-card{display:flex;flex-direction:column;gap:12px;margin-top:12px;padding-top:14px;border-top:1px solid var(--line)}
+.card > .fpg-card:first-child{margin-top:0;padding-top:0;border-top:none}
+.fpg-head{display:flex;gap:9px;align-items:flex-start}
+.fpg-rows{display:flex;flex-direction:column;gap:2px}
+.fpg-row{display:grid;grid-template-columns:118px 1fr 34px;align-items:center;gap:8px;min-height:38px}
+.fpg-val{font-weight:600;overflow-wrap:anywhere}
+.fpg-copy{width:30px;height:30px}
+.fpg-holes{display:flex;flex-direction:column;gap:6px}
+.fpg-nine{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:4px}
+.fpg-h{display:flex;flex-direction:column;align-items:center;background:#fff;border:1px solid var(--line);border-radius:8px;padding:3px 0;font-family:var(--disp);font-size:14px}
+.fpg-h .hole-no{font-size:10px;color:var(--muted)}
+.fpg-tot{background:var(--soft)}
+.fpg-done{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
+.icon-btn.on{background:var(--ink);color:#fbfaf7}
