@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import { Shield, Check, X, Pencil, Lock, Unlock, Download, Plus, Sparkles, History, Loader2, KeyRound, AlertTriangle, Trash2 } from "lucide-react";
+import { Shield, Check, X, Pencil, Lock, Unlock, Download, Plus, Sparkles, History, Loader2, KeyRound, AlertTriangle, Trash2, RefreshCw } from "lucide-react";
 import { api, fmtHcp } from "@/lib/client";
 import AdminShop from "@/components/admin/AdminShop";
 
@@ -90,8 +90,29 @@ function Members({ members, reload }) {
   const approved = members.filter((u) => u.approved);
   const approve = async (u) => { try { await api(`/api/members/${u.id}`, { method: "PATCH", body: JSON.stringify({ approve: true }) }); reload(); } catch (e) { alert(e.message); } };
   const reject = async (u) => { if (!confirm(`Reject and delete ${u.name}'s registration?`)) return; try { await api(`/api/members/${u.id}`, { method: "DELETE" }); reload(); } catch (e) { alert(e.message); } };
+  const [syncing, setSyncing] = useState(false);
+  const [syncMsg, setSyncMsg] = useState("");
+  const syncFpg = async () => {
+    setSyncing(true); setSyncMsg("");
+    try {
+      const r = await fetch("/api/fpg/sync", { method: "POST" });
+      const b = await r.json().catch(() => ({}));
+      if (r.status === 401) setSyncMsg("Admins only.");
+      else setSyncMsg(`${b.updated ?? 0}/${b.total ?? 0} updated${b.problems?.length ? ` · ${b.problems.length} problem(s)${b.alerted ? " — alert emailed" : ""}` : ""}${b.note ? ` · ${b.note}` : ""}`);
+      reload();
+    } catch (e) { setSyncMsg(e.message); }
+    setSyncing(false);
+  };
+  const fpgCount = approved.filter((u) => u.fpgNumber).length;
+  const lastSync = approved.map((u) => u.fpgSyncedAt).filter(Boolean).sort().pop();
   return (
     <div className="stack">
+      <div className="card row-card">
+        <div><div className="row-title">FPG handicaps</div>
+          <div className="muted small">{fpgCount} member{fpgCount === 1 ? "" : "s"} with an FPG number · synced weekly (Mondays){lastSync ? ` · last ${lastSync.slice(0, 10)}` : ""}</div>
+          {syncMsg && <div className="small">{syncMsg}</div>}</div>
+        <button className="btn btn-ghost" disabled={syncing} onClick={syncFpg}>{syncing ? <Loader2 size={15} className="spin" /> : <RefreshCw size={15} />} Sync FPG now</button>
+      </div>
       {pending.length > 0 && (<>
         <div className="sec-h">Waiting for approval</div>
         {pending.map((u) => (
@@ -119,8 +140,13 @@ function Members({ members, reload }) {
         <div key={u.id} className="card row-card">
           <div><div className="row-title">{u.name} {u.role === "ADMIN" && <span className="badge badge-accent">admin</span>}</div><div className="muted small">{u.email}</div>
             <div className="small">Declared hcp <b className="num">{u.declaredHandicap != null ? fmtHcp(u.declaredHandicap) : "—"}</b>
-              {u.manualHandicap != null && <span className="muted"> · committee override in use</span>}</div></div>
+              {u.manualHandicap != null && <span className="muted"> · committee override in use</span>}</div>
+            {u.fpgNumber && <div className="small">FPG <b className="num">{u.fpgIndex != null ? fmtHcp(u.fpgIndex) : "—"}</b>
+              <span className="muted">{u.fpgStatus && u.fpgStatus !== "Válido" ? ` · ${u.fpgStatus}` : ""}{u.fpgClub ? ` · ${u.fpgClub}` : ""}{u.fpgSyncedAt ? ` · ${u.fpgSyncedAt.slice(0, 10)}` : " · not synced yet"}</span>
+              {u.fpgError && <span className="badge badge-warn" title={u.fpgError}><AlertTriangle size={12} /> sync error</span>}</div>}</div>
           <div className="member-ctl">
+            <input className="input mini" placeholder="FPG nº" inputMode="numeric" defaultValue={u.fpgNumber ?? ""} title="FPG federation number (blank = none)"
+              onBlur={async (e) => { if ((e.target.value.trim() || null) === (u.fpgNumber || null)) return; try { await api(`/api/members/${u.id}`, { method: "PATCH", body: JSON.stringify({ fpgNumber: e.target.value }) }); reload(); } catch (err) { alert(err.message); } }} />
             <input className="input mini" placeholder="override" defaultValue={u.manualHandicap ?? ""} title="Committee handicap override (blank = use declared)"
               onBlur={async (e) => { await api(`/api/members/${u.id}`, { method: "PATCH", body: JSON.stringify({ manualHandicap: e.target.value }) }); }} />
             <button className="icon-btn" title="Reset password" onClick={async () => {

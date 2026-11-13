@@ -139,3 +139,23 @@ export async function notifyPaymentSent(order) {
     html: layout(`Payment sent for ${order.ref}`, [`<b>${esc(order.buyerName)}</b> says they paid <b>${eur(order.totalCents)}</b> by ${order.method === "MBWAY" ? "MB WAY" : "Revolut"}.`, "Check your account, then confirm it in Admin › Shop."], { href: `${appUrl()}/admin`, label: "Open Admin › Shop" }),
   });
 }
+
+// Alert for the weekly FPG handicap sync. Goes to the admins and, if set, to
+// ALERT_EMAIL (comma-separated list allowed). Returns true if an email was sent.
+export async function notifyFpgSyncProblem(summary) {
+  const extra = (process.env.ALERT_EMAIL || "").split(",").map((s) => s.trim()).filter(Boolean);
+  const to = [...new Set([...(await adminEmails()), ...extra])];
+  const href = `${appUrl()}/admin`;
+  const ok = summary.results.filter((r) => r.ok).length;
+  const head = summary.fatal
+    ? "The FPG handicap sync failed — no handicaps were updated."
+    : `The FPG handicap sync finished with problems: ${ok} of ${summary.results.length} members updated.`;
+  const lines = summary.problems.map((p) => `${p.warning ? "⚠︎" : "✗"} ${p.member}${p.fedno !== "—" ? ` (${p.fedno})` : ""}: ${p.error}`);
+  const when = new Date(summary.startedAt).toISOString().replace("T", " ").slice(0, 16) + " UTC";
+  return sendMail({
+    to,
+    subject: summary.fatal ? "⚠️ GPF: FPG handicap sync failed" : "⚠️ GPF: FPG handicap sync had problems",
+    text: `${head}\n\n${lines.join("\n")}\n\nRun: ${when} (${summary.trigger})\nThe last good values are kept. Retry from Admin › Members › Sync FPG now: ${href}`,
+    html: layout(summary.fatal ? "FPG sync failed" : "FPG sync had problems", [esc(head), lines.map(esc).join("<br>"), `<span style="color:#6c7a72;font-size:13px">Run: ${esc(when)} (${esc(summary.trigger)}). The last good values are kept.</span>`], { href, label: "Open Admin › Members" }),
+  });
+}

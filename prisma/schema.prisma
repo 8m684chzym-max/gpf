@@ -40,6 +40,15 @@ model User {
   declaredHandicap Float?   // player's self-declared starting index; provisional, yields to results
   manualHandicap   Float?   // committee hard override; always wins when set
   tiebreakOverride Int?
+  // FPG (Portuguese federation) reference data, refreshed weekly by /api/fpg/sync.
+  // Informational only — never used in GPF handicap or competition maths.
+  fpgNumber        String?   // federation number, e.g. "40796"
+  fpgName          String?   // name as registered at the FPG
+  fpgClub          String?   // club acronym at the FPG
+  fpgIndex         Float?    // official Handicap Index (null = no handicap)
+  fpgStatus        String?   // e.g. "Válido", "Sem HCP"
+  fpgSyncedAt      DateTime?
+  fpgError         String?   // last sync problem for this member, cleared on success
   createdAt        DateTime @default(now())
   rounds           Round[]  @relation("PlayerRounds")
   witnessRounds    Round[]  @relation("PartnerRounds")

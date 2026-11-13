@@ -1,7 +1,7 @@
 "use client";
 // Rank (was "Road to GPF"): every member ranked by Stableford points from their best 3 qualifying rounds.
 import { Fragment, useState } from "react";
-import { ChevronDown, ChevronRight, Check } from "lucide-react";
+import { ChevronDown, ChevronRight, Check, ArrowUp, ArrowDown } from "lucide-react";
 import { fmtHcp } from "@/lib/client";
 
 export default function RoadBoard({ road, need }) {
@@ -17,7 +17,7 @@ export default function RoadBoard({ road, need }) {
              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(r.name); } }}>
           <span className="bh-rank num">{i + 1}</span>
           <span className="bh-name" style={{ display: "flex", alignItems: "center", gap: 4 }}>{openName === r.name ? <ChevronDown size={14} /> : <ChevronRight size={14} />}{r.name}</span>
-          <span className="bh-c num tot">{r.points || 0}</span><span className="bh-c num">{fmtHcp(r.hcp)}</span>
+          <span className="bh-c num tot">{r.points || 0}</span><span className="bh-c num hcp-cell">{fmtHcp(r.hcp)}<FpgDelta fpg={r.fpgIndex} declared={r.hcp} /></span>
           <span className="bh-c">{r.qualified ? <span className="badge badge-ok">{r.bonus ? `In · −${r.bonus}` : "In"}</span> : <span className="badge badge-warn">{r.count}/{need}</span>}</span>
         </div>
         {openName === r.name && <RoundsDetail rounds={r.rounds} row={r} />}
@@ -55,5 +55,19 @@ function RoundsDetail({ rounds, row }) {
           {" → "}<b>Open handicap {fmtHcp(row.openIndex)}</b> ({row.adjust > 0 ? "+" : ""}{row.adjust})
         </div>)}
     </div>
+  );
+}
+
+// Change of the official FPG index vs the declared handicap: ↓ = FPG lower (playing better), ↑ = higher.
+function FpgDelta({ fpg, declared }) {
+  if (fpg == null || declared == null) return null;
+  const d = Math.round((fpg - declared) * 10) / 10;
+  const title = `FPG ${fmtHcp(fpg)} vs declared ${fmtHcp(declared)}`;
+  if (d === 0) return <span className="hcp-delta same" title={title}>= FPG</span>;
+  const up = d > 0;
+  return (
+    <span className={`hcp-delta ${up ? "up" : "down"}`} title={title} aria-label={`${title} (${up ? "+" : "−"}${Math.abs(d).toFixed(1)})`}>
+      {up ? <ArrowUp size={11} /> : <ArrowDown size={11} />}{Math.abs(d).toFixed(1)}
+    </span>
   );
 }

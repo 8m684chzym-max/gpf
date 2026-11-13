@@ -36,6 +36,12 @@ export async function PATCH(req, { params: paramsPromise }) {
 
   const data = {};
   if ("manualHandicap" in body) data.manualHandicap = body.manualHandicap === "" || body.manualHandicap == null ? null : Number(body.manualHandicap);
+  if ("fpgNumber" in body) {
+    const n = String(body.fpgNumber ?? "").trim().replace(/^0+/, "");
+    if (n && !/^\d{1,7}$/.test(n)) return NextResponse.json({ error: "FPG number must be digits only." }, { status: 400 });
+    data.fpgNumber = n || null;
+    if (!n) Object.assign(data, { fpgIndex: null, fpgStatus: null, fpgClub: null, fpgName: null, fpgSyncedAt: null, fpgError: null });
+  }
   if ("role" in body) data.role = body.role === "ADMIN" ? "ADMIN" : "MEMBER";
   if ("tiebreakOverride" in body) data.tiebreakOverride = body.tiebreakOverride == null ? null : Number(body.tiebreakOverride);
   await prisma.user.update({ where: { id: params.id }, data });
