@@ -142,20 +142,20 @@ export async function notifyPaymentSent(order) {
 
 // Alert for the weekly FPG handicap sync. Goes to the admins and, if set, to
 // ALERT_EMAIL (comma-separated list allowed). Returns true if an email was sent.
-export async function notifyFpgSyncProblem(summary) {
+export async function notifyFpgSyncProblem(summary, what = "FPG handicap sync") {
   const extra = (process.env.ALERT_EMAIL || "").split(",").map((s) => s.trim()).filter(Boolean);
   const to = [...new Set([...(await adminEmails()), ...extra])];
   const href = `${appUrl()}/admin`;
   const ok = summary.results.filter((r) => r.ok).length;
   const head = summary.fatal
-    ? "The FPG handicap sync failed — no handicaps were updated."
-    : `The FPG handicap sync finished with problems: ${ok} of ${summary.results.length} members updated.`;
+    ? `The ${what} failed — nothing was updated.`
+    : `The ${what} finished with problems: ${ok} of ${summary.results.length} members done.`;
   const lines = summary.problems.map((p) => `${p.warning ? "⚠︎" : "✗"} ${p.member}${p.fedno !== "—" ? ` (${p.fedno})` : ""}: ${p.error}`);
   const when = new Date(summary.startedAt).toISOString().replace("T", " ").slice(0, 16) + " UTC";
   return sendMail({
     to,
-    subject: summary.fatal ? "⚠️ GPF: FPG handicap sync failed" : "⚠️ GPF: FPG handicap sync had problems",
+    subject: summary.fatal ? `⚠️ GPF: ${what} failed` : `⚠️ GPF: ${what} had problems`,
     text: `${head}\n\n${lines.join("\n")}\n\nRun: ${when} (${summary.trigger})\nThe last good values are kept. Retry from Admin › Members › Sync FPG now: ${href}`,
-    html: layout(summary.fatal ? "FPG sync failed" : "FPG sync had problems", [esc(head), lines.map(esc).join("<br>"), `<span style="color:#6c7a72;font-size:13px">Run: ${esc(when)} (${esc(summary.trigger)}). The last good values are kept.</span>`], { href, label: "Open Admin › Members" }),
+    html: layout(summary.fatal ? `${what} failed` : `${what} had problems`, [esc(head), lines.map(esc).join("<br>"), `<span style="color:#6c7a72;font-size:13px">Run: ${esc(when)} (${esc(summary.trigger)}). The last good values are kept.</span>`], { href, label: "Open Admin › Members" }),
   });
 }

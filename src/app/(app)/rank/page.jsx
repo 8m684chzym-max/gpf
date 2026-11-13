@@ -22,7 +22,7 @@ export default function Rank() {
       </div>
       <RoadBoard road={d.road} need={need} />
       {d.fpgUpdatedAt && (
-        <p className="hint">Hcp is each player&rsquo;s official FPG Handicap Index, updated every Monday. Arrows show the change at the last update (<span className="hcp-delta down inline">↓</span> down, <span className="hcp-delta up inline">↑</span> up). FPG updated {new Date(d.fpgUpdatedAt).toLocaleDateString("pt-PT", { day: "numeric", month: "short", year: "numeric" })}.</p>
+        <p className="hint">Hcp is each player&rsquo;s official FPG Handicap Index, updated every Monday. For players with an FPG handicap, Rank adds their 3 best Stableford scores from official FPG rounds played since 9 November 2026 (imported weekly). Arrows show the change at the last update (<span className="hcp-delta down inline">↓</span> down, <span className="hcp-delta up inline">↑</span> up). FPG updated {new Date(d.fpgUpdatedAt).toLocaleDateString("pt-PT", { day: "numeric", month: "short", year: "numeric" })}.</p>
       )}
       <p className="hint">Every card is scored off the player&rsquo;s registered handicap when it is submitted &mdash; the official FPG index (WHS Stableford for that gross on that tee) &mdash; and those points are locked: when the handicap moves later, earlier cards keep their points. 36 a round means playing to handicap, so the best 3 are compared with 108 to set the GPF handicap for the next Open. Points missing from a card are estimated with the WHS method.</p>
     </div>

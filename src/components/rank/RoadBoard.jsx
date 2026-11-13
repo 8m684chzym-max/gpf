@@ -41,7 +41,7 @@ function RoundsDetail({ rounds, row }) {
           <tbody>{rounds.map((x) => (
             <tr key={x.id} style={{ opacity: x.counted ? 1 : 0.55 }}>
               <td style={{ ...cell, textAlign: "left" }} className="num">{x.date ? String(x.date).slice(0, 10) : "—"}</td>
-              <td style={{ ...cell, textAlign: "left", whiteSpace: "normal" }}>{x.course ?? "—"}{x.tee ? <span className="muted"> · {x.tee}</span> : null}</td>
+              <td style={{ ...cell, textAlign: "left", whiteSpace: "normal" }}>{x.course ?? "—"}{x.tee ? <span className="muted"> · {x.tee}</span> : null}{x.fpg && <span className="badge badge-ok" style={{ marginLeft: 6 }} title="Official round imported from myFPG">FPG</span>}</td>
               <td style={cell} className="num">{x.gross ?? "—"}</td>
               <td style={cell} className="num">{x.hcpIndex != null ? fmtHcp(x.hcpIndex) : "—"}</td>
               <td style={cell} className="num">{x.ph ?? "—"}</td>

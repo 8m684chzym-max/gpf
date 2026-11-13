@@ -51,6 +51,7 @@ model User {
   fpgError         String?   // last sync problem for this member, cleared on success
   hcpPrevious      Float?    // handicap before the last FPG update (for the Rank arrows)
   hcpChangedAt     DateTime? // when the FPG sync last changed declaredHandicap
+  fpgResultsAt     DateTime? // last successful myFPG results import for this member (FPG-only Rank from then on)
   createdAt        DateTime @default(now())
   rounds           Round[]  @relation("PlayerRounds")
   witnessRounds    Round[]  @relation("PartnerRounds")
@@ -140,6 +141,8 @@ model Round {
   lockedPoints    Int?      // Stableford points that count on Rank
   lockedAt        DateTime?
   cardHandicap    Int?      // playing handicap printed on the card (OCR/manual), for the audit only
+  fpgScoreId      String?   @unique // set when the round is (or was matched to) an official myFPG result
+  fpgData         Json?     // the myFPG record as imported (differential, qualifying, index…)
   createdAt     DateTime    @default(now())
   scorecard     Scorecard?
 }
