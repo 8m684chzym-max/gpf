@@ -44,6 +44,19 @@ function MenuLink({ href, label, big = false }: { href: string; label: string; b
         {label}
       </a>
     );
+  if (label === "Login")
+    return (
+      <a
+        href={href}
+        className={
+          big
+            ? "my-2 rounded-full bg-fairway py-2.5 text-center text-[16px] font-medium text-white"
+            : "rounded-full bg-fairway px-3.5 py-1.5 text-[13px] font-medium text-white transition-opacity hover:opacity-90"
+        }
+      >
+        {label}
+      </a>
+    );
   if (href === "/")
     return (
       <Link to="/" className={cls} activeProps={{ className: "text-foreground" }} activeOptions={{ exact: true }}>

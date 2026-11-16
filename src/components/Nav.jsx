@@ -56,7 +56,7 @@ export default function Nav() {
 
   const auth = data?.user
     ? <button className="nav-a nav-btn" onClick={() => signOut({ redirect: false }).then(() => { window.location.href = HOME_URL; })}>Log out</button>
-    : <Link href="/login" className="nav-a">Login</Link>;
+    : <Link href="/login" className={`nav-a nav-cta nav-cta-go ${isOn("/login") ? "nav-on" : ""}`}>Login</Link>;
 
   return (
     <header className="topbar">

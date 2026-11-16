@@ -133,7 +133,7 @@ function load(file) {
   if (!file) return;
   if (!isVideo(file)) { status('Escolha um ficheiro de vídeo (MP4, MOV ou WebM).'); return; }
   if (file.size > 1024 * 1024 * 1024) { status('O vídeo excede 1 GB. Encurte o clip antes de carregar.'); return; }
-  generation++; const token = generation;
+  generation++; const token = generation; delete video.dataset.fix;
   resetLines(); video.pause(); if (url) URL.revokeObjectURL(url);
   loaded = false; marks = {}; samples = {}; points = null; clip = null; club = null; report = null; renderReport();
   $('notes').value = ''; $('filename').textContent = file.name; url = URL.createObjectURL(file);
@@ -147,10 +147,23 @@ function load(file) {
   loadTimer = setTimeout(() => { if (!loaded && token === generation) status('O vídeo está a demorar a abrir. Se não aparecer, este navegador pode não suportar o formato (ex.: HEVC/MOV no Chrome em Windows). Experimente o Safari ou exporte o clip em MP4 H.264.'); }, 12000);
 }
 $('file').onchange = e => { load(e.target.files[0]); e.target.value = ''; };
+// Film here: in-app camera with the player's silhouette (camera.js). The view picked on camera
+// (por trás / de frente) becomes the Perspetiva.
+$('cam').onclick = () => {
+  if (busy) return;
+  if (!window.GPFCam) { $('file').click(); return; }
+  window.GPFCam.open({
+    tool: 'swing', view: $('view').value, audio: false,
+    onPickFile: () => $('file').click(),
+    onVideo: (file, info) => { if (info.view && info.view !== $('view').value) $('view').value = info.view; load(file); },
+  });
+};
 $('drop').ondragover = e => e.preventDefault();
 $('drop').ondrop = e => { e.preventDefault(); if (!busy) load([...(e.dataTransfer?.files || [])].find(isVideo)); };
 function ready() {
   if (loaded || !video.videoWidth) return;
+  // Clips recorded in the browser (WebM in Chrome) only learn their length after a seek to the end.
+  if (video.duration === Infinity) { if (!video.dataset.fix) { video.dataset.fix = '1'; video.currentTime = 1e101; } return; }
   if (!Number.isFinite(video.duration) || video.duration <= 0) return; // some files report the duration later
   clearTimeout(loadTimer); loaded = true; video.pause();
   $('empty').hidden = true; $('tap-load').hidden = true;

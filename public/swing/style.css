@@ -10,22 +10,35 @@ body{background:var(--bg);color:var(--ink);font:13px/1.45 -apple-system,BlinkMac
 a{color:inherit;text-decoration:none}
 [hidden]{display:none !important}
 
-/* GPF site menu — same links as gpf.golf and app.gpf.golf (src/lib/menu.js) */
-.site{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:24px;height:56px;padding:0 24px;border-bottom:1px solid var(--line);background:rgba(251,250,247,.82);backdrop-filter:saturate(1.5) blur(20px);-webkit-backdrop-filter:saturate(1.5) blur(20px)}
+/* GPF site menu — same links and behaviour as app.gpf.golf (src/lib/menu.js, src/components/Nav.jsx):
+   links in the bar from 1024px, a burger with a drop-down sheet below that. */
+.site{position:sticky;top:0;z-index:40;border-bottom:1px solid var(--line);background:rgba(251,250,247,.82);backdrop-filter:saturate(1.5) blur(20px);-webkit-backdrop-filter:saturate(1.5) blur(20px);padding-top:env(safe-area-inset-top)}
+.site-in{display:flex;align-items:center;justify-content:space-between;gap:16px;height:56px;padding:0 24px;max-width:1152px;margin:0 auto}
 .site .logo{display:flex;flex:none}.site .logo img{width:24px;height:24px;display:block}
-.site nav{display:flex;align-items:center;gap:24px;overflow-x:auto;scrollbar-width:none;margin-left:auto}
-.site nav::-webkit-scrollbar{display:none}
-.site nav a{font-size:13px;color:var(--muted);white-space:nowrap}
-.site nav a:hover,.site nav a[aria-current]{color:var(--ink)}
-.site nav a.cta{background:#1c1e24;color:#fff;padding:5px 12px;border-radius:999px;font-weight:600}
+.site-links{display:none;align-items:center;gap:26px}
+.site-links a{font-size:13px;color:var(--muted);text-decoration:none;white-space:nowrap}
+.site-links a:hover,.site-links a[aria-current]{color:var(--ink)}
+.site a.cta{background:#1c1e24;color:#fff !important;padding:6px 13px;border-radius:999px;font-weight:600}
+.site-toggle{display:grid;place-items:center;width:38px;height:38px;border:none !important;background:none !important;color:var(--ink);cursor:pointer;margin-right:-8px;padding:0;min-height:0;border-radius:8px}
+.site-toggle svg{width:20px;height:20px}
+.site-sheet{display:flex;flex-direction:column;padding:6px 24px 16px;border-top:1px solid var(--line);max-height:calc(100vh - 56px);overflow-y:auto}
+.site-sheet[hidden]{display:none}
+.site-sheet a{font-size:17px;padding:11px 0;color:var(--ink);text-decoration:none}
+.site-sheet a[aria-current]{font-weight:600}
+.site-sheet a.cta{text-align:center;margin:6px 0;padding:11px 0;font-size:16px}
+.site-sheet .sheet-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:12px 0 2px}
+.site-sheet .sheet-group{display:flex;flex-direction:column}
+.site-sheet .sheet-group a{padding-left:14px}
+.site details.tools{position:relative}
 .site details.tools summary{list-style:none;cursor:pointer;font-size:13px;color:var(--muted);white-space:nowrap;display:flex;align-items:center;gap:4px}
 .site details.tools summary::-webkit-details-marker{display:none}
 .site details.tools summary::after{content:"";width:5px;height:5px;border:solid currentColor;border-width:0 1.5px 1.5px 0;transform:translateY(-2px) rotate(45deg)}
 .site details.tools[open] summary,.site details.tools.on summary,.site details.tools summary:hover{color:var(--ink)}
-.site .tools-pop{position:fixed;z-index:60;min-width:150px;display:flex;flex-direction:column;padding:6px;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.12)}
-.site .tools-pop a{padding:8px 10px;border-radius:8px;color:var(--ink)}
+.site .tools-pop{position:absolute;top:calc(100% + 12px);left:-12px;z-index:60;min-width:150px;display:flex;flex-direction:column;padding:6px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.12)}
+.site .tools-pop a{padding:8px 10px;border-radius:8px;color:var(--ink);font-size:13px}
 .site .tools-pop a:hover{background:var(--field)}
-@media (max-width:860px){.site{gap:16px;padding:0 16px}.site nav{gap:18px;margin-left:0}}
+@media (min-width:1024px){.site-links{display:flex}.site-toggle,.site-sheet{display:none !important}}
+@media (max-width:640px){.site-in{padding:0 16px}.site-sheet{padding:6px 16px 16px}}
 
 /* Tool bar */
 .bar{display:flex;align-items:center;gap:10px;padding:9px 24px;border-bottom:1px solid var(--line);background:var(--panel)}
@@ -58,6 +71,10 @@ textarea{min-height:75px;resize:vertical}
 input[type=range]{width:100%;accent-color:var(--ink);margin:10px 0 2px;height:28px}
 .upload{position:relative;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;border:1.5px dashed #c9c8c2;border-radius:12px;padding:14px;cursor:pointer;background:var(--field);color:var(--ink)}
 .upload:hover{border-color:var(--ink)}
+.capture{display:grid;grid-template-columns:1fr auto;gap:10px}
+.cam-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:12px;padding:14px 18px;background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.cam-btn b{font-size:15px;font-weight:600}.cam-btn span{font-size:12px;opacity:.75}
+.cam-btn:hover:not(:disabled){filter:none;opacity:.92}
 .upload input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
 .upload b{font-size:15px;font-weight:600}
 .upload span,.hint{font-size:12px;color:var(--muted);line-height:1.55}

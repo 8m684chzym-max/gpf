@@ -49,6 +49,9 @@ main{display:grid;grid-template-columns:minmax(0,1fr) 320px;min-height:0}
 .empty h2{margin:0 0 6px;font-size:17px;font-weight:600;color:#f2f2f2}
 .empty p{margin:0 0 16px;color:#a5a5aa}
 .empty .links{margin-top:12px}
+.start-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.start-btns button{min-height:40px;padding:8px 14px}
+.empty .start-btns button:not(.primary){background:#2c2c30;color:#f2f2f2;border-color:#4a4a4e}
 .empty .links button{background:transparent;border:0;color:#cfcfd4;text-decoration:underline;padding:2px}
 .stage.drag .empty{border-color:var(--accent)}
 .hint{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.72);color:#fff;padding:6px 12px;border-radius:999px;font-size:12.5px;pointer-events:none;backdrop-filter:blur(6px);white-space:nowrap;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis}
@@ -129,7 +132,6 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 /* phones */
 @media (max-width:640px){
   .bar{gap:6px;padding:8px 10px}
-  .site{height:auto;min-height:52px;padding-top:env(safe-area-inset-top)}
   .brand{font-size:0;gap:0}
   .fname{display:none}
   .bar button,.bar a.btn{padding:8px 10px;font-size:13px}
@@ -164,41 +166,59 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   #guide .guide-body{overflow:visible}
   .no-print{display:none !important}
 }
-/* GPF site menu — same links as gpf.golf and app.gpf.golf (src/lib/menu.js) */
-.site{display:flex;align-items:center;gap:24px;height:56px;padding:0 24px;border-bottom:1px solid var(--line);background:var(--panel)}
+/* GPF site menu — same links and behaviour as app.gpf.golf (src/lib/menu.js, src/components/Nav.jsx):
+   links in the bar from 1024px, a burger with a drop-down sheet below that. */
+.site{position:sticky;top:0;z-index:40;border-bottom:1px solid var(--line);background:rgba(251,250,247,.82);backdrop-filter:saturate(1.5) blur(20px);-webkit-backdrop-filter:saturate(1.5) blur(20px);padding-top:env(safe-area-inset-top)}
+.site-in{display:flex;align-items:center;justify-content:space-between;gap:16px;height:56px;padding:0 24px;max-width:1152px;margin:0 auto}
 .site .logo{display:flex;flex:none}.site .logo img{width:24px;height:24px;display:block}
-.site nav{display:flex;gap:24px;overflow-x:auto;scrollbar-width:none;margin-left:auto}
-.site nav::-webkit-scrollbar{display:none}
-.site nav a{font-size:13px;color:var(--muted);text-decoration:none;white-space:nowrap}
-.site nav a:hover,.site nav a[aria-current]{color:var(--ink)}
-.site nav a.cta{background:#1c1e24;color:#fff;padding:5px 12px;border-radius:999px;font-weight:600}
-@media (max-width:860px){.site{gap:16px;padding:0 16px}.site nav{gap:18px;margin-left:0}}
-.site nav{align-items:center}
+.site-links{display:none;align-items:center;gap:26px}
+.site-links a{font-size:13px;color:var(--muted);text-decoration:none;white-space:nowrap}
+.site-links a:hover,.site-links a[aria-current]{color:var(--ink)}
+.site a.cta{background:#1c1e24;color:#fff !important;padding:6px 13px;border-radius:999px;font-weight:600}
+.site-toggle{display:grid;place-items:center;width:38px;height:38px;border:none !important;background:none !important;color:var(--ink);cursor:pointer;margin-right:-8px;padding:0;min-height:0;border-radius:8px}
+.site-toggle svg{width:20px;height:20px}
+.site-sheet{display:flex;flex-direction:column;padding:6px 24px 16px;border-top:1px solid var(--line);max-height:calc(100vh - 56px);overflow-y:auto}
+.site-sheet[hidden]{display:none}
+.site-sheet a{font-size:17px;padding:11px 0;color:var(--ink);text-decoration:none}
+.site-sheet a[aria-current]{font-weight:600}
+.site-sheet a.cta{text-align:center;margin:6px 0;padding:11px 0;font-size:16px}
+.site-sheet .sheet-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:12px 0 2px}
+.site-sheet .sheet-group{display:flex;flex-direction:column}
+.site-sheet .sheet-group a{padding-left:14px}
+.site details.tools{position:relative}
 .site details.tools summary{list-style:none;cursor:pointer;font-size:13px;color:var(--muted);white-space:nowrap;display:flex;align-items:center;gap:4px}
 .site details.tools summary::-webkit-details-marker{display:none}
 .site details.tools summary::after{content:"";width:5px;height:5px;border:solid currentColor;border-width:0 1.5px 1.5px 0;transform:translateY(-2px) rotate(45deg)}
 .site details.tools[open] summary,.site details.tools.on summary,.site details.tools summary:hover{color:var(--ink)}
-.site .tools-pop{position:fixed;z-index:60;min-width:150px;display:flex;flex-direction:column;padding:6px;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.14)}
-.site .tools-pop a{padding:8px 10px;border-radius:8px;color:var(--ink)}
+.site .tools-pop{position:absolute;top:calc(100% + 12px);left:-12px;z-index:60;min-width:150px;display:flex;flex-direction:column;padding:6px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.12)}
+.site .tools-pop a{padding:8px 10px;border-radius:8px;color:var(--ink);font-size:13px}
 .site .tools-pop a:hover{background:var(--field)}
+@media (min-width:1024px){.site-links{display:flex}.site-toggle,.site-sheet{display:none !important}}
+@media (max-width:640px){.site-in{padding:0 16px}.site-sheet{padding:6px 16px 16px}}
+/* the tracer follows the system dark theme */
+.site{background:var(--panel)}.site .tools-pop{background:var(--panel)}.site a.cta{background:var(--ink);color:var(--bg) !important}
 </style>
 </head>
 <body>
 
 <header class="site">
-  <a class="logo" href="https://gpf.golf" aria-label="GPF home"><img src="https://app.gpf.golf/brand/gpf-logo.svg" alt="GPF"></a>
-  <nav aria-label="Main">
-    <a href="https://gpf.golf">Home</a>
-    <a href="https://app.gpf.golf/play">Play</a>
-    <a href="https://app.gpf.golf/open">Open</a>
-    <a href="https://app.gpf.golf/team-cup">Team Cup</a>
-    <a href="https://app.gpf.golf/rank">Rank</a>
-    <a href="https://app.gpf.golf/shop">Shop</a>
-    <details class="tools on"><summary>Tools</summary><div class="tools-pop"><a href="https://tracer.gpf.golf" aria-current="page">Tracer</a><a href="https://app.gpf.golf/swing">Swing</a></div></details>
-    <a href="https://app.gpf.golf/profile">My profile</a>
-    <a href="https://app.gpf.golf/submit" class="cta">Submit score</a>
-    <a href="https://app.gpf.golf/logout">Log out</a>
-  </nav>
+  <div class="site-in">
+    <a class="logo" href="https://gpf.golf" aria-label="GPF home"><img src="https://app.gpf.golf/brand/gpf-logo.svg" alt="GPF"></a>
+    <nav class="site-links" aria-label="Main">
+      <a href="https://gpf.golf">Home</a>
+      <a href="https://app.gpf.golf/play">Play</a>
+      <a href="https://app.gpf.golf/open">Open</a>
+      <a href="https://app.gpf.golf/team-cup">Team Cup</a>
+      <a href="https://app.gpf.golf/rank">Rank</a>
+      <a href="https://app.gpf.golf/shop">Shop</a>
+      <details class="tools on"><summary>Tools</summary><div class="tools-pop"><a href="https://tracer.gpf.golf" aria-current="page">Tracer</a><a href="https://app.gpf.golf/swing">Swing</a></div></details>
+      <a href="https://app.gpf.golf/profile">My profile</a>
+      <a href="https://app.gpf.golf/submit" class="cta">Submit score</a>
+      <a href="https://app.gpf.golf/logout">Log out</a>
+    </nav>
+    <button class="site-toggle" type="button" aria-label="Abrir menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+  </div>
+  <nav class="site-sheet" aria-label="Main" hidden></nav>
 </header>
 
 <header class="bar">
@@ -209,6 +229,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   <div class="fname" id="fileName"></div>
   <div class="spacer"></div>
   <button id="guideBtn">Guia</button>
+  <button id="camBtn" title="Filmar com a câmara, com silhueta e traço ao vivo">● Filmar</button>
   <button id="openBtn">Abrir<span class="long"> vídeo…</span></button>
   <button id="exportBtn" class="primary" disabled>Exportar<span class="long"> vídeo</span></button>
 </header>
@@ -219,7 +240,11 @@ input[type=range]{width:100%;accent-color:var(--accent)}
       <div class="empty" id="empty">
         <h2>Arraste um vídeo de golfe para aqui</h2>
         <p>MP4 ou MOV do telemóvel, WhatsApp, etc. Nada é enviado: o vídeo fica no seu computador.</p>
-        <button class="primary" id="openBtn2">Escolher vídeo…</button>
+        <div class="start-btns">
+          <button class="primary" id="openBtn2">Escolher vídeo…</button>
+          <button id="camBtn2">● Filmar</button>
+          <button id="liveBtn">Traço ao vivo</button>
+        </div>
         <div class="links"><button id="guideBtn2">Primeira vez? Leia o guia passo a passo</button></div>
       </div>
       <div class="frame" id="frame" hidden>
@@ -345,6 +370,8 @@ input[type=range]{width:100%;accent-color:var(--accent)}
       <div class="gstep"><div class="gn">1</div><div><b class="t">Abra o vídeo</b>
         Arraste o clip para a área escura ou clique em <b>Abrir vídeo…</b>. Aceita MP4 e MOV do iPhone, Android ou WhatsApp. Funciona melhor com a câmara fixa (tripé ou telemóvel apoiado).</div></div>
 
+      <div class="tip"><b>Filmar aqui:</b> <b>● Filmar</b> abre a câmara com a silhueta do jogador (por trás ou de frente) para enquadrar a pancada. Com <b>Traço ao vivo</b> ligado, arraste <b>Bola</b> e <b>Queda</b> para o sítio certo: o traço é desenhado em tempo real quando o microfone ouve o impacto (ou ao tocar em <b>Disparar</b>), com as definições de Trajetória e Aspeto. No fim pode guardar o vídeo com o traço ou abri-lo aqui, já com o impacto, a bola e a queda marcados, para afinar.</div>
+
       <div class="gstep"><div class="gn">2</div><div><b class="t">Encontre o frame do impacto</b>
         Avance com <b>1 ▸</b> e <b>◂ 1</b> (ou as setas <kbd>→</kbd> <kbd>←</kbd>; com <kbd>Shift</kbd> salta 10 frames) até ao frame em que o taco toca na bola. Também pode arrastar a linha do tempo por baixo do vídeo. Clique em <b>Marcar impacto aqui</b> ou carregue em <kbd>I</kbd>. Aparece uma marca vermelha na linha do tempo.</div></div>
 
@@ -400,6 +427,375 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 </div>
 
 <input type="file" id="file" accept="video/*,.mov,.mp4,.m4v" hidden>
+
+<!-- gpf-camera:start (generated from public/swing/camera.js) -->
+<script>
+/* GPF in-app camera — shared by Swing Lab (/swing/camera.js) and the Shot Tracer (inlined into
+   public/tracer/index.html by scripts/sync-tracer-camera.mjs, because tracer.gpf.golf serves only
+   its single page). Edit this file, then run `node scripts/sync-tracer-camera.mjs`.
+
+   GPFCam.open({ tool, view, audio, live, onVideo })
+     view     'down-the-line' (por trás) | 'face-on' (de frente) — the player picks it on camera
+     audio    record sound (the tracer needs it: the live trace fires on the impact sound)
+     live     optional real-time tracer: { draw(ctx, W, H, t, ball, land, view), duration() }
+     liveOn   start with the live trace on (true) or off (false); default: last choice
+     onVideo  (file, info) → the clip goes into the tool; info = { view, lefty, impact, ball, land }
+   Everything stays in the browser: nothing is uploaded. */
+(function () {
+  if (window.GPFCam) return;
+  const SIL = {"face": "<circle cx=\"146\" cy=\"66\" r=\"25\"/> <path d=\"M140 92 h14 v16 h-14z\"/> <path d=\"M104 112 Q150 98 196 112 L188 168 Q184 210 180 240 L120 240 Q116 210 112 168 Z\"/> <path d=\"M122 238 L178 238 L184 262 L116 262 Z\"/> <path d=\"M112 118 L150 262\" stroke-width=\"22\"/> <path d=\"M188 118 L162 262\" stroke-width=\"22\"/> <path d=\"M132 250 L116 338 L106 432\" stroke-width=\"30\"/> <path d=\"M168 250 L184 338 L194 432\" stroke-width=\"30\"/> <path d=\"M84 444 h30\" stroke-width=\"16\"/><path d=\"M186 444 h30\" stroke-width=\"16\"/> <circle cx=\"156\" cy=\"268\" r=\"13\"/> <path d=\"M156 270 L158 436\" stroke-width=\"5\"/> <path d=\"M146 438 h24\" stroke-width=\"9\"/>", "dtl": "<circle cx=\"200\" cy=\"96\" r=\"25\"/> <path d=\"M178 112 l14 14 -12 10 -12 -12z\"/> <path d=\"M150 112 Q178 108 192 132 L158 214 Q140 254 124 262 L78 262 Q70 236 84 210 Z\"/> <path d=\"M104 250 L142 338\" stroke-width=\"40\"/> <path d=\"M142 338 L130 432\" stroke-width=\"28\"/> <path d=\"M112 444 h48\" stroke-width=\"16\"/> <path d=\"M172 136 L180 262\" stroke-width=\"22\"/> <circle cx=\"182\" cy=\"268\" r=\"13\"/> <path d=\"M184 272 L238 434\" stroke-width=\"5\"/> <path d=\"M230 438 h20\" stroke-width=\"9\"/>"};
+  const SIL_BALL = { 'face-on': [160, 444], 'down-the-line': [246, 444] };
+  const LS = 'gpf.cam';
+  const prefs = (() => { try { return JSON.parse(localStorage.getItem(LS) || '{}'); } catch (e) { return {}; } })();
+  const savePrefs = () => { try { localStorage.setItem(LS, JSON.stringify(prefs)); } catch (e) {} };
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+
+  const CSS = `
+.gcam{position:fixed;inset:0;z-index:1000;background:#000;color:#fff;display:flex;flex-direction:column;font:14px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;-webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none}
+.gcam [hidden]{display:none !important}
+.gcam button{font:inherit;color:#fff;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:8px 13px;min-height:38px;cursor:pointer;white-space:nowrap;touch-action:manipulation;filter:none;opacity:1}
+.gcam button:disabled{opacity:.4}
+.gcam button.on{background:#fff;color:#111;border-color:#fff}
+.gcam .gc-top{display:flex;align-items:center;gap:8px;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;flex-wrap:wrap}
+.gcam .gc-x{width:40px;padding:0;font-size:20px;line-height:1}
+.gcam .gc-seg{display:flex;background:rgba(255,255,255,.14);border-radius:999px;padding:3px;gap:2px}
+.gcam .gc-seg button{background:none;border:0;min-height:32px;padding:6px 13px}
+.gcam .gc-seg button.on{background:#fff;color:#111}
+.gcam .gc-sp{flex:1}
+.gcam .gc-chips{display:flex;gap:8px}
+.gcam .gc-stage{position:relative;flex:1;min-height:0;overflow:hidden}
+.gcam video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.gcam .gc-sil{position:absolute;pointer-events:none;transition:opacity .2s}
+.gcam .gc-sil.mir{transform:scaleX(-1)}
+.gcam canvas{position:absolute;touch-action:none}
+.gcam .gc-msg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:30px;text-align:center;color:#ddd}
+.gcam .gc-msg b{font-size:17px;color:#fff}
+.gcam .gc-rec{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:#d4442f;color:#fff;border-radius:999px;padding:3px 10px;font:600 12px ui-monospace,"SF Mono",Menlo,monospace;font-variant-numeric:tabular-nums}
+.gcam .gc-bot{padding:10px 14px calc(14px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px;align-items:center}
+.gcam .gc-hint{font-size:12.5px;color:#cfcfd4;text-align:center;max-width:560px}
+.gcam .gc-row{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;flex-wrap:wrap}
+.gcam .gc-shut{width:70px;height:70px;min-height:70px;padding:0;border-radius:50%;border:4px solid #fff;background:transparent;display:grid;place-items:center}
+.gcam .gc-shut i{display:block;width:54px;height:54px;border-radius:50%;background:#d4442f;transition:all .15s}
+.gcam .gc-shut.rec i{width:26px;height:26px;border-radius:6px}
+.gcam .gc-side{flex:1;display:flex;gap:8px;align-items:center}
+.gcam .gc-side.r{justify-content:flex-end}
+.gcam .gc-fire{background:#ffdf45;color:#111;border-color:#ffdf45;font-weight:650}
+.gcam .gc-meter{width:46px;height:6px;border-radius:3px;background:rgba(255,255,255,.2);overflow:hidden}
+.gcam .gc-meter i{display:block;height:100%;width:0;background:#30d158}
+.gcam .gc-res{position:absolute;inset:0;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px}
+.gcam .gc-res video{position:static;max-height:calc(100% - 120px);width:auto;max-width:100%;border-radius:10px}
+.gcam .gc-res .gc-row button.pri{background:#fff;color:#111;font-weight:650}
+@media (max-width:640px){.gcam .gc-top{gap:6px;padding-left:8px;padding-right:8px}.gcam .gc-chips{order:5;width:100%;justify-content:center}.gcam .gc-x,.gcam .gc-flip{width:38px;padding:0}.gcam .gc-top button{padding:7px 10px;font-size:13px}.gcam .gc-seg button{padding:6px 10px}}
+`;
+
+  function pickMime(list) {
+    if (!window.MediaRecorder) return null;
+    return list.find(m => { try { return MediaRecorder.isTypeSupported(m); } catch (e) { return false; } }) || '';
+  }
+  const MIMES = ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'];
+  const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+  const stamp = () => { const d = new Date(), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; };
+
+  function open(opts) {
+    opts = opts || {};
+    if (!document.getElementById('gcam-css')) { const st = el('style'); st.id = 'gcam-css'; st.textContent = CSS; document.head.appendChild(st); }
+    const live = opts.live || null;
+    let view = opts.view || prefs.view || 'down-the-line';
+    let lefty = !!prefs.lefty, showSil = prefs.sil !== false, liveOn = live ? (opts.liveOn != null ? !!opts.liveOn : prefs.live !== false) : false;
+    let sens = prefs.sens || 'med';                   // impact-sound sensitivity
+    let facing = 'environment', stream = null, closed = false;
+    let ball = null, land = null, ballSet = false, landSet = false;
+    let trig = null, recStart = 0, impacts = [], rawRec = null, compRec = null, recording = false;
+    let actx = null, analyser = null, abuf = null, noise = 0.01, armedAt = 0, level = 0;
+    if (live && opts.audio !== false) {
+      // Created inside the tap that opened the camera, so iOS lets it run.
+      try { const AC = window.AudioContext || window.webkitAudioContext; if (AC) actx = new AC(); } catch (e) { actx = null; }
+    }
+
+    // ---------- DOM ----------
+    const root = el('div', 'gcam'); root.setAttribute('role', 'dialog'); root.setAttribute('aria-label', 'Câmara');
+    const top = el('div', 'gc-top');
+    const bX = el('button', 'gc-x', '×'); bX.setAttribute('aria-label', 'Fechar câmara');
+    const seg = el('div', 'gc-seg');
+    const bBack = el('button', '', 'Por trás'), bFront = el('button', '', 'De frente');
+    seg.append(bBack, bFront);
+    const bLefty = el('button', '', 'Canhoto'), bSil = el('button', '', 'Silhueta'), bFlip = el('button', 'gc-flip', '⟲'); bFlip.setAttribute('aria-label', 'Trocar de câmara');
+    const chips = el('div', 'gc-chips'); chips.append(bLefty, bSil);
+    top.append(bX, seg, el('span', 'gc-sp'), chips, bFlip);
+    const stage = el('div', 'gc-stage');
+    const video = el('video'); video.playsInline = true; video.muted = true; video.autoplay = true; video.setAttribute('playsinline', '');
+    const sil = el('div', 'gc-sil');
+    const cv = el('canvas'), cx = cv.getContext('2d');
+    const recTag = el('div', 'gc-rec'); recTag.hidden = true;
+    const msg = el('div', 'gc-msg', '<b>A abrir a câmara…</b>');
+    stage.append(video, sil, cv, recTag, msg);
+    const bot = el('div', 'gc-bot');
+    const hint = el('div', 'gc-hint');
+    const row = el('div', 'gc-row');
+    const left = el('div', 'gc-side'), right = el('div', 'gc-side r');
+    const shut = el('button', 'gc-shut', '<i></i>'); shut.setAttribute('aria-label', 'Gravar'); shut.disabled = true;
+    const bLive = el('button', '', 'Traço ao vivo'), bSens = el('button'), bFire = el('button', 'gc-fire', 'Disparar');
+    const meter = el('div', 'gc-meter', '<i></i>');
+    if (live) { left.append(bLive, bSens); right.append(meter, bFire); }
+    row.append(left, shut, right);
+    bot.append(hint, row);
+    root.append(top, stage, bot);
+    document.body.appendChild(root);
+    document.documentElement.style.overflow = 'hidden';
+
+    // ---------- geometry ----------
+    let R = { l: 0, t: 0, w: 0, h: 0 }, S = null, dpr = 1;
+    function contentRect() {
+      const sw = stage.clientWidth, sh = stage.clientHeight, vw = video.videoWidth || 16, vh = video.videoHeight || 9;
+      const s = Math.min(sw / vw, sh / vh), w = vw * s, h = vh * s;
+      return { l: (sw - w) / 2, t: (sh - h) / 2, w, h };
+    }
+    function silRect() {
+      const h = R.h * 0.8, w = h * 0.6;
+      const top = R.h * 0.92 - h * (452 / 500);
+      let l = view === 'face-on' ? R.w / 2 - w / 2 : R.w * 0.5 - w * 0.62;
+      if (lefty) l = R.w - l - w;
+      return { l, t: top, w, h };
+    }
+    function defaults() {
+      const s = silRect(), [bx, by] = SIL_BALL[view];
+      const x = s.l + (lefty ? 300 - bx : bx) / 300 * s.w, y = s.t + by / 500 * s.h;
+      if (!ballSet) ball = { x: clamp(x / R.w, 0.02, 0.98), y: clamp(y / R.h, 0.02, 0.98) };
+      if (!landSet) land = view === 'face-on'
+        ? { x: lefty ? 0.04 : 0.96, y: clamp(ball.y - 0.14, 0.05, 0.95) }
+        : { x: clamp(0.5 + (ball.x - 0.5) * 0.35, 0.05, 0.95), y: 0.34 };
+    }
+    function layout() {
+      R = contentRect(); dpr = window.devicePixelRatio || 1;
+      Object.assign(cv.style, { left: R.l + 'px', top: R.t + 'px', width: R.w + 'px', height: R.h + 'px' });
+      cv.width = Math.round(R.w * dpr); cv.height = Math.round(R.h * dpr);
+      S = silRect();
+      Object.assign(sil.style, { left: R.l + S.l + 'px', top: R.t + S.t + 'px', width: S.w + 'px', height: S.h + 'px' });
+      defaults();
+    }
+    function drawSil() {
+      const [bx, by] = SIL_BALL[view];
+      sil.innerHTML = `<svg viewBox="0 0 300 500" width="100%" height="100%" aria-hidden="true"><g opacity=".5" fill="#fff" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">${SIL[view === 'face-on' ? 'face' : 'dtl']}</g>`
+        + `<path d="M8 452 H292" stroke="#fff" stroke-opacity=".55" stroke-width="2" stroke-dasharray="6 6"/>`
+        + (live && liveOn ? '' : `<circle cx="${bx}" cy="${by}" r="7" fill="none" stroke="#ffdf45" stroke-width="2.5"/>`) + `</svg>`;
+      sil.classList.toggle('mir', lefty);
+    }
+    function sync() {
+      bBack.classList.toggle('on', view === 'down-the-line'); bFront.classList.toggle('on', view === 'face-on');
+      bLefty.classList.toggle('on', lefty); bSil.classList.toggle('on', showSil);
+      sil.style.opacity = showSil ? (recording ? '.35' : '1') : '0';
+      bLive.classList.toggle('on', liveOn);
+      bSens.textContent = 'Som: ' + ({ low: 'baixo', med: 'médio', high: 'alto' })[sens];
+      bSens.hidden = bFire.hidden = meter.hidden = !liveOn;
+      hint.textContent = live && liveOn
+        ? 'Arraste Bola e Queda para o sítio certo. O traço dispara com o som do impacto, ou toque em Disparar.'
+        : (view === 'face-on' ? 'De frente: câmara à altura das mãos, apontada ao peito do jogador. Alinhe o jogador com a silhueta.'
+                              : 'Por trás: câmara à altura das mãos, alinhada com a linha do alvo. Alinhe o jogador com a silhueta.');
+      drawSil();
+    }
+    const setPref = (k, v) => { prefs[k] = v; savePrefs(); };
+    bBack.onclick = () => { view = 'down-the-line'; setPref('view', view); ballSet = landSet = false; layout(); sync(); };
+    bFront.onclick = () => { view = 'face-on'; setPref('view', view); ballSet = landSet = false; layout(); sync(); };
+    bLefty.onclick = () => { lefty = !lefty; setPref('lefty', lefty); ballSet = landSet = false; layout(); sync(); };
+    bSil.onclick = () => { showSil = !showSil; setPref('sil', showSil); sync(); };
+    bLive.onclick = () => { if (recording) return; liveOn = !liveOn; setPref('live', liveOn); trig = null; sync(); };
+    bSens.onclick = () => { sens = ({ low: 'med', med: 'high', high: 'low' })[sens]; setPref('sens', sens); sync(); };
+    bFire.onclick = () => fire(performance.now());
+
+    // ---------- live tracer ----------
+    function fire(t) {
+      if (!liveOn || (trig != null && t - trig < 1000)) return;   // one shot per second (echo, double clicks)
+      trig = t;
+      if (recording) impacts.push(Math.max(0, (t - recStart) / 1000));
+    }
+    const THR = { low: 0.5, med: 0.3, high: 0.15 };
+    function listen(now) {
+      if (!analyser) return;
+      analyser.getFloatTimeDomainData(abuf);
+      let peak = 0, sum = 0;
+      for (let i = 0; i < abuf.length; i++) { const v = Math.abs(abuf[i]); if (v > peak) peak = v; sum += v * v; }
+      const rms = Math.sqrt(sum / abuf.length);
+      level = Math.max(peak, level * 0.85);
+      meter.firstChild.style.width = Math.min(100, level * 160) + '%';
+      const spike = peak > THR[sens] && peak > noise * 9;
+      if (spike && liveOn && now - armedAt > 1200) fire(now - 25);   // ~25 ms of audio latency
+      if (!spike) noise = noise * 0.97 + rms * 0.03;
+    }
+    // Handles (on screen only, never recorded)
+    let drag = null;
+    function handle(p, label) {
+      const x = p.x * R.w, y = p.y * R.h;
+      cx.save(); cx.lineWidth = 2; cx.strokeStyle = '#fff'; cx.fillStyle = 'rgba(0,0,0,.45)';
+      cx.beginPath(); cx.arc(x, y, 9, 0, Math.PI * 2); cx.fill(); cx.stroke();
+      cx.fillStyle = '#fff'; cx.beginPath(); cx.arc(x, y, 2, 0, Math.PI * 2); cx.fill();
+      cx.font = '600 11px -apple-system,system-ui,sans-serif';
+      const tw = cx.measureText(label).width, bx = clamp(x - tw / 2 - 6, 2, R.w - tw - 14), by = y - 32 < 2 ? y + 14 : y - 30;
+      cx.fillStyle = 'rgba(0,0,0,.7)'; cx.beginPath(); cx.roundRect ? cx.roundRect(bx, by, tw + 12, 17, 8.5) : cx.rect(bx, by, tw + 12, 17); cx.fill();
+      cx.fillStyle = '#fff'; cx.fillText(label, bx + 6, by + 12.5); cx.restore();
+    }
+    const pos = e => { const r = cv.getBoundingClientRect(); return { x: clamp((e.clientX - r.left) / r.width, 0, 1), y: clamp((e.clientY - r.top) / r.height, 0, 1) }; };
+    cv.addEventListener('pointerdown', e => {
+      if (!live || !liveOn || !ball) return;
+      const m = pos(e), d = p => Math.hypot((p.x - m.x) * R.w, (p.y - m.y) * R.h);
+      drag = d(ball) < 34 ? 'ball' : d(land) < 34 ? 'land' : null;
+      if (drag) { cv.setPointerCapture(e.pointerId); e.preventDefault(); }
+    });
+    cv.addEventListener('pointermove', e => {
+      if (!drag) return; const m = pos(e);
+      if (drag === 'ball') { ball = m; ballSet = true; } else { land = m; landSet = true; }
+    });
+    const end = () => { drag = null; };
+    cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+
+    // Recorded frame with the trace burned in (only while recording with the live trace on).
+    const comp = el('canvas'), cctx = comp.getContext('2d');
+    let raf = 0;
+    function frame(now) {
+      if (closed) return;
+      raf = requestAnimationFrame(frame);
+      if (live) listen(now);
+      cx.setTransform(dpr, 0, 0, dpr, 0, 0); cx.clearRect(0, 0, R.w, R.h);
+      const t = trig != null ? (now - trig) / 1000 : null;
+      if (t != null && t > live.duration()) trig = null;
+      if (live && liveOn && ball) {
+        if (trig != null) live.draw(cx, R.w, R.h, t, ball, land, view);
+        else {
+          cx.save(); cx.setLineDash([5, 5]); cx.strokeStyle = 'rgba(255,255,255,.6)'; cx.lineWidth = 1.4;
+          cx.beginPath(); cx.moveTo(ball.x * R.w, ball.y * R.h); cx.lineTo(land.x * R.w, land.y * R.h); cx.stroke(); cx.restore();
+        }
+        if (!recording || drag) { handle(ball, 'Bola'); handle(land, 'Queda'); }
+      }
+      if (compRec && video.videoWidth) {
+        cctx.drawImage(video, 0, 0, comp.width, comp.height);
+        if (trig != null) live.draw(cctx, comp.width, comp.height, t, ball, land, view);
+      }
+      if (recording) { const s = (now - recStart) / 1000; recTag.textContent = '● ' + Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0'); }
+    }
+
+    // ---------- camera ----------
+    async function start() {
+      stopTracks();
+      msg.hidden = false; msg.innerHTML = '<b>A abrir a câmara…</b>';
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return fail('Este navegador não dá acesso à câmara.', 'Use o Safari no iPhone ou o Chrome, num endereço https.');
+      const v = { facingMode: { ideal: facing }, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 60 } };
+      const wantAudio = opts.audio !== false && !!(live || opts.audio);
+      try { stream = await navigator.mediaDevices.getUserMedia({ video: v, audio: wantAudio }); }
+      catch (e) {
+        if (wantAudio) { try { stream = await navigator.mediaDevices.getUserMedia({ video: v, audio: false }); } catch (e2) { e = e2; stream = null; } }
+        if (!stream) return fail(e && e.name === 'NotAllowedError' ? 'Sem permissão para usar a câmara.' : 'Não foi possível abrir a câmara.',
+          e && e.name === 'NotAllowedError' ? 'Autorize a câmara (e o microfone) para este site nas definições do navegador e tente de novo.' : 'Feche outras apps que estejam a usar a câmara e tente de novo.');
+      }
+      if (closed) { stopTracks(); return; }
+      video.srcObject = stream;
+      try { await video.play(); } catch (e) {}
+      if (actx && stream.getAudioTracks().length) {
+        try {
+          if (actx.state === 'suspended') await actx.resume();
+          const src = actx.createMediaStreamSource(stream);
+          analyser = actx.createAnalyser(); analyser.fftSize = 1024; abuf = new Float32Array(analyser.fftSize);
+          src.connect(analyser);
+        } catch (e) { analyser = null; }
+      }
+      if (live && !analyser) bSens.disabled = true;
+      armedAt = performance.now();
+      const ready = () => { msg.hidden = true; shut.disabled = false; layout(); sync(); };
+      if (video.videoWidth) ready(); else video.addEventListener('loadedmetadata', ready, { once: true });
+    }
+    function fail(title, text) {
+      msg.hidden = false; shut.disabled = true;
+      msg.innerHTML = `<b>${title}</b><span>${text}</span>`;
+      if (opts.onPickFile) { const b = el('button', '', 'Escolher um vídeo do telemóvel'); b.onclick = () => { close(); opts.onPickFile(); }; msg.append(b); }
+    }
+    function stopTracks() { if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; if (analyser) { try { analyser.disconnect(); } catch (e) {} analyser = null; } }
+    bFlip.onclick = () => { if (recording) return; facing = facing === 'environment' ? 'user' : 'environment'; start(); };
+
+    // ---------- recording ----------
+    const rec = (s, bits) => {
+      const mime = pickMime(MIMES);
+      let r; try { r = new MediaRecorder(s, mime ? { mimeType: mime, videoBitsPerSecond: bits } : { videoBitsPerSecond: bits }); } catch (e) { r = new MediaRecorder(s); }
+      const chunks = []; r.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+      r.done = new Promise(res => { r.onstop = () => res(new Blob(chunks, { type: (r.mimeType || mime || 'video/webm').split(';')[0] })); });
+      return r;
+    };
+    function startRec() {
+      if (!stream || pickMime(MIMES) === null) { hint.textContent = 'Este navegador não consegue gravar vídeo. Use o Safari (iOS 14.5+) ou o Chrome.'; return; }
+      impacts = []; trig = null;
+      rawRec = rec(stream, 12e6);
+      if (live && liveOn && comp.captureStream) {
+        const k = Math.min(1, 1280 / Math.max(video.videoWidth, video.videoHeight));
+        comp.width = Math.round(video.videoWidth * k / 2) * 2; comp.height = Math.round(video.videoHeight * k / 2) * 2;
+        try {
+          const cs = comp.captureStream(30);
+          stream.getAudioTracks().forEach(t => cs.addTrack(t.clone ? t.clone() : t));
+          compRec = rec(cs, 8e6);
+        } catch (e) { compRec = null; }
+      }
+      recStart = performance.now(); recording = true;
+      rawRec.start(500); if (compRec) { try { compRec.start(500); } catch (e) { compRec = null; } }
+      shut.classList.add('rec'); shut.setAttribute('aria-label', 'Parar'); recTag.hidden = false;
+      [bX, bBack, bFront, bLefty, bFlip, bLive].forEach(b => b.disabled = true); sync();
+    }
+    async function stopRec() {
+      if (!recording) return;
+      recording = false;
+      const r1 = rawRec, r2 = compRec; rawRec = compRec = null;
+      try { r1.stop(); } catch (e) {} if (r2) { try { r2.stop(); } catch (e) {} }
+      shut.classList.remove('rec'); shut.setAttribute('aria-label', 'Gravar'); recTag.hidden = true; shut.disabled = true;
+      [bX, bBack, bFront, bLefty, bFlip, bLive].forEach(b => b.disabled = false); sync();
+      const raw = await r1.done, burned = r2 ? await r2.done : null;
+      shut.disabled = false;
+      const ext = b => /mp4/.test(b.type) ? 'mp4' : 'webm';
+      const name = `gpf-${opts.tool || 'video'}-${stamp()}`;
+      const rawFile = new File([raw], `${name}.${ext(raw)}`, { type: raw.type });
+      const info = { view, lefty, impact: impacts.length ? impacts[0] : null, ball: ball && { ...ball }, land: land && { ...land } };
+      if (!burned || !burned.size) { close(); opts.onVideo && opts.onVideo(rawFile, info); return; }
+      showResult(new File([burned], `${name}-tracer.${ext(burned)}`, { type: burned.type }), rawFile, info);
+    }
+    shut.onclick = () => { if (recording) stopRec(); else startRec(); };
+
+    function showResult(burned, rawFile, info) {
+      const url = URL.createObjectURL(burned);
+      const res = el('div', 'gc-res');
+      const pv = el('video'); pv.src = url; pv.controls = true; pv.playsInline = true; pv.setAttribute('playsinline', ''); pv.loop = true;
+      const txt = el('div', 'gc-hint', info.impact == null ? 'Não foi detetado nenhum impacto: o vídeo não tem traço. Abra-o no editor para o marcar à mão.' : 'Vídeo com o traço ao vivo. Pode guardá-lo já ou afinar o traço no editor.');
+      const r = el('div', 'gc-row');
+      const bSave = el('button', 'pri', 'Guardar vídeo'), bEdit = el('button', '', 'Afinar no editor'), bAgain = el('button', '', 'Filmar outra');
+      bSave.onclick = async () => {
+        try { if (navigator.canShare && navigator.canShare({ files: [burned] })) { await navigator.share({ files: [burned], title: 'GPF Shot Tracer' }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+        const a = document.createElement('a'); a.href = url; a.download = burned.name; document.body.appendChild(a); a.click(); a.remove();
+        txt.textContent = 'Guardado nas Transferências: ' + burned.name;
+      };
+      bEdit.onclick = () => { URL.revokeObjectURL(url); close(); opts.onVideo && opts.onVideo(rawFile, info); };
+      bAgain.onclick = () => { URL.revokeObjectURL(url); res.remove(); trig = null; };
+      r.append(bSave, bEdit, bAgain);
+      res.append(pv, txt, r); stage.append(res);
+      pv.play().catch(() => {});
+    }
+
+    // ---------- lifecycle ----------
+    function close() {
+      if (closed) return; closed = true;
+      if (recording) { try { rawRec.stop(); } catch (e) {} if (compRec) { try { compRec.stop(); } catch (e) {} } recording = false; }
+      cancelAnimationFrame(raf); stopTracks(); ro.disconnect();
+      if (actx) { try { actx.close(); } catch (e) {} }
+      document.removeEventListener('visibilitychange', onVis); document.removeEventListener('keydown', onKey);
+      document.documentElement.style.overflow = '';
+      root.remove();
+    }
+    const onVis = () => { if (document.hidden && recording) stopRec(); };
+    const onKey = e => { if (e.key === 'Escape' && !recording) close(); else if (e.key === ' ' && !shut.disabled) { e.preventDefault(); shut.click(); } };
+    document.addEventListener('visibilitychange', onVis); document.addEventListener('keydown', onKey);
+    bX.onclick = close;
+    const ro = new ResizeObserver(() => { if (video.videoWidth) layout(); }); ro.observe(stage);
+    video.addEventListener('resize', () => layout());     // the phone was rotated
+    sync(); start(); raf = requestAnimationFrame(frame);
+    return { close };
+  }
+
+  window.GPFCam = { open, supported: () => !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) };
+})();
+</script>
+<!-- gpf-camera:end -->
 
 <script>
 (() => {
@@ -637,16 +1033,51 @@ $('openBtn').onclick = $('openBtn2').onclick = () => $('file').click();
 ['dragleave', 'drop'].forEach(ev => stage.addEventListener(ev, e => { e.preventDefault(); stage.classList.remove('drag'); }));
 stage.addEventListener('drop', e => { const f = [...(e.dataTransfer?.files || [])].find(f => f.type.startsWith('video') || /\.(mov|mp4|m4v)$/i.test(f.name)); openFile(f); });
 
-video.addEventListener('loadedmetadata', () => {
+function onMeta() {
+  if (!Number.isFinite(video.duration)) {
+    // Clips recorded in the browser (WebM in Chrome) only learn their length after a seek to the end.
+    const fix = () => { if (Number.isFinite(video.duration)) { video.removeEventListener('durationchange', fix); onMeta(); } };
+    video.addEventListener('durationchange', fix); video.currentTime = 1e101; return;
+  }
   $('empty').hidden = true; frame.hidden = false;
   S.impact = null; S.p0 = null; S.p2 = null; S.tin = 0; S.tout = null; S.fpsManual = false;
   fpsSamples = [];
+  if (pendingPreset) {   // filmed here: ball, landing and impact come from the camera
+    const p = pendingPreset; pendingPreset = null;
+    if (p.ball) S.p0 = { x: clamp(p.ball.x, 0, 1), y: clamp(p.ball.y, 0, 1) };
+    if (p.land) S.p2 = { x: clamp(p.land.x, 0, 1), y: clamp(p.land.y, 0, 1) };
+    if (p.impact != null) S.impact = Math.min(p.impact, video.duration);
+  }
   $('scrub').max = video.duration; $('scrub').disabled = false;
   ['setImpact', 'placeStart', 'placeLand', 'setIn', 'setOut', 'resetRange'].forEach(id => $(id).disabled = false);
-  layout(); seekTo(0); updateMarks();
+  layout(); seekTo(S.impact != null ? Math.max(0, S.impact - 1) : 0); updateMarks();
   mode = null; updateMode();
-});
+}
+video.addEventListener('loadedmetadata', onMeta);
 video.addEventListener('error', () => { setHint('Não foi possível abrir este formato aqui. Experimente o Safari para ficheiros HEVC/MOV.'); });
+
+// ---------- camera + live tracer ----------
+// The camera (GPFCam, below) draws the same trace live: the impact sound (or "Disparar") starts it
+// from the ball towards the landing point with the current Trajetória and Aspeto settings.
+let pendingPreset = null;
+function liveDraw(ctx, W, H, t, ball, land) {
+  const keep = { impact: S.impact, p0: S.p0, p2: S.p2 };
+  S.impact = 0; S.p0 = ball; S.p2 = land;
+  try { drawTracer(ctx, W, H, t); } finally { Object.assign(S, keep); }
+}
+function openCamera(liveOn) {
+  if (!window.GPFCam) { $('file').click(); return; }
+  if (exporting) return;
+  video.pause(); mode = null;
+  GPFCam.open({
+    tool: 'tracer', audio: true, liveOn,
+    live: { draw: liveDraw, duration: () => S.flight + S.hold + S.fade },
+    onPickFile: () => $('file').click(),
+    onVideo: (file, info) => { pendingPreset = info; openFile(file); },
+  });
+}
+$('camBtn').onclick = $('camBtn2').onclick = () => openCamera();
+$('liveBtn').onclick = () => openCamera(true);
 
 // ---------- transport ----------
 const frameOf = t => Math.floor(t * S.fps + 1e-4);
@@ -914,12 +1345,20 @@ updateMode();
 })();
 </script>
 <script>
-// GPF site menu: Tools drop-down. The nav scrolls sideways on phones, so the panel is
-// position:fixed and placed under its button when opened.
-document.querySelectorAll('.site details.tools').forEach(d=>{const pop=d.querySelector('.tools-pop'),sum=d.querySelector('summary');
-const place=()=>{const r=sum.getBoundingClientRect();pop.style.top=(r.bottom+10)+'px';pop.style.left=Math.max(8,Math.min(innerWidth-pop.offsetWidth-8,r.left-10))+'px';};
-d.addEventListener('toggle',()=>{if(d.open)place();});addEventListener('resize',()=>{if(d.open)place();});d.closest('nav').addEventListener('scroll',()=>{d.open=false;});
-document.addEventListener('pointerdown',e=>{if(d.open&&!d.contains(e.target))d.open=false;});document.addEventListener('keydown',e=>{if(e.key==='Escape')d.open=false;});});
+// GPF site menu: the phone/tablet sheet is built from the desktop links (one list to keep in
+// sync), the burger opens and closes it, and Tools opens a drop-down on desktop.
+(()=>{const h=document.querySelector('header.site');if(!h)return;
+const links=h.querySelector('.site-links'),sheet=h.querySelector('.site-sheet'),btn=h.querySelector('.site-toggle');
+for(const el of links.children){if(el.tagName==='A'){sheet.append(el.cloneNode(true));continue;}
+const g=document.createElement('div');g.className='sheet-group';const l=document.createElement('div');l.className='sheet-label';l.textContent=el.querySelector('summary').textContent;g.append(l);
+el.querySelectorAll('.tools-pop a').forEach(a=>g.append(a.cloneNode(true)));sheet.append(g);}
+const icon={open:'<path d="M4 6h16M4 12h16M4 18h16"/>',close:'<path d="M18 6 6 18M6 6l12 12"/>'};
+const set=o=>{sheet.hidden=!o;btn.setAttribute('aria-expanded',o);btn.setAttribute('aria-label',o?'Fechar menu':'Abrir menu');btn.querySelector('svg').innerHTML=o?icon.close:icon.open;};
+btn.addEventListener('click',()=>set(sheet.hidden));
+const d=links.querySelector('details.tools');
+document.addEventListener('pointerdown',e=>{if(d&&d.open&&!d.contains(e.target))d.open=false;if(!sheet.hidden&&!h.contains(e.target))set(false);});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(d)d.open=false;set(false);}});
+addEventListener('resize',()=>{if(innerWidth>=1024)set(false);});})();
 </script>
 </body>
 </html>
