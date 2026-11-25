@@ -84,14 +84,15 @@ function bodyMask(lm, gw, gh, L) {
 
 // frames: [{t, lm, g}] (g = Uint8Array gw×gh); head0/hands0 from findShaft.
 // Returns [{t, x, y, ok}] per frame from i0 to i1 (inclusive), gaps interpolated.
-export function trackHead(frames, gw, gh, i0, i1, head0, hands0) {
+// anchor: frame i0 is the address (head = head0); false for a window that starts mid-swing.
+export function trackHead(frames, gw, gh, i0, i1, head0, hands0, anchor = true) {
   const S = Math.hypot(head0.x - hands0.x, head0.y - hands0.y);
   const out = [];
   for (let i = i0; i <= i1; i++) {
     const f = frames[i], prev = frames[i - 1], next = frames[i + 1];
     let res = { t: f.t, ok: false };
     const hands = f.lm && handsOf(f.lm, gw, gh);
-    if (i === i0) res = { t: f.t, x: head0.x, y: head0.y, ok: true };
+    if (anchor && i === i0) res = { t: f.t, x: head0.x, y: head0.y, ok: true };
     else if (hands && prev?.g && next?.g && f.g) {
       const hip = mid(f.lm, 23, 24, gw, gh), sh = mid(f.lm, 11, 12, gw, gh);
       const L = hip && sh ? Math.hypot(sh.x - hip.x, sh.y - hip.y) : S / 1.8;

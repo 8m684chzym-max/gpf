@@ -35,6 +35,7 @@
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="4.5" r="2.2" fill="currentColor"/><path d="M12 7.5v7m0 0-4 6m4-6 4 6M7 10.5l5-1 6-5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/><path d="M18 4.5 21 2" stroke="#d4442f" stroke-width="1.9" stroke-linecap="round"/></svg>
     Swing Lab
   </div>
+  <div class="mode" role="group" aria-label="Modo"><button type="button" data-mode="swing" aria-pressed="true">Swing</button><button type="button" data-mode="putt" aria-pressed="false">Putt</button></div>
   <div class="fname" id="filename">Nenhum vídeo</div>
   <div class="spacer"></div>
   <span class="privacy">Processado no seu navegador · o vídeo não é enviado</span>
@@ -51,7 +52,12 @@
         <label class="wide">Perspetiva<select id="view"><option value="face-on">Face-on · de frente</option><option value="down-the-line">Down-the-line · por trás</option></select></label>
         <label>FPS<input id="fps" type="number" inputmode="numeric" min="1" max="240" value="30"></label>
         <label>Velocidade<select id="speed"><option value="0.25">0,25×</option><option value="0.5">0,5×</option><option value="1" selected>1×</option></select></label>
+        <label>Câmara lenta<select id="slow"><option value="1">Não</option><option value="4">4× · 120 fps</option><option value="8">8× · 240 fps</option></select></label>
+        <label data-swing>Lente<select id="lens"><option value="1">1×</option><option value="0.5">0,5×</option><option value="2">2×</option></select></label>
+        <label data-putt hidden>Jogador<select id="hand"><option value="r">Destro</option><option value="l">Canhoto</option></select></label>
       </div>
+      <p class="hint settings-hint" data-swing>Caminho do taco e ângulo de ataque precisam de câmara lenta: filme em Slo-mo no iPhone (240 fps) e escolha "8×". O FPS do ficheiro é detetado ao abrir.</p>
+      <p class="hint settings-hint" data-putt hidden>De frente (câmara no chão, à altura da bola): tempo, comprimento, aceleração e ataque. De cima (iPhone por cima da bola, a apontar para baixo): caminho, arco e direção de saída.</p>
       <div class="stage" id="stage">
         <video id="video" playsinline muted preload="auto"></video>
         <canvas id="overlay"></canvas>
@@ -66,8 +72,10 @@
       </div>
       <input aria-label="Posição no vídeo" id="seek" type="range" min="0" max="1" step="0.001" value="0" disabled>
       <div class="actions main-actions">
-        <button id="auto" class="primary" disabled>Detetar fases e analisar</button>
-        <button id="detect" disabled>Analisar este frame</button>
+        <button id="auto" class="primary" data-swing disabled>Detetar fases e analisar</button>
+        <button id="detect" data-swing disabled>Analisar este frame</button>
+        <button id="putt-mark" data-putt hidden disabled aria-pressed="false">◎ Tocar no putter e na bola</button>
+        <button id="putt-run" class="primary" data-putt hidden disabled>Analisar putt</button>
       </div>
       <progress id="progress" max="1" value="0" hidden></progress>
       <p id="status" role="status">Carregue um vídeo para começar. A análise de pose requer internet para carregar o modelo.</p>
@@ -82,16 +90,24 @@
     </section>
 
     <aside>
-      <section class="panel">
+      <section class="panel" data-putt hidden>
+        <div class="panel-head"><h2>Putt</h2></div>
+        <div id="putt" class="report-body"><p class="hint">1. Pare o vídeo no address (antes do putt). 2. Toque em "◎ Tocar no putter e na bola" e toque no centro da cabeça do putter e depois na bola. 3. "Analisar putt".</p></div>
+      </section>
+      <section class="panel" data-swing>
         <div class="panel-head"><h2>Fases do swing</h2></div>
         <p class="hint">Detetadas automaticamente; pode corrigir: posicione o vídeo e toque em Marcar. Toque no tempo para lá ir.</p>
         <div id="phases"></div>
       </section>
-      <section class="panel">
+      <section class="panel" data-swing>
         <div class="panel-head"><h2>Plano do swing</h2></div>
         <div id="report" class="report-body"><p class="hint">Use "Detetar fases e analisar" para obter o relatório.</p></div>
       </section>
-      <section class="panel">
+      <section class="panel" data-swing>
+        <div class="panel-head"><h2>Caminho do taco</h2></div>
+        <div id="path" class="report-body"><p class="hint">Use "Detetar fases e analisar". Down-the-line: caminho do taco (in-to-out / out-to-in). Face-on: ângulo de ataque.</p></div>
+      </section>
+      <section class="panel" data-swing>
         <div class="panel-head"><h2>Medições 2D</h2></div>
         <div id="metrics" class="measurements">Analise um frame para obter medições.</div>
         <p class="hint">Ângulos no plano da imagem. Pontos com pouca confiança são omitidos. Esquerda e direita referem-se ao corpo.</p>
@@ -114,6 +130,7 @@
   <section class="limits">
     <h3>Uma perspetiva útil. Não uma medição 3D.</h3>
     <p>As fases e o plano são estimados a partir dos pontos do corpo (MediaPipe) num vídeo 2D; o taco e a bola não são detetados — o "plano" é o caminho das mãos. Perspetiva, roupa, oclusão e movimento rápido afetam a deteção; o impacto pode ocorrer entre frames. Para o plano filme por trás (down-the-line), à altura das mãos e alinhado com a linha do alvo. Não é um diagnóstico nem substitui um treinador.</p>
+    <p>Caminho do taco e ângulo de ataque: a cabeça do taco é seguida pelos píxeis em movimento e, junto à bola, reposta no plano do chão com um modelo de câmara (lente escolhida, câmara nivelada, ou duas linhas paralelas ao alvo desenhadas com ✎ Linhas). A 30 fps a cabeça anda cerca de 1 m entre frames: use Slo-mo. A face do taco não é medida. Putt: o putter e a bola são seguidos por imagem a partir dos toques; a escala vem do diâmetro da bola (42,67 mm).</p>
   </section>
 </main>
 
