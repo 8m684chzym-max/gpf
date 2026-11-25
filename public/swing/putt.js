@@ -246,6 +246,12 @@ export function analyzePutt({ head, ball, view, lefty, line, cmPerPx, slow = 1, 
       res.attack = a;
     }
   }
+  if (ballMove && ball) {
+    const okb = ball.filter(b => b.ok), last = okb[okb.length - 1], d = Math.hypot(last.x - ball[0].x, last.y - ball[0].y);
+    add('Rolamento seguido', cmPerPx ? `${(d * cmPerPx / 100).toFixed(2)} m` : `${Math.round(d)} px`, false,
+      ball.stopped ? 'A bola parou dentro do enquadramento.' : 'A bola saiu do enquadramento ou perdeu-se — distância parcial.', null);
+    res.roll = { px: d, stopped: !!ball.stopped };
+  }
   res.note = 'Seguimento por imagem (template matching) do putter e da bola em 2D. A face do putter não é medida. Para caminho, arco e direção de saída filme de cima (câmara por cima da bola, a apontar para baixo); para tempo, comprimento e ataque filme de frente, à altura da bola.';
   res.track = pts.map(p => ({ t: p.vt, x: p.x, y: p.y }));
   return res;

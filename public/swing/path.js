@@ -119,3 +119,85 @@ export function attackAngle(track, o) {
   }
   return { deg: a, n: pts.length, quality: q, low, dir: { x: o.ground.x * Math.cos(a * Math.PI / 180) + u.x * Math.sin(a * Math.PI / 180), y: o.ground.y * Math.cos(a * Math.PI / 180) + u.y * Math.sin(a * Math.PI / 180) } };
 }
+
+// ---------- ball (full swing) ----------
+// Ball at address: the brightest compact blob near the address club head (gray px).
+// ballRadius(g, gw, gh, x, y, maxR) comes from putt.js (rays from the centre, white → grass).
+export function findBall(g, gw, gh, head0, S, ballRadius) {
+  const R = Math.round(0.22 * S), mean3 = (x, y) => { let s = 0; for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) s += g[(y + j) * gw + x + i]; return s / 9; };
+  let best = null;
+  for (let y = Math.max(2, Math.round(head0.y - R)); y <= Math.min(gh - 3, Math.round(head0.y + R * 0.6)); y++)
+    for (let x = Math.max(2, Math.round(head0.x - R)); x <= Math.min(gw - 3, Math.round(head0.x + R)); x++) {
+      const v = mean3(x, y) - 0.15 * Math.hypot(x - head0.x, y - head0.y); // prefer close to the club head
+      if (!best || v > best.v) best = { x, y, v };
+    }
+  if (!best) return null;
+  const b = ballRadius(g, gw, gh, best.x, best.y, Math.max(4, Math.round(0.06 * S)));
+  return b && b.r <= 0.06 * S ? { x: b.x, y: b.y, r: b.r, v: mean3(Math.round(b.x), Math.round(b.y)) } : null;
+}
+
+// Ball after impact: in each frame, the bright pixels that changed vs the previous frame,
+// grouped into blobs; keep the blob of ball size nearest the predicted position.
+// frames: [{t, g}] consecutive video frames (gray px), from impact on. Returns [{t, x, y}].
+export function trackBallFlight(frames, gw, gh, ball, S) {
+  const out = [], bright = Math.max(110, ball.v - 60), area0 = Math.PI * ball.r * ball.r;
+  let p = { x: ball.x, y: ball.y }, v = null, miss = 0;
+  for (let i = 1; i < frames.length && miss < 3; i++) {
+    const g = frames[i].g, h = frames[i - 1].g;
+    const R = v ? Math.max(4 * ball.r, 0.7 * Math.hypot(v.x, v.y)) : 0.6 * S;
+    const c = v ? { x: p.x + v.x, y: p.y + v.y } : p;
+    const x0 = Math.max(1, Math.floor(c.x - R)), x1 = Math.min(gw - 2, Math.ceil(c.x + R)), y0 = Math.max(1, Math.floor(c.y - R)), y1 = Math.min(gh - 2, Math.ceil(c.y + R));
+    const seen = new Uint8Array((x1 - x0 + 1) * (y1 - y0 + 1)), idx = (x, y) => (y - y0) * (x1 - x0 + 1) + x - x0;
+    const cand = (x, y) => g[y * gw + x] >= bright && g[y * gw + x] - h[y * gw + x] >= 28;
+    let best = null;
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      if (seen[idx(x, y)] || !cand(x, y)) continue;
+      const st = [[x, y]]; seen[idx(x, y)] = 1; let n = 0, sx = 0, sy = 0;
+      while (st.length) { const [a, b] = st.pop(); n++; sx += a; sy += b;
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const X = a + dx, Y = b + dy; if (X < x0 || X > x1 || Y < y0 || Y > y1 || seen[idx(X, Y)] || !cand(X, Y)) continue; seen[idx(X, Y)] = 1; st.push([X, Y]); } }
+      if (n < 2 || n > 5 * area0 + 6) continue;
+      const q = { x: sx / n, y: sy / n }, d = Math.hypot(q.x - c.x, q.y - c.y);
+      if (!v && Math.hypot(q.x - ball.x, q.y - ball.y) < 1.2 * ball.r) continue; // still at the tee
+      if (d <= R && (!best || d < best.d)) best = { ...q, d };
+    }
+    if (!best) { miss++; if (v) p = { x: p.x + v.x, y: p.y + v.y }; continue; }
+    miss = 0; const nv = { x: best.x - p.x, y: best.y - p.y };
+    v = v ? { x: 0.5 * v.x + 0.5 * nv.x, y: 0.5 * v.y + 0.5 * nv.y } : nv; p = best;
+    out.push({ t: frames[i].t, x: best.x, y: best.y });
+  }
+  return out;
+}
+
+// Launch from the measured ball points (video px, real time).
+// view 'face-on': o = { ground, cmPerPx } → vertical launch angle and ball speed.
+// view 'down-the-line': o = { vp } → start left/right of the target line on screen.
+export function ballLaunch(pts, ball0, view, o) {
+  const P = pts.slice(0, 8);
+  if (P.length < 2) return { error: P.length ? 'Bola vista num só frame depois do impacto.' : 'Bola não encontrada depois do impacto (bola pequena, desfocada ou fora do enquadramento).' };
+  const t = P.map(p => p.t), vx = slope(t, P.map(p => p.x)), vy = slope(t, P.map(p => p.y));
+  const dir = { x: vx / (Math.hypot(vx, vy) || 1), y: vy / (Math.hypot(vx, vy) || 1) };
+  const res = { n: pts.length, dir };
+  if (view === 'face-on') {
+    let u = { x: o.ground.y, y: -o.ground.x }; if (u.y > 0) u = { x: -u.x, y: -u.y };
+    const a = vx * o.ground.x + vy * o.ground.y, b = vx * u.x + vy * u.y;
+    res.launch = deg(Math.atan2(b, a));
+    if (o.cmPerPx) res.speed = Math.hypot(vx, vy) * o.cmPerPx / 100; // m/s, in the image plane only
+  } else {
+    const T = { x: o.vp.x - ball0.x, y: o.vp.y - ball0.y }, n = Math.hypot(T.x, T.y) || 1;
+    const ux = T.x / n, uy = T.y / n; // right of the target line on screen (image y points down) = (−uy, ux)
+    res.screen = deg(Math.atan2(vx * -uy + vy * ux, vx * ux + vy * uy));
+  }
+  return res;
+}
+
+// Tracer curve: cubic Bézier from the ball, leaving along dir, to the landing point; the end
+// comes down steeply like a real ball flight. Returns n+1 points.
+export function tracerCurve(p0, dir, p2, n = 90) {
+  const D = Math.hypot(p2.x - p0.x, p2.y - p0.y) || 1;
+  const c1 = { x: p0.x + dir.x * 0.55 * D, y: p0.y + dir.y * 0.55 * D };
+  const c2 = { x: p2.x - (p2.x - p0.x) * 0.15, y: Math.min(p2.y, c1.y) - 0.05 * D };
+  const out = [];
+  for (let i = 0; i <= n; i++) { const s = i / n, a = (1 - s) ** 3, b = 3 * (1 - s) ** 2 * s, c = 3 * (1 - s) * s * s, d = s ** 3;
+    out.push({ x: a * p0.x + b * c1.x + c * c2.x + d * p2.x, y: a * p0.y + b * c1.y + c * c2.y + d * p2.y }); }
+  return out;
+}

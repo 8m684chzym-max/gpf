@@ -174,3 +174,5 @@ progress{width:100%;height:6px;margin-top:10px;accent-color:var(--fairway)}
 .srcs{font-size:11.5px;color:var(--muted);margin:3px 0 0}
 .srcs a{color:var(--fairway);text-decoration:underline;text-underline-offset:2px}
 .verdict.neutral b{color:var(--ink)}
+#ball-land[aria-pressed="true"]{background:var(--flag);color:#fff;border-color:transparent}
+h4.sub{font-size:12px;font-weight:650;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:10px 0 0}

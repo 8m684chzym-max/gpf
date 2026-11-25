@@ -3,7 +3,7 @@
 import { phases, metrics, validatePhases } from './metrics.js';
 import { detectPhases, findTop, buildReport } from './analysis.js';
 import { findShaft, average, trackHead } from './club.js';
-import { clubPath, attackAngle, focal, vanishing, pathGuide, impactFromTrack } from './path.js';
+import { clubPath, attackAngle, focal, vanishing, pathGuide, impactFromTrack, findBall, trackBallFlight, ballLaunch, tracerCurve } from './path.js';
 import { createTracker, ballRadius, analyzePutt, BALL_MM } from './putt.js';
 
 const $ = id => document.getElementById(id);
@@ -17,6 +17,7 @@ let mode = 'swing';   // 'swing' | 'putt'
 let marking = false;  // putt: waiting for taps on the putter head and the ball
 let putt = { taps: [], t0: null, head: null, ball: null, cmPerPx: null, res: null };
 let fpsProbe = null;  // frame-rate detection running after a video opens
+let landing = false;  // swing: waiting for a tap where the ball lands
 try { history = JSON.parse(localStorage.getItem('gpf-swings-v1') || '[]'); if (!Array.isArray(history)) history = []; history = history.filter(s => s && typeof s.id === 'string' && s.marks && s.samples); } catch {}
 
 const status = t => { $('status').textContent = t; if (!loaded && url) $('empty-text').textContent = t; };
@@ -24,6 +25,7 @@ function stageMsg(title, text, tap = false) { $('empty').hidden = false; $('empt
 function controls() {
   for (const id of ['play', 'back', 'next', 'seek', 'save', 'export', 'detect', 'auto', 'draw-line', 'putt-mark']) $(id).disabled = !loaded || busy;
   $('putt-run').disabled = !loaded || busy || !putt.taps.length;
+  $('ball-land').disabled = !loaded || busy || !clip || !clip.ball;
   document.querySelectorAll('[data-mark]').forEach(b => b.disabled = !loaded || busy);
 }
 const fmt = t => t.toFixed(2) + ' s';
@@ -99,6 +101,15 @@ function shaftLine() {
   return [o, { x: o.x + (hd.x - o.x) * k, y: o.y + dy * k }];
 }
 const HANDLES = { head0: 'cabeça do taco', hands0: 'mãos', sh0: 'ombros' };
+// Ball tracer: glowing red ribbon with a white core.
+function tracerStroke(pts, s) {
+  if (pts.length < 2) return;
+  ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+  for (const [wd, a] of [[16, 0.1], [10, 0.2], [6, 0.35]]) { ctx.globalAlpha = a; ctx.strokeStyle = '#ff3b30'; ctx.lineWidth = wd * s; ctx.stroke(); }
+  ctx.globalAlpha = 1; ctx.strokeStyle = '#ff3b30'; ctx.lineWidth = 3.5 * s; ctx.stroke();
+  ctx.strokeStyle = '#ffd6d2'; ctx.lineWidth = 1.3 * s; ctx.stroke(); ctx.restore();
+}
 function arrow(a, b, color, s) {
   strokeLine([a, b], color, 4, s);
   const ang = Math.atan2(b.y - a.y, b.x - a.x), k = 14 * s;
@@ -116,7 +127,11 @@ function drawPutt(s) {
     strokeLine(seg(r.times.top, r.times.impact), '#ff6b5b', 3.5, s);
     strokeLine(seg(r.times.impact, Infinity), 'rgba(255,255,255,.85)', 3, s, [6, 6]);
   }
-  if (putt.ball) { const b = putt.ball.filter(p => p.ok); strokeLine(b, '#ffdf45', 2.5, s); }
+  if (putt.ball && $('tracer').checked) {
+    const b = putt.ball.filter(p => p.ok), tImp = r && !r.error ? r.times.impact : Infinity;
+    if (video.currentTime < tImp - 1e-3) strokeLine(b, 'rgba(255,223,69,.7)', 2, s, [5, 6]);
+    else tracerStroke(b.filter(p => p.t <= video.currentTime + 1e-3), s);
+  }
   putt.taps.forEach((p, i) => {
     ctx.beginPath(); ctx.arc(p.x, p.y, (i ? 9 : 12) * s, 0, Math.PI * 2);
     ctx.lineWidth = 5 * s; ctx.strokeStyle = 'rgba(0,0,0,.5)'; ctx.stroke(); ctx.lineWidth = 3 * s; ctx.strokeStyle = i ? '#ffdf45' : '#6fe0a2'; ctx.stroke();
@@ -145,6 +160,13 @@ function drawClub(s) {
   if (pg && pg.guide) { strokeLine(pg.guide.target, '#5ad1ff', 3, s, [10, 7]); arrow(pg.guide.path[0], pg.guide.path[1], '#ff9f1a', s); }
   if (pg && pg.dir) { const k = 0.4 * Math.hypot(hands0.x - head0.x, hands0.y - head0.y); arrow(head0, { x: head0.x + pg.dir.x * k, y: head0.y + pg.dir.y * k }, '#ff9f1a', s); }
   if (pg && pg.low) { ctx.beginPath(); ctx.arc(pg.low.x, pg.low.y, 8 * s, 0, Math.PI * 2); ctx.lineWidth = 3 * s; ctx.strokeStyle = '#5ad1ff'; ctx.stroke(); }
+  const b = clip && clip.ball;
+  if (b && b.curve && $('tracer').checked && marks.Impacto != null) {
+    const p = (video.currentTime - marks.Impacto) / 2.5; // video seconds for the whole flight
+    if (p >= 0) { const sF = 1 - Math.pow(1 - Math.min(1, p), 2.2); tracerStroke(b.curve.slice(0, Math.max(2, Math.round(sF * (b.curve.length - 1)) + 1)), s); }
+    for (const q of b.pts) if (q.t <= video.currentTime + 1e-3) { ctx.beginPath(); ctx.arc(q.x, q.y, 3 * s, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill(); }
+    if (b.land) { ctx.beginPath(); ctx.arc(b.land.x, b.land.y, 9 * s, 0, Math.PI * 2); ctx.lineWidth = 3 * s; ctx.strokeStyle = '#ff3b30'; ctx.stroke(); }
+  }
   // In edit mode: draggable handles on the three points.
   if (drawing) for (const k of Object.keys(HANDLES)) {
     const p = club[k]; if (!p) continue;
@@ -181,7 +203,7 @@ function load(file) {
   generation++; const token = generation; delete video.dataset.fix;
   resetLines(); video.pause(); if (url) URL.revokeObjectURL(url);
   loaded = false; marks = {}; samples = {}; points = null; clip = null; club = null; report = null; renderReport(); renderPath();
-  putt = { taps: [], t0: null, head: null, ball: null, cmPerPx: null, res: null }; setMarking(false); renderPutt();
+  putt = { taps: [], t0: null, head: null, ball: null, cmPerPx: null, res: null }; setMarking(false); renderPutt(); landing = false; $('ball-land').setAttribute('aria-pressed', 'false');
   $('notes').value = ''; $('filename').textContent = file.name; url = URL.createObjectURL(file);
   // iPhone/iPad Safari ignores preload="metadata" for a fresh blob: an explicit load() makes it read the file.
   video.preload = 'auto'; video.src = url; video.load();
@@ -390,6 +412,7 @@ $('auto').onclick = async () => {
     findClub(res.index.Address);
     clubTrack(res.index.Address, res.index['Follow-through']);
     if (k > 1 && club) { status('A seguir a cabeça do taco junto ao impacto, frame a frame…'); await densePass(token, prog); }
+    if (club) { status('A procurar a bola e o voo depois do impacto…'); await ballPass(token); }
     phaseUI(); refreshReport();
     await seekTo(marks.Address);
     status((club?.guess ? 'Fases detetadas. Não encontrei o taco: ative ✎ Linhas e arraste o ponto amarelo para a cabeça do taco.' : 'Fases detetadas e relatório pronto. Para ajustar a cabeça do taco, as mãos ou os ombros, ative ✎ Linhas e arraste os pontos.') + ' Pode corrigir qualquer fase com "Marcar".' + viewNote);
@@ -449,6 +472,57 @@ async function densePass(token, prog) {
   for (const f of dense) delete f.g;
 }
 
+// ---------- ball: position at address and flight after impact ----------
+async function ballPass(token) {
+  const { slow, fps, w, h } = clip;
+  await seekTo(marks.Address);
+  const A = grayFrame(640), gw = A.gw, gh = A.gh, sx = w / gw, sy = h / gh;
+  const S = Math.hypot(club.hands0.x - club.head0.x, club.hands0.y - club.head0.y) / sx;
+  const b = findBall(A.g, gw, gh, { x: club.head0.x / sx, y: club.head0.y / sy }, S, ballRadius);
+  clip.ball = { p0: b ? { x: b.x * sx, y: b.y * sy } : { ...club.head0 }, r: b ? b.r * sx : null, found: !!b, pts: [], land: null };
+  if (b && fps * slow >= 100 && marks.Impacto != null) {
+    const fa = Math.max(0, Math.floor(marks.Impacto * fps) - 1), n = Math.min(70, Math.ceil(0.15 * slow * fps) + 2), frames = [];
+    for (let i = 0; i < n; i++) {
+      if (token !== generation) return;
+      const t = (fa + i + 0.5) / fps; if (t >= video.duration) break;
+      await seekTo(t); frames.push({ t, g: grayFrame(640).g });
+    }
+    clip.ball.pts = trackBallFlight(frames, gw, gh, b, S).map(p => ({ t: p.t, x: p.x * sx, y: p.y * sy }));
+  }
+}
+// Camera geometry shared by club path, attack angle and the ball: vanishing point of the target
+// line (DTL) and the ground direction towards the target (face-on).
+function geo() {
+  const W = clip.w, H = clip.h;
+  let vp = { x: W / 2, y: H / 2 }, vpFrom = 'câmara nivelada e apontada ao alvo';
+  if (lines.length >= 2 && club) {
+    const px = l => ({ a: { x: l.a.x * W, y: l.a.y * H }, b: { x: l.b.x * W, y: l.b.y * H } });
+    const v = vanishing(px(lines[0]), px(lines[1]));
+    if (v && v.y < club.head0.y - 20) { vp = v; vpFrom = 'as duas primeiras linhas desenhadas'; }
+  }
+  const lmA = clip.frames[nearestIdx(marks.Address ?? clip.frames[0].t)].lm;
+  const okp = i => lmA[i] && (lmA[i].visibility ?? 1) >= 0.3;
+  let ground = { x: 1, y: 0 };
+  for (const [a, b] of [[31, 32], [29, 30], [27, 28]]) if (okp(a) && okp(b)) { const v = { x: (lmA[a].x - lmA[b].x) * W, y: (lmA[a].y - lmA[b].y) * H }, n = Math.hypot(v.x, v.y); if (n > 5) { ground = { x: v.x / n, y: v.y / n }; break; } }
+  const hx = f => (f.lm[15].x + f.lm[16].x) / 2;
+  const fT = clip.frames[nearestIdx(marks.Topo ?? marks.Address ?? 0)], fF = clip.frames[nearestIdx(marks['Follow-through'] ?? marks.Impacto ?? 0)];
+  const tdir = Math.sign(hx(fF) - hx(fT)) || 1;
+  if (ground.x * tdir < 0) ground = { x: -ground.x, y: -ground.y };
+  return { vp, vpFrom, ground, tdir };
+}
+function computeBall() {
+  const b = clip && clip.ball; if (!b) return;
+  const g = geo(), view = $('view').value, fpsReal = clip.fps * clip.slow;
+  b.launch = fpsReal < 100 ? null : ballLaunch(b.pts.map(p => ({ ...p, t: p.t / clip.slow })), b.p0, view, { ground: g.ground, vp: g.vp, cmPerPx: b.r ? 4.267 / (2 * b.r) : null });
+  // tracer: leaves along the measured direction (or a typical one) towards the landing point
+  const W = clip.w, H = clip.h;
+  const dir = b.launch && b.launch.dir ? b.launch.dir
+    : view === 'down-the-line' ? (() => { const v = { x: g.vp.x - b.p0.x, y: (g.vp.y - b.p0.y) * 1.8 }, n = Math.hypot(v.x, v.y) || 1; return { x: v.x / n, y: v.y / n }; })()
+      : { x: g.tdir * 0.94, y: -0.34 };
+  const land = b.land || (view === 'down-the-line' ? { x: g.vp.x, y: g.vp.y + 0.02 * H } : { x: g.tdir > 0 ? W * 1.05 : -0.05 * W, y: Math.max(0, b.p0.y - 0.5 * H) });
+  b.curve = tracerCurve(b.p0, dir, land);
+}
+
 // ---------- club path / attack angle ----------
 const realTrack = () => [...(clip.track || []), ...(clip.dense || [])].map(p => ({ ...p, t: p.t / clip.slow })).sort((a, b) => a.t - b.t);
 function nearestIdx(t) { let b = 0, d = Infinity; clip.frames.forEach((f, i) => { const e = Math.abs(f.t - t); if (e < d) { d = e; b = i; } }); return b; }
@@ -458,28 +532,14 @@ function computePath() {
   if (!club || !clip.track || marks.Impacto == null) return;
   const all = realTrack(), fpsReal = clip.dense ? clip.fps * clip.slow : clip.phaseFps;
   const tImp = marks.Impacto / clip.slow, S = Math.hypot(club.hands0.x - club.head0.x, club.hands0.y - club.head0.y);
-  const view = $('view').value;
+  const view = $('view').value, G = geo();
   if (view === 'down-the-line') {
-    const side = Math.sign(club.hands0.x - club.hip0.x) || 1;
-    let vp = { x: clip.w / 2, y: clip.h / 2 }, vpFrom = 'câmara nivelada e apontada ao alvo';
-    if (lines.length >= 2) {
-      const px = l => ({ a: { x: l.a.x * clip.w, y: l.a.y * clip.h }, b: { x: l.b.x * clip.w, y: l.b.y * clip.h } });
-      const v = vanishing(px(lines[0]), px(lines[1]));
-      if (v && v.y < club.head0.y - 20) { vp = v; vpFrom = 'as duas primeiras linhas desenhadas'; }
-    }
+    const side = Math.sign(club.hands0.x - club.hip0.x) || 1, vp = G.vp, vpFrom = G.vpFrom;
     const o = { head0: club.head0, side, f: focal(clip.w, clip.h, $('lens').value), vp, tImp, S, fpsReal };
     const r = clubPath(all, o);
     clip.path = { view, ...r, vpFrom, guide: r.deg != null ? pathGuide(o, r.deg) : null };
   } else {
-    const lmA = clip.frames[nearestIdx(marks.Address)].lm, W = clip.w, H = clip.h;
-    const okp = i => lmA[i] && (lmA[i].visibility ?? 1) >= 0.3;
-    let ground = { x: 1, y: 0 };
-    for (const [a, b] of [[31, 32], [29, 30], [27, 28]]) if (okp(a) && okp(b)) { const v = { x: (lmA[a].x - lmA[b].x) * W, y: (lmA[a].y - lmA[b].y) * H }, n = Math.hypot(v.x, v.y); if (n > 5) { ground = { x: v.x / n, y: v.y / n }; break; } }
-    const hx = f => (f.lm[15].x + f.lm[16].x) / 2;
-    const fT = clip.frames[nearestIdx(marks.Topo ?? marks.Address)], fF = clip.frames[nearestIdx(marks['Follow-through'] ?? marks.Impacto)];
-    const tdir = Math.sign(hx(fF) - hx(fT)) || 1;
-    if (ground.x * tdir < 0) ground = { x: -ground.x, y: -ground.y };
-    clip.path = { view, ...attackAngle(all, { head0: club.head0, ground, tImp, S, L: club.L, fpsReal }) };
+    clip.path = { view, ...attackAngle(all, { head0: club.head0, ground: G.ground, tImp, S, L: club.L, fpsReal }) };
   }
 }
 const PATH_SRC = {
@@ -518,6 +578,25 @@ function renderPath() {
     host.append(srcLine([PATH_SRC.attack]));
   }
   host.append(el('p', 'legend', 'Traço da cabeça do taco: verde = backswing, vermelho = downswing, branco = após o impacto; pontos laranja = frames em câmara lenta junto à bola.'));
+  renderBall(host);
+}
+function renderBall(host) {
+  const b = clip.ball; if (!b) return;
+  host.append(el('h4', 'sub', 'Bola e tracer'));
+  const L = b.launch;
+  if (!b.found) host.append(el('p', 'hint', 'Bola não encontrada no address: o tracer parte da cabeça do taco.'));
+  if (!L) host.append(el('p', 'hint', 'Para medir a saída da bola filme em câmara lenta (120/240 fps). O tracer usa uma saída típica e o destino que marcar.'));
+  else if (L.error) host.append(el('p', 'hint', L.error + ' O tracer usa uma saída típica.'));
+  else if (L.launch != null) {
+    const row = (label, value, text) => { const r = el('div', 'finding'), t = el('div', 'finding-top'); t.append(el('span', null, label), el('b', null, value)); r.append(t); if (text) r.append(el('p', null, text)); host.append(r); };
+    row('Ângulo de lançamento (vertical)', `${L.launch.toFixed(1)}°`, `Medido em ${L.n} frames depois do impacto.`);
+    if (L.speed) row('Velocidade da bola (aprox.)', `${Math.round(L.speed * 3.6)} km/h`, 'No plano da imagem, com a escala do diâmetro da bola — subestima se a bola sair inclinada para a câmara.');
+  } else {
+    const a = L.screen;
+    const r = el('div', 'finding'), t = el('div', 'finding-top'); t.append(el('span', null, 'Saída da bola (no ecrã)'), el('b', null, Math.abs(a) < 2 ? 'na linha' : `${Math.abs(a).toFixed(0)}° ${a > 0 ? 'à direita' : 'à esquerda'}`));
+    r.append(t, el('p', null, `Medido em ${L.n} frames. Ângulo no ecrã em relação à linha do alvo, não em graus reais: a bola também sobe. A direção de saída depende sobretudo da face do taco.`)); host.append(r);
+  }
+  host.append(el('p', 'legend', `Tracer vermelho animado a partir do impacto${b.pts.length ? '; pontos brancos = bola medida' : ''}. Toque em "⛳ Destino da bola" e depois onde a bola cai (ou sai do enquadramento).`));
 }
 
 // ---------- report ----------
@@ -526,7 +605,7 @@ function refreshReport() {
     const slow = clip.slow || 1, rm = Object.fromEntries(Object.entries(marks).map(([p, t]) => [p, t / slow]));
     const clubR = club && clip.track ? { head0: club.head0, hands0: club.hands0, sh0: club.sh0, track: realTrack() } : null;
     report = buildReport(clip.frames.map(f => ({ t: f.t / slow, lm: f.lm })), clip.w, clip.h, rm, $('view').value, clubR);
-    computePath();
+    computePath(); computeBall();
   } else report = null;
   renderReport(); renderPath(); draw();
 }
@@ -680,6 +759,12 @@ $('draw-line').onclick = () => {
 };
 lineCanvas.onpointerdown = e => {
   if (loaded && marking && e.button === 0) { e.preventDefault(); puttTap(e); return; }
+  if (loaded && landing && e.button === 0 && clip && clip.ball) {
+    e.preventDefault(); const r = lineCanvas.getBoundingClientRect();
+    clip.ball.land = { x: (e.clientX - r.left) / r.width * clip.w, y: (e.clientY - r.top) / r.height * clip.h };
+    landing = false; lineCanvas.classList.toggle('drawing', drawing); $('ball-land').setAttribute('aria-pressed', 'false');
+    computeBall(); draw(); status('Destino marcado. Reproduza o vídeo a partir do impacto para ver o tracer.'); return;
+  }
   if (!loaded || !drawing || pointer !== null || e.button !== 0) return;
   e.preventDefault(); video.pause(); pointer = e.pointerId; lineCanvas.setPointerCapture(pointer);
   if (club && mode === 'swing') {
@@ -714,6 +799,13 @@ function linesChanged() {
 }
 lineCanvas.onpointercancel = cancelLine;
 lineCanvas.onlostpointercapture = () => { draft = null; dragEnd = null; dragHead = false; pointer = null; drawLines(); };
+$('ball-land').onclick = () => {
+  if (!clip || !clip.ball) return;
+  if (drawing) $('draw-line').click();
+  landing = !landing; $('ball-land').setAttribute('aria-pressed', String(landing)); lineCanvas.classList.toggle('drawing', landing || drawing);
+  if (landing) { video.pause(); status('Toque onde a bola cai (ou onde sai do enquadramento).'); }
+};
+$('tracer').onchange = draw;
 $('undo-line').onclick = () => { cancelLine(); lines.pop(); drawLines(); linesChanged(); };
 $('clear-lines').onclick = () => { lines = []; cancelLine(); linesChanged(); };
 window.addEventListener('keydown', e => { if (e.key === 'Escape') cancelLine(); });
@@ -733,6 +825,7 @@ function setMode(m) {
   $('view').replaceChildren(...VIEWS[m].map(([v, t]) => new Option(t, v)));
   $('view').value = viewPref[m];
   if (drawing) $('draw-line').click();
+  landing = false; $('ball-land').setAttribute('aria-pressed', 'false');
   setMarking(false); controls(); draw();
   status(m === 'putt' ? (loaded ? 'Modo putt: pare no address e toque em "◎ Tocar no putter e na bola".' : 'Modo putt: carregue ou filme um putt.') : (loaded ? 'Modo swing.' : 'Carregue um vídeo para começar.'));
 }
@@ -764,7 +857,7 @@ $('putt-run').onclick = async () => {
   prog.hidden = false; prog.value = 0;
   try {
     const slow = slowF(), fps = fileFps(), k = Math.max(1, Math.ceil(fps * slow / 60 - 1e-6)); // up to 60 real fps
-    const t0 = putt.t0, tEnd = Math.min(video.duration - 0.001, t0 + 4 * slow);
+    const t0 = putt.t0, tEnd = Math.min(video.duration - 0.001, t0 + 10 * slow);
     await seekTo(t0);
     const G = grayFrame(640), gw = G.gw, gh = G.gh, sx = w / gw, sy = h / gh, M = Math.max(gw, gh);
     const hp = { x: putt.taps[0].x / sx, y: putt.taps[0].y / sy };
@@ -789,12 +882,16 @@ $('putt-run').onclick = async () => {
       if (ballOn) {
         const b = B.step(g); ball.push({ t, x: b.x * sx, y: b.y * sy, ok: b.ok });
         if (ballMovedAt == null && b.ok && Math.hypot(b.x - br.x, b.y - br.y) > 0.6 * br.r) ballMovedAt = t;
-        if ((!b.ok && ballMovedAt != null) || (ballMovedAt != null && t - ballMovedAt > 0.5 * slow)) ballOn = false; // rolled away
+        if (!b.ok && ballMovedAt != null) ballOn = false; // out of frame
+        if (ballMovedAt != null && t - ballMovedAt > 0.3 * slow) { // stopped?
+          const last = ball.slice(-stillN).filter(q => q.ok);
+          if (last.length >= stillN - 1) { const xs = last.map(q => q.x), ys = last.map(q => q.y); if (Math.max(...xs) - Math.min(...xs) < 1.5 * sx && Math.max(...ys) - Math.min(...ys) < 1.5 * sy) { ballOn = false; ball.stopped = true; } }
+        }
       }
       if (!moved && Math.hypot(r.x - hp.x, r.y - hp.y) > 0.012 * M) { moved = true; movedAt = t; }
       prog.value = i / nMax; status(`A seguir o putter${B ? ' e a bola' : ''}… ${Math.round(prog.value * 100)}%`);
       if (lost >= 8) break;
-      if (moved && head.length > stillN && (!ballOn || t - movedAt > 2.5 * slow)) { // stroke over: the putter has stopped
+      if (moved && head.length > stillN && (!ballOn || t - movedAt > 8 * slow)) { // stroke over: the putter has stopped
         const last = head.slice(-stillN).filter(p => p.ok);
         if (last.length >= stillN - 1) { const xs = last.map(p => p.x), ys = last.map(p => p.y); if (Math.max(...xs) - Math.min(...xs) < 2 * sx && Math.max(...ys) - Math.min(...ys) < 2 * sy) break; }
       }
