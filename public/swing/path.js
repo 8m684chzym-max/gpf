@@ -194,8 +194,8 @@ export function ballLaunch(pts, ball0, view, o) {
 // comes down steeply like a real ball flight. Returns n+1 points.
 export function tracerCurve(p0, dir, p2, n = 90) {
   const D = Math.hypot(p2.x - p0.x, p2.y - p0.y) || 1;
-  const c1 = { x: p0.x + dir.x * 0.55 * D, y: p0.y + dir.y * 0.55 * D };
-  const c2 = { x: p2.x - (p2.x - p0.x) * 0.15, y: Math.min(p2.y, c1.y) - 0.05 * D };
+  const c1 = { x: p0.x + dir.x * 0.8 * D, y: p0.y + dir.y * 0.8 * D };
+  const c2 = { x: p2.x - (p2.x - p0.x) * 0.1, y: Math.min(p2.y, c1.y) - 0.3 * D }; // apex above the landing point
   const out = [];
   for (let i = 0; i <= n; i++) { const s = i / n, a = (1 - s) ** 3, b = 3 * (1 - s) ** 2 * s, c = 3 * (1 - s) * s * s, d = s ** 3;
     out.push({ x: a * p0.x + b * c1.x + c * c2.x + d * p2.x, y: a * p0.y + b * c1.y + c * c2.y + d * p2.y }); }
